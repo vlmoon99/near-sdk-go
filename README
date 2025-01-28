@@ -1,3 +1,4 @@
 1. tinygo build -size short -o main.wasm -target wasm-unknown ./ 
+2. tinygo build -size short -no-debug -o main.wasm -target wasm-unknown ./ 
 2. near contract deploy testiktinygo.testnet use-file ./main.wasm with-init-call helloworld json-args {} prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' network-config testnet sign-with-legacy-keychain send
 3. 

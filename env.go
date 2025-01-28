@@ -38,6 +38,15 @@ func EnvReadRegister(registerID uint64) ([]byte, error) {
 	return buffer, nil
 }
 
+func LogString(inputBytes []byte) {
+
+	inputLength := uint64(len(inputBytes))
+
+	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
+
+	LogUtf8(inputLength, inputPtr)
+}
+
 func SmartContractInput() ([]byte, error) {
 	Input(AtomicOpRegister)
 	return EnvReadRegister(AtomicOpRegister)
