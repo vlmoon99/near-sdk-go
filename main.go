@@ -1,22 +1,19 @@
 package main
 
 import (
-	"encoding/base64"
 	"fmt"
-
-	"github.com/mr-tron/base58"
 )
-
-func encodeTestBase58(inputBytes []byte) string {
-	return base58.Encode(inputBytes)
-}
-
-func encodeTestBase64(inputBytes []byte) string {
-	return base64.StdEncoding.EncodeToString(inputBytes)
-}
 
 //go:export helloworld
 func helloworld() {
+	value, dataType, err := GetSmartContractInput()
+	if err != nil {
+		SmartContractLog("Error in input: " + err.Error())
+		return
+	}
+	SmartContractLog("dataType: " + dataType)
+	SmartContractLog("value: " + string(value))
+
 	accountID, err := GetCurrentAccountID()
 	if err != nil {
 		SmartContractLog("Error in GetCurrentAccountID: " + err.Error())

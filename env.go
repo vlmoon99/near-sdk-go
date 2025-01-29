@@ -2,8 +2,11 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"unsafe"
+
+	"github.com/buger/jsonparser"
 )
 
 // Error message when a register is expected to have data but does not.
@@ -147,7 +150,49 @@ func GetPredecessorAccountID() (string, error) {
 	return assertValidAccountId(data)
 }
 
-func GetSmartContractInput() ([]byte, error) {
-	Input(AtomicOpRegister)
-	return ReadRegisterSafe(AtomicOpRegister)
+func DetectInputType(decodedData []byte, keyPath ...string) ([]byte, string, error) {
+	value, dataType, _, err := jsonparser.Get(decodedData, keyPath...)
+
+	if err != nil {
+		if dataType == jsonparser.NotExist {
+			return nil, "not_exist", errors.New("key not found")
+		}
+		return nil, "unknown", fmt.Errorf("failed to parse input: %v", err)
+	}
+
+	switch dataType {
+	case jsonparser.String:
+		return value, "string", nil
+	case jsonparser.Number:
+		return value, "number", nil
+	case jsonparser.Boolean:
+		return value, "boolean", nil
+	case jsonparser.Array:
+		return value, "array", nil
+	case jsonparser.Object:
+		return value, "object", nil
+	case jsonparser.Null:
+		return nil, "null", nil
+	default:
+		return nil, "unknown", errors.New("unsupported data format")
+	}
+}
+
+func GetSmartContractInput() ([]byte, string, error) {
+
+	data, err := methodIntoRegister(func(registerID uint64) {
+		Input(registerID)
+	})
+	if err != nil {
+		SmartContractLog("Error in GetSmartContractInput: " + err.Error())
+		return nil, "", err
+	}
+
+	parsedData, detectedType, err := DetectInputType(data)
+	if err != nil {
+		SmartContractLog("Failed to detect input type: " + err.Error())
+		return nil, "", err
+	}
+
+	return parsedData, detectedType, nil
 }
