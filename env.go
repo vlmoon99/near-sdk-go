@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"math"
 	"unsafe"
 )
@@ -11,7 +13,7 @@ const RegisterExpectedErr = "Register was expected to have data because we just 
 // Register used internally for atomic operations. This register is safe to use by the user,
 // since it only needs to be untouched while methods of `Environment` execute, which is guaranteed
 // as guest code is not parallel.
-const AtomicOpRegister uint64 = math.MaxUint64 - 2
+const AtomicOpRegister uint64 = ^uint64(2)
 
 // Register used to record evicted values from the storage.
 const EvictedRegister uint64 = math.MaxUint64 - 1
@@ -25,20 +27,62 @@ const MinAccountIDLen uint64 = 2
 // The maximum length of a valid account ID.
 const MaxAccountIDLen uint64 = 64
 
-func EnvReadRegister(registerID uint64) ([]byte, error) {
-	len := RegisterLen(registerID)
-	if len == 0 {
-		return nil, nil
+func tryMethodIntoRegister(method func(uint64)) ([]byte, error) {
+	method(AtomicOpRegister)
+
+	return ReadRegisterSafe(AtomicOpRegister)
+}
+
+func methodIntoRegister(method func(uint64)) ([]byte, error) {
+	data, err := tryMethodIntoRegister(method)
+	if err != nil {
+		return nil, err
+	}
+	if len(data) == 0 {
+		return nil, errors.New("expected data in register, but found none")
+	}
+	return data, nil
+}
+
+func ReadRegisterSafe(registerId uint64) ([]byte, error) {
+	length := RegisterLen(registerId)
+	if length == 0 {
+		return []byte{}, errors.New("expected data in register, but found none")
 	}
 
-	buffer := make([]byte, len)
+	buffer := make([]byte, length)
 
-	ReadRegister(registerID, *(*uint64)(unsafe.Pointer(&buffer[0])))
+	ptr := uint64(uintptr(unsafe.Pointer(&buffer[0])))
+
+	ReadRegister(registerId, ptr)
 
 	return buffer, nil
 }
 
-func LogString(inputBytes []byte) {
+func WriteRegisterSafe(registerId uint64, data []byte) {
+	if len(data) == 0 {
+		return
+	}
+
+	ptr := uint64(uintptr(unsafe.Pointer(&data[0])))
+
+	WriteRegister(registerId, uint64(len(data)), ptr)
+}
+
+func SmartContractLog(input string) {
+	inputBytes := []byte(input)
+	inputLength := uint64(len(inputBytes))
+
+	if inputLength == 0 {
+		return
+	}
+
+	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
+
+	LogUtf8(inputLength, inputPtr)
+}
+
+func LogStringUtf8(inputBytes []byte) {
 
 	inputLength := uint64(len(inputBytes))
 
@@ -47,7 +91,89 @@ func LogString(inputBytes []byte) {
 	LogUtf8(inputLength, inputPtr)
 }
 
-func SmartContractInput() ([]byte, error) {
+func LogStringUtf16(inputBytes []byte) {
+
+	inputLength := uint64(len(inputBytes))
+
+	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
+
+	LogUtf16(inputLength, inputPtr)
+}
+
+func assertValidAccountId(data []byte) (string, error) {
+	if len(data) == 0 {
+		return "", errors.New("invalid account ID")
+	}
+	return string(data), nil
+}
+
+func logByteData(prefix string, data []byte) {
+	SmartContractLog(prefix + " - Len: " + fmt.Sprintf("%d", len(data)))
+
+	rawBytes := []string{}
+
+	for _, b := range data {
+		rawBytes = append(rawBytes, fmt.Sprintf("%d", b))
+	}
+	SmartContractLog(prefix + " (raw bytes): [" + fmt.Sprintf("%s", rawBytes) + "]")
+
+	SmartContractLog(prefix + " (string): " + string(data))
+
+}
+
+func GetCurrentAccountID() (string, error) {
+	CurrentAccountId(AtomicOpRegister)
+	data, err := methodIntoRegister(func(registerID uint64) { CurrentAccountId(registerID) })
+	if err != nil {
+		SmartContractLog("Error in GetCurrentAccountID: " + err.Error())
+		return "", err
+	}
+
+	// Log byte data with its length
+	logByteData("GetCurrentAccountID", data)
+
+	return assertValidAccountId(data)
+}
+
+func GetSignerAccountID() (string, error) {
+	data, err := methodIntoRegister(func(registerID uint64) { SignerAccountId(registerID) })
+	if err != nil {
+		SmartContractLog("Error in GetSignerAccountID: " + err.Error())
+		return "", err
+	}
+
+	// Log byte data with its length
+	logByteData("GetSignerAccountID", data)
+
+	return assertValidAccountId(data)
+}
+
+func GetSignerAccountPK() ([]byte, error) {
+	data, err := methodIntoRegister(func(registerID uint64) { SignerAccountPk(registerID) })
+	if err != nil {
+		SmartContractLog("Error in GetSignerAccountPK: " + err.Error())
+		return nil, err
+	}
+
+	logByteData("GetSignerAccountPK", data)
+
+	return data, nil
+}
+
+func GetPredecessorAccountID() (string, error) {
+	data, err := methodIntoRegister(func(registerID uint64) { PredecessorAccountId(registerID) })
+	if err != nil {
+		SmartContractLog("Error in GetPredecessorAccountID: " + err.Error())
+		return "", err
+	}
+
+	// Log byte data with its length
+	logByteData("GetPredecessorAccountID", data)
+
+	return assertValidAccountId(data)
+}
+
+func GetSmartContractInput() ([]byte, error) {
 	Input(AtomicOpRegister)
-	return EnvReadRegister(AtomicOpRegister)
+	return ReadRegisterSafe(AtomicOpRegister)
 }
