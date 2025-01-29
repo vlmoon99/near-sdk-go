@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/base64"
+	"fmt"
 
 	"github.com/mr-tron/base58"
 )
@@ -37,13 +38,13 @@ func helloworld() {
 	}
 	SmartContractLog("PredecessorAccountID: " + predecessorID)
 
-	// signerPK, err := GetSignerAccountPK()
-	// if err != nil {
-	// 	SmartContractLog("Error in GetSignerAccountPK: " + err.Error())
-	// 	return
-	// }
+	signerPK, err := GetSignerAccountPK()
+	if err != nil {
+		SmartContractLog("Error in GetSignerAccountPK: " + err.Error())
+		return
+	}
 
-	// SmartContractLog(" GetSignerAccountPK - Len: " + fmt.Sprintf("%d", len(signerPK)))
+	SmartContractLog(" GetSignerAccountPK - Len: " + fmt.Sprintf("%d", len(signerPK)))
 
 }
 

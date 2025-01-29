@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"math"
 	"unsafe"
 )
@@ -107,20 +106,6 @@ func assertValidAccountId(data []byte) (string, error) {
 	return string(data), nil
 }
 
-func logByteData(prefix string, data []byte) {
-	SmartContractLog(prefix + " - Len: " + fmt.Sprintf("%d", len(data)))
-
-	rawBytes := []string{}
-
-	for _, b := range data {
-		rawBytes = append(rawBytes, fmt.Sprintf("%d", b))
-	}
-	SmartContractLog(prefix + " (raw bytes): [" + fmt.Sprintf("%s", rawBytes) + "]")
-
-	SmartContractLog(prefix + " (string): " + string(data))
-
-}
-
 func GetCurrentAccountID() (string, error) {
 	CurrentAccountId(AtomicOpRegister)
 	data, err := methodIntoRegister(func(registerID uint64) { CurrentAccountId(registerID) })
@@ -128,9 +113,6 @@ func GetCurrentAccountID() (string, error) {
 		SmartContractLog("Error in GetCurrentAccountID: " + err.Error())
 		return "", err
 	}
-
-	// Log byte data with its length
-	logByteData("GetCurrentAccountID", data)
 
 	return assertValidAccountId(data)
 }
@@ -142,9 +124,6 @@ func GetSignerAccountID() (string, error) {
 		return "", err
 	}
 
-	// Log byte data with its length
-	logByteData("GetSignerAccountID", data)
-
 	return assertValidAccountId(data)
 }
 
@@ -155,8 +134,6 @@ func GetSignerAccountPK() ([]byte, error) {
 		return nil, err
 	}
 
-	logByteData("GetSignerAccountPK", data)
-
 	return data, nil
 }
 
@@ -166,9 +143,6 @@ func GetPredecessorAccountID() (string, error) {
 		SmartContractLog("Error in GetPredecessorAccountID: " + err.Error())
 		return "", err
 	}
-
-	// Log byte data with its length
-	logByteData("GetPredecessorAccountID", data)
 
 	return assertValidAccountId(data)
 }
