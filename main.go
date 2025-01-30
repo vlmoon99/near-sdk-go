@@ -2,46 +2,26 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 )
 
 //go:export helloworld
 func helloworld() {
-	value, dataType, err := GetSmartContractInput()
-	if err != nil {
-		SmartContractLog("Error in input: " + err.Error())
-		return
-	}
-	SmartContractLog("dataType: " + dataType)
-	SmartContractLog("value: " + string(value))
+	accountBalance := GetAccountBalance()
 
-	accountID, err := GetCurrentAccountID()
-	if err != nil {
-		SmartContractLog("Error in GetCurrentAccountID: " + err.Error())
-		return
-	}
-	SmartContractLog("CurrentAccountID: " + accountID)
+	LogString("Default format hex:" + accountBalance.String())
 
-	signerID, err := GetSignerAccountID()
-	if err != nil {
-		SmartContractLog("Error in GetSignerAccountID: " + err.Error())
-		return
-	}
-	SmartContractLog("SignerAccountID: " + signerID)
+	// Convert Hi and Lo parts to strings using strconv.FormatUint
+	hiStr := strconv.FormatUint(accountBalance.Hi, 10)
+	loStr := strconv.FormatUint(accountBalance.Lo, 10)
 
-	predecessorID, err := GetPredecessorAccountID()
-	if err != nil {
-		SmartContractLog("Error in GetPredecessorAccountID: " + err.Error())
-		return
-	}
-	SmartContractLog("PredecessorAccountID: " + predecessorID)
+	// Concatenate the strings
+	decimalStr := hiStr + loStr
 
-	signerPK, err := GetSignerAccountPK()
-	if err != nil {
-		SmartContractLog("Error in GetSignerAccountPK: " + err.Error())
-		return
-	}
-
-	SmartContractLog(" GetSignerAccountPK - Len: " + fmt.Sprintf("%d", len(signerPK)))
+	LogString("Default format hex: " + accountBalance.String())
+	LogString("Decimal value: " + fmt.Sprintf("%s", decimalStr))
+	LogString("hiStr value: " + fmt.Sprintf("%s", hiStr))
+	LogString("loStr value: " + fmt.Sprintf("%s", loStr))
 
 }
 
