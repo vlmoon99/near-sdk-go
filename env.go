@@ -252,36 +252,38 @@ func LogStringUtf16(inputBytes []byte) {
 
 // Economics API
 
-//	pub fn account_balance() -> NearToken {
-//	    let data = [0u8; size_of::<NearToken>()];
-//	    unsafe { sys::account_balance(data.as_ptr() as u64) };
-//	    NearToken::from_yoctonear(u128::from_le_bytes(data))
-//	}
-//
-
 func GetAccountBalance() Uint128 {
 	var data [16]byte
 	AccountBalance(uint64(uintptr(unsafe.Pointer(&data[0]))))
-	accountBalance := FromBytes(data[:])
+	accountBalance := LoadUint128LE(data[:])
 	return accountBalance
 }
 
-// pub fn account_locked_balance() -> NearToken {
-//     let data = [0u8; size_of::<NearToken>()];
-//     unsafe { sys::account_locked_balance(data.as_ptr() as u64) };
-//     NearToken::from_yoctonear(u128::from_le_bytes(data))
-// }
-// pub fn attached_deposit() -> NearToken {
-//     let data = [0u8; size_of::<NearToken>()];
-//     unsafe { sys::attached_deposit(data.as_ptr() as u64) };
-//     NearToken::from_yoctonear(u128::from_le_bytes(data))
-// }
-// pub fn prepaid_gas() -> Gas {
-//     Gas::from_gas(unsafe { sys::prepaid_gas() })
-// }
-// pub fn used_gas() -> Gas {
-//     Gas::from_gas(unsafe { sys::used_gas() })
-// }
+func GetAccountLockedBalance() Uint128 {
+	var data [16]byte
+	AccountLockedBalance(uint64(uintptr(unsafe.Pointer(&data[0]))))
+	accountBalance := LoadUint128LE(data[:])
+	return accountBalance
+}
+
+func GetAttachedDepoist() Uint128 {
+	var data [16]byte
+	AttachedDeposit(uint64(uintptr(unsafe.Pointer(&data[0]))))
+	accountBalance := LoadUint128LE(data[:])
+	return accountBalance
+}
+
+func GetPrepaidGas() NearGas {
+	return NearGas{PrepaidGas()}
+}
+
+func GetUsedGas() NearGas {
+	return NearGas{UsedGas()}
+}
+
+// ###############
+// # Math API #
+// ###############
 // pub fn random_seed() -> Vec<u8> {
 //     random_seed_array().to_vec()
 // }
