@@ -2,11 +2,8 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"math"
 	"unsafe"
-
-	"github.com/buger/jsonparser"
 )
 
 // Error message when a register is expected to have data but does not.
@@ -146,40 +143,40 @@ func GetStorageUsage() uint64 {
 }
 
 func detectInputType(decodedData []byte, keyPath ...string) ([]byte, string, error) {
-	value, dataType, _, err := jsonparser.Get(decodedData, keyPath...)
+	value, dataType, _, err := Get(decodedData, keyPath...)
 
 	if err != nil {
-		if dataType == jsonparser.NotExist {
+		if dataType == NotExist {
 			return nil, "not_exist", errors.New("key not found")
 		}
-		return nil, "unknown", fmt.Errorf("failed to parse input: %v", err)
+		return nil, "unknown", errors.New("failed to parse input")
 	}
 
 	switch dataType {
-	case jsonparser.String:
+	case String:
 		return value, "string", nil
-	case jsonparser.Number:
+	case Number:
 		return value, "number", nil
-	case jsonparser.Boolean:
+	case Boolean:
 		return value, "boolean", nil
-	case jsonparser.Array:
+	case Array:
 		return value, "array", nil
-	case jsonparser.Object:
+	case Object:
 		return value, "object", nil
-	case jsonparser.Null:
+	case Null:
 		return nil, "null", nil
 	default:
 		return nil, "unknown", errors.New("unsupported data format")
 	}
 }
 
-func GetSmartContractInput() ([]byte, string, error) {
+func ContractInput() ([]byte, string, error) {
 
 	data, err := methodIntoRegister(func(registerID uint64) {
 		Input(registerID)
 	})
 	if err != nil {
-		LogString("Error in GetSmartContractInput: " + err.Error())
+		LogString("Error in GetContractInput: " + err.Error())
 		return nil, "", err
 	}
 
@@ -196,7 +193,7 @@ func GetSmartContractInput() ([]byte, string, error) {
 
 // Miscellaneous API
 
-func SmartContractValueReturn(inputBytes []byte) {
+func ContractValueReturn(inputBytes []byte) {
 	ValueReturn(uint64(len(inputBytes)), uint64(uintptr(unsafe.Pointer(&inputBytes[0]))))
 }
 
@@ -281,6 +278,126 @@ func GetUsedGas() NearGas {
 	return NearGas{UsedGas()}
 }
 
+// ###############
+// # Storage API #
+// ###############
+
+// pub fn storage_write(key: &[u8], value: &[u8]) -> bool {
+//     match unsafe {
+//         sys::storage_write(
+//             key.len() as _,
+//             key.as_ptr() as _,
+//             value.len() as _,
+//             value.as_ptr() as _,
+//             EVICTED_REGISTER,
+//         )
+//     } {
+//         0 => false,
+//         1 => true,
+//         _ => abort(),
+//     }
+// }
+
+func ContractStorageWrite(key, value []byte) (bool, error) {
+	if len(key) == 0 || len(value) == 0 {
+		return false, errors.New("key not found")
+	}
+
+	keyLen := uint64(len(key))
+	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
+
+	valueLen := uint64(len(value))
+	valuePtr := uint64(uintptr(unsafe.Pointer(&value[0])))
+
+	result := StorageWrite(keyLen, keyPtr, valueLen, valuePtr, EvictedRegister)
+	if result == 0 {
+		return false, errors.New("Failed to Write value in the storage by provided key")
+	}
+
+	return true, nil
+}
+
+// Rust reference
+//
+//	pub fn storage_read(key: &[u8]) -> Option<Vec<u8>> {
+//	    match unsafe { sys::storage_read(key.len() as _, key.as_ptr() as _, ATOMIC_OP_REGISTER) } {
+//	        0 => None,
+//	        1 => Some(expect_register(read_register(ATOMIC_OP_REGISTER))),
+//	        _ => abort(),
+//	    }
+//	}
+//
+
+func ContractStorageRead(key []byte) ([]byte, error) {
+	if len(key) == 0 {
+		return nil, errors.New("key is empty")
+	}
+	keyLen := uint64(len(key))
+	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
+	result := StorageRead(keyLen, keyPtr, EvictedRegister)
+
+	if result == 0 {
+		return nil, errors.New("Failed to Read the key")
+	}
+
+	value, err := readRegisterSafe(EvictedRegister)
+	if err != nil {
+		return nil, errors.New("Failed to Read Register")
+	}
+
+	return value, nil
+}
+
+//Rust reference
+// pub fn storage_remove(key: &[u8]) -> bool {
+//     match unsafe { sys::storage_remove(key.len() as _, key.as_ptr() as _, EVICTED_REGISTER) } {
+//         0 => false,
+//         1 => true,
+//         _ => abort(),
+//     }
+// }
+//GO System method
+//Impl of GO method write here
+
+//Rust reference
+// pub fn storage_get_evicted() -> Option<Vec<u8>> {
+//     read_register(EVICTED_REGISTER)
+// }
+//GO System method
+//Impl of GO method write here
+
+//Rust reference
+// pub fn storage_has_key(key: &[u8]) -> bool {
+//     match unsafe { sys::storage_has_key(key.len() as _, key.as_ptr() as _) } {
+//         0 => false,
+//         1 => true,
+//         _ => abort(),
+//     }
+// }
+//GO System method
+//Impl of GO method write here
+
+// ############################################
+// # Saving and loading of the contract state #
+// ############################################
+/// Load the state of the given object.
+// pub fn state_read<T: borsh::BorshDeserialize>() -> Option<T> {
+//     storage_read(STATE_KEY).map(|data| {
+//         T::try_from_slice(&data)
+//             .unwrap_or_else(|_| panic_str("Cannot deserialize the contract state."))
+//     })
+// }
+// pub fn state_write<T: borsh::BorshSerialize>(state: &T) {
+//     let data = match borsh::to_vec(state) {
+//         Ok(serialized) => serialized,
+//         Err(_) => panic_str("Cannot serialize the contract state."),
+//     };
+//     storage_write(STATE_KEY, &data);
+// }
+// pub fn state_exists() -> bool {
+//     storage_has_key(STATE_KEY)
+// }
+//
 // ###############
 // # Math API #
 // ###############
@@ -397,74 +514,4 @@ func GetUsedGas() NearGas {
 // }
 // pub fn alt_bn128_pairing_check(value: &[u8]) -> bool {
 //     unsafe { sys::alt_bn128_pairing_check(value.len() as _, value.as_ptr() as _) == 1 }
-// }
-// ###############
-// # Storage API #
-// ###############
-
-// pub fn storage_write(key: &[u8], value: &[u8]) -> bool {
-//     match unsafe {
-//         sys::storage_write(
-//             key.len() as _,
-//             key.as_ptr() as _,
-//             value.len() as _,
-//             value.as_ptr() as _,
-//             EVICTED_REGISTER,
-//         )
-//     } {
-//         0 => false,
-//         1 => true,
-//         _ => abort(),
-//     }
-// }
-// pub fn storage_read(key: &[u8]) -> Option<Vec<u8>> {
-//     match unsafe { sys::storage_read(key.len() as _, key.as_ptr() as _, ATOMIC_OP_REGISTER) } {
-//         0 => None,
-//         1 => Some(expect_register(read_register(ATOMIC_OP_REGISTER))),
-//         _ => abort(),
-//     }
-// }
-// pub fn storage_remove(key: &[u8]) -> bool {
-//     match unsafe { sys::storage_remove(key.len() as _, key.as_ptr() as _, EVICTED_REGISTER) } {
-//         0 => false,
-//         1 => true,
-//         _ => abort(),
-//     }
-// }
-// pub fn storage_get_evicted() -> Option<Vec<u8>> {
-//     read_register(EVICTED_REGISTER)
-// }
-// pub fn storage_has_key(key: &[u8]) -> bool {
-//     match unsafe { sys::storage_has_key(key.len() as _, key.as_ptr() as _) } {
-//         0 => false,
-//         1 => true,
-//         _ => abort(),
-//     }
-// }
-
-// ############################################
-// # Saving and loading of the contract state #
-// ############################################
-/// Load the state of the given object.
-// pub fn state_read<T: borsh::BorshDeserialize>() -> Option<T> {
-//     storage_read(STATE_KEY).map(|data| {
-//         T::try_from_slice(&data)
-//             .unwrap_or_else(|_| panic_str("Cannot deserialize the contract state."))
-//     })
-// }
-// pub fn state_write<T: borsh::BorshSerialize>(state: &T) {
-//     let data = match borsh::to_vec(state) {
-//         Ok(serialized) => serialized,
-//         Err(_) => panic_str("Cannot serialize the contract state."),
-//     };
-//     storage_write(STATE_KEY, &data);
-// }
-// pub fn state_exists() -> bool {
-//     storage_has_key(STATE_KEY)
-// }
-// #####################################
-// # Parameters exposed by the runtime #
-// #####################################
-// pub fn storage_byte_cost() -> NearToken {
-//     NearToken::from_yoctonear(10_000_000_000_000_000_000u128)
 // }

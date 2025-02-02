@@ -118,3 +118,55 @@ const (
 )
 
 //Near Gas
+
+//Serializer
+
+// type Person struct {
+// 	Name  string
+// 	Age   int
+// 	Email string
+// }
+
+// // SerializeToJSON converts the struct to a JSON byte slice
+// func (p *Person) SerializeToJSON() []byte {
+// 	// Manually construct the JSON string as a byte slice
+// 	jsonData := []byte(`{"name":"`)
+// 	jsonData = append(jsonData, p.Name...)
+// 	jsonData = append(jsonData, `","age":`...)
+// 	jsonData = append(jsonData, intToBytes(p.Age)...)
+// 	jsonData = append(jsonData, `,"email":"`...)
+// 	jsonData = append(jsonData, p.Email...)
+// 	jsonData = append(jsonData, `"}`...)
+// 	return jsonData
+// }
+
+// // DeserializeFromJSON populates the struct from a JSON byte slice
+// func (p *Person) DeserializeFromJSON(data []byte) error {
+// 	// Use jsonparser to extract fields from the JSON data
+// 	name, err := GetString(data, "name")
+// 	if err != nil {
+// 		return err
+// 	}
+// 	p.Name = name
+
+// 	age, err := GetInt(data, "age")
+// 	if err != nil {
+// 		return err
+// 	}
+// 	p.Age = int(age)
+
+// 	email, err := GetString(data, "email")
+// 	if err != nil {
+// 		return err
+// 	}
+// 	p.Email = email
+
+// 	return nil
+// }
+
+// // ToRawBytes converts the struct to raw bytes (JSON in this case)
+// func (p *Person) ToRawBytes() []byte {
+// 	return p.SerializeToJSON()
+// }
+
+// // Helper function to convert an integer to a byte slice
