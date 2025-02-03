@@ -94,6 +94,12 @@ func FromFloat64(value float64) Uint128 {
 	lo := uint64(value)
 	return Uint128{Hi: hi, Lo: lo}
 }
+func BoolToUnit(b bool) uint64 {
+	if b {
+		return 1
+	}
+	return 0
+}
 
 func (u Uint128) ToFloat64() float64 {
 	value := float64(u.Hi)*(1<<64) + float64(u.Lo)

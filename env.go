@@ -278,26 +278,7 @@ func GetUsedGas() NearGas {
 	return NearGas{UsedGas()}
 }
 
-// ###############
-// # Storage API #
-// ###############
-
-// pub fn storage_write(key: &[u8], value: &[u8]) -> bool {
-//     match unsafe {
-//         sys::storage_write(
-//             key.len() as _,
-//             key.as_ptr() as _,
-//             value.len() as _,
-//             value.as_ptr() as _,
-//             EVICTED_REGISTER,
-//         )
-//     } {
-//         0 => false,
-//         1 => true,
-//         _ => abort(),
-//     }
-// }
-
+// Storage API
 func ContractStorageWrite(key, value []byte) (bool, error) {
 	if len(key) == 0 || len(value) == 0 {
 		return false, errors.New("key not found")
@@ -316,17 +297,6 @@ func ContractStorageWrite(key, value []byte) (bool, error) {
 
 	return true, nil
 }
-
-// Rust reference
-//
-//	pub fn storage_read(key: &[u8]) -> Option<Vec<u8>> {
-//	    match unsafe { sys::storage_read(key.len() as _, key.as_ptr() as _, ATOMIC_OP_REGISTER) } {
-//	        0 => None,
-//	        1 => Some(expect_register(read_register(ATOMIC_OP_REGISTER))),
-//	        _ => abort(),
-//	    }
-//	}
-//
 
 func ContractStorageRead(key []byte) ([]byte, error) {
 	if len(key) == 0 {
@@ -348,140 +318,144 @@ func ContractStorageRead(key []byte) ([]byte, error) {
 	return value, nil
 }
 
-//Rust reference
-// pub fn storage_remove(key: &[u8]) -> bool {
-//     match unsafe { sys::storage_remove(key.len() as _, key.as_ptr() as _, EVICTED_REGISTER) } {
-//         0 => false,
-//         1 => true,
-//         _ => abort(),
-//     }
-// }
-//GO System method
-//Impl of GO method write here
+func ContractStorageRemove(key []byte) (bool, error) {
+	if len(key) == 0 {
+		return false, errors.New("key is empty")
+	}
 
-//Rust reference
-// pub fn storage_get_evicted() -> Option<Vec<u8>> {
-//     read_register(EVICTED_REGISTER)
-// }
-//GO System method
-//Impl of GO method write here
+	keyLen := uint64(len(key))
+	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
 
-//Rust reference
-// pub fn storage_has_key(key: &[u8]) -> bool {
-//     match unsafe { sys::storage_has_key(key.len() as _, key.as_ptr() as _) } {
-//         0 => false,
-//         1 => true,
-//         _ => abort(),
-//     }
-// }
-//GO System method
-//Impl of GO method write here
+	result := StorageRemove(keyLen, keyPtr, EvictedRegister)
+	if result == 0 {
+		return false, nil
+	}
 
-// ############################################
-// # Saving and loading of the contract state #
-// ############################################
-/// Load the state of the given object.
-// pub fn state_read<T: borsh::BorshDeserialize>() -> Option<T> {
-//     storage_read(STATE_KEY).map(|data| {
-//         T::try_from_slice(&data)
-//             .unwrap_or_else(|_| panic_str("Cannot deserialize the contract state."))
-//     })
-// }
-// pub fn state_write<T: borsh::BorshSerialize>(state: &T) {
-//     let data = match borsh::to_vec(state) {
-//         Ok(serialized) => serialized,
-//         Err(_) => panic_str("Cannot serialize the contract state."),
-//     };
-//     storage_write(STATE_KEY, &data);
-// }
-// pub fn state_exists() -> bool {
-//     storage_has_key(STATE_KEY)
-// }
-//
-// ###############
-// # Math API #
-// ###############
-// pub fn random_seed() -> Vec<u8> {
-//     random_seed_array().to_vec()
-// }
-// pub fn random_seed_array() -> [u8; 32] {
-//     //* SAFETY: random_seed syscall will always generate 32 bytes inside of the atomic op register
-//     //*         so the read will have a sufficient buffer of 32, and can transmute from uninit
-//     //*         because all bytes are filled. This assumes a valid random_seed implementation.
-//     unsafe {
-//         sys::random_seed(ATOMIC_OP_REGISTER);
-//         read_register_fixed_32(ATOMIC_OP_REGISTER)
-//     }
-// }
-// pub fn sha256(value: &[u8]) -> Vec<u8> {
-//     sha256_array(value).to_vec()
-// }
-// pub fn keccak256(value: &[u8]) -> Vec<u8> {
-//     keccak256_array(value).to_vec()
-// }
-// pub fn keccak512(value: &[u8]) -> Vec<u8> {
-//     keccak512_array(value).to_vec()
-// }
-// pub fn sha256_array(value: &[u8]) -> [u8; 32] {
-//     //* SAFETY: sha256 syscall will always generate 32 bytes inside of the atomic op register
-//     //*         so the read will have a sufficient buffer of 32, and can transmute from uninit
-//     //*         because all bytes are filled. This assumes a valid sha256 implementation.
-//     unsafe {
-//         sys::sha256(value.len() as _, value.as_ptr() as _, ATOMIC_OP_REGISTER);
-//         read_register_fixed_32(ATOMIC_OP_REGISTER)
-//     }
-// }
-// pub fn keccak256_array(value: &[u8]) -> [u8; 32] {
-//     //* SAFETY: keccak256 syscall will always generate 32 bytes inside of the atomic op register
-//     //*         so the read will have a sufficient buffer of 32, and can transmute from uninit
-//     //*         because all bytes are filled. This assumes a valid keccak256 implementation.
-//     unsafe {
-//         sys::keccak256(value.len() as _, value.as_ptr() as _, ATOMIC_OP_REGISTER);
-//         read_register_fixed_32(ATOMIC_OP_REGISTER)
-//     }
-// }
-// pub fn keccak512_array(value: &[u8]) -> [u8; 64] {
-//     //* SAFETY: keccak512 syscall will always generate 64 bytes inside of the atomic op register
-//     //*         so the read will have a sufficient buffer of 64, and can transmute from uninit
-//     //*         because all bytes are filled. This assumes a valid keccak512 implementation.
-//     unsafe {
-//         sys::keccak512(value.len() as _, value.as_ptr() as _, ATOMIC_OP_REGISTER);
-//         read_register_fixed_64(ATOMIC_OP_REGISTER)
-//     }
-// }
-// pub fn ripemd160_array(value: &[u8]) -> [u8; 20] {
-//     //* SAFETY: ripemd160 syscall will always generate 20 bytes inside of the atomic op register
-//     //*         so the read will have a sufficient buffer of 20, and can transmute from uninit
-//     //*         because all bytes are filled. This assumes a valid ripemd160 implementation.
-//     unsafe {
-//         sys::ripemd160(value.len() as _, value.as_ptr() as _, ATOMIC_OP_REGISTER);
-//         read_register_fixed_20(ATOMIC_OP_REGISTER)
-//     }
-// }
-// #[cfg(feature = "unstable")]
-// pub fn ecrecover(
-//     hash: &[u8],
-//     signature: &[u8],
-//     v: u8,
-//     malleability_flag: bool,
-// ) -> Option<[u8; 64]> {
-//     unsafe {
-//         let return_code = sys::ecrecover(
-//             hash.len() as _,
-//             hash.as_ptr() as _,
-//             signature.len() as _,
-//             signature.as_ptr() as _,
-//             v as u64,
-//             malleability_flag as u64,
-//             ATOMIC_OP_REGISTER,
-//         );
-//         if return_code == 0 {
-//             None
-//         } else {
-//             Some(read_register_fixed_64(ATOMIC_OP_REGISTER))
-//         }
-//     }
-// }
+	return true, nil
+}
+
+func ContractStorageGetEvicted() ([]byte, error) {
+	value, err := readRegisterSafe(EvictedRegister)
+	if err != nil {
+		return nil, errors.New("failed to read evicted register")
+	}
+
+	return value, nil
+}
+
+func ContractStorageHasKey(key []byte) (bool, error) {
+	if len(key) == 0 {
+		return false, errors.New("key is empty")
+	}
+
+	keyLen := uint64(len(key))
+	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
+
+	result := StorageHasKey(keyLen, keyPtr)
+	return result == 1, nil
+}
+
+func StateRead() ([]byte, error) {
+	keyLen := uint64(len(StateKey))
+	keyPtr := uint64(uintptr(unsafe.Pointer(&StateKey[0])))
+
+	result := StorageRead(keyLen, keyPtr, 0)
+	if result == 0 {
+		return nil, errors.New("state not found")
+	}
+
+	data, err := readRegisterSafe(0)
+	if err != nil {
+		return nil, errors.New("failed to read register")
+	}
+
+	return data, nil
+}
+
+func StateWrite(data []byte) error {
+
+	keyLen := uint64(len(StateKey))
+	keyPtr := uint64(uintptr(unsafe.Pointer(&StateKey[0])))
+
+	valueLen := uint64(len(data))
+	valuePtr := uint64(uintptr(unsafe.Pointer(&data[0])))
+
+	result := StorageWrite(keyLen, keyPtr, valueLen, valuePtr, 0)
+	if result == 0 {
+		return errors.New("failed to write state to storage")
+	}
+
+	return nil
+}
+
+func StateExists() bool {
+	keyLen := uint64(len(StateKey))
+	keyPtr := uint64(uintptr(unsafe.Pointer(&StateKey[0])))
+
+	result := StorageHasKey(keyLen, keyPtr)
+	return result == 1
+}
+
+// Storage API
+
+// Math API
+
+// Get random seed
+func GetRandomSeed() ([]byte, error) {
+	RandomSeed(AtomicOpRegister)
+	return readRegisterSafe(AtomicOpRegister)
+}
+
+// Hashing functions
+func Sha256Hash(data []byte) ([]byte, error) {
+	Sha256(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), AtomicOpRegister)
+	return readRegisterSafe(AtomicOpRegister)
+}
+
+func Keccak256Hash(data []byte) ([]byte, error) {
+	Keccak256(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), AtomicOpRegister)
+	return readRegisterSafe(AtomicOpRegister)
+}
+
+func Keccak512Hash(data []byte) ([]byte, error) {
+	Keccak512(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), AtomicOpRegister)
+	return readRegisterSafe(AtomicOpRegister)
+}
+
+func Ripemd160Hash(data []byte) ([]byte, error) {
+	Ripemd160(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), AtomicOpRegister)
+	return readRegisterSafe(AtomicOpRegister)
+}
+
+// TODO Google it
+func EcrecoverPubKey(hash, signature []byte, v byte, malleabilityFlag bool) ([]byte, error) {
+	if len(hash) == 0 || len(signature) == 0 {
+		return nil, errors.New("invalid input: hash and signature must not be empty")
+	}
+
+	result := Ecrecover(
+		uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))),
+		uint64(len(signature)), uint64(uintptr(unsafe.Pointer(&signature[0]))),
+		uint64(v), BoolToUnit(malleabilityFlag), AtomicOpRegister,
+	)
+
+	if result == 0 {
+		return nil, errors.New("Ecrecover failed")
+	}
+
+	return readRegisterSafe(AtomicOpRegister)
+}
+
+func Ed25519VerifySig(signature [64]byte, message []byte, publicKey [32]byte) bool {
+	result := Ed25519Verify(
+		uint64(len(signature)), uint64(uintptr(unsafe.Pointer(&signature[0]))),
+		uint64(len(message)), uint64(uintptr(unsafe.Pointer(&message[0]))),
+		uint64(len(publicKey)), uint64(uintptr(unsafe.Pointer(&publicKey[0]))),
+	)
+
+	return result == 1
+}
+
 // pub fn ed25519_verify(signature: &[u8; 64], message: &[u8], public_key: &[u8; 32]) -> bool {
 //     unsafe {
 //         sys::ed25519_verify(
