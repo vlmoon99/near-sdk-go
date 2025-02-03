@@ -89,11 +89,13 @@ func FromString(str string) Uint128 {
 	lo := uint64(value)
 	return Uint128{Hi: hi, Lo: lo}
 }
+
 func FromFloat64(value float64) Uint128 {
 	hi := uint64(value / (1 << 64))
 	lo := uint64(value)
 	return Uint128{Hi: hi, Lo: lo}
 }
+
 func BoolToUnit(b bool) uint64 {
 	if b {
 		return 1

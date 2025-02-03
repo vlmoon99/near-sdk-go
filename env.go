@@ -400,13 +400,11 @@ func StateExists() bool {
 
 // Math API
 
-// Get random seed
 func GetRandomSeed() ([]byte, error) {
 	RandomSeed(AtomicOpRegister)
 	return readRegisterSafe(AtomicOpRegister)
 }
 
-// Hashing functions
 func Sha256Hash(data []byte) ([]byte, error) {
 	Sha256(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), AtomicOpRegister)
 	return readRegisterSafe(AtomicOpRegister)
@@ -427,7 +425,6 @@ func Ripemd160Hash(data []byte) ([]byte, error) {
 	return readRegisterSafe(AtomicOpRegister)
 }
 
-// TODO Google it
 func EcrecoverPubKey(hash, signature []byte, v byte, malleabilityFlag bool) ([]byte, error) {
 	if len(hash) == 0 || len(signature) == 0 {
 		return nil, errors.New("invalid input: hash and signature must not be empty")
@@ -456,36 +453,40 @@ func Ed25519VerifySig(signature [64]byte, message []byte, publicKey [32]byte) bo
 	return result == 1
 }
 
-// pub fn ed25519_verify(signature: &[u8; 64], message: &[u8], public_key: &[u8; 32]) -> bool {
-//     unsafe {
-//         sys::ed25519_verify(
-//             signature.len() as _,
-//             signature.as_ptr() as _,
-//             message.len() as _,
-//             message.as_ptr() as _,
-//             public_key.len() as _,
-//             public_key.as_ptr() as _,
-//         ) == 1
-//     }
-// }
-// pub fn alt_bn128_g1_multiexp(value: &[u8]) -> Vec<u8> {
-//     unsafe {
-//         sys::alt_bn128_g1_multiexp(value.len() as _, value.as_ptr() as _, ATOMIC_OP_REGISTER);
-//     };
-//     match read_register(ATOMIC_OP_REGISTER) {
-//         Some(result) => result,
-//         None => panic_str(REGISTER_EXPECTED_ERR),
-//     }
-// }
-// pub fn alt_bn128_g1_sum(value: &[u8]) -> Vec<u8> {
-//     unsafe {
-//         sys::alt_bn128_g1_sum(value.len() as _, value.as_ptr() as _, ATOMIC_OP_REGISTER);
-//     };
-//     match read_register(ATOMIC_OP_REGISTER) {
-//         Some(result) => result,
-//         None => panic_str(REGISTER_EXPECTED_ERR),
-//     }
-// }
-// pub fn alt_bn128_pairing_check(value: &[u8]) -> bool {
-//     unsafe { sys::alt_bn128_pairing_check(value.len() as _, value.as_ptr() as _) == 1 }
-// }
+func AltBn128G1MultiExp(value []byte) ([]byte, error) {
+	AltBn128G1Multiexp(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))), AtomicOpRegister)
+	return readRegisterSafe(AtomicOpRegister)
+}
+
+func AltBn128G1Sum(value []byte) ([]byte, error) {
+	AltBn128G1SumSystem(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))), AtomicOpRegister)
+	return readRegisterSafe(AtomicOpRegister)
+}
+
+func AltBn128PairingCheck(value []byte) bool {
+	return AltBn128PairingCheckSystem(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0])))) == 1
+}
+
+func ValidatorStakeAmount(accountID []byte) (Uint128, error) {
+	if len(accountID) == 0 {
+		return Uint128{0, 0}, errors.New("account ID must not be empty")
+	}
+
+	var stakeData [16]byte
+	ValidatorStake(uint64(len(accountID)), uint64(uintptr(unsafe.Pointer(&accountID[0]))), uint64(uintptr(unsafe.Pointer(&stakeData[0]))))
+
+	return LoadUint128LE(stakeData[:]), nil
+}
+
+func ValidatorTotalStakeAmount() Uint128 {
+	var stakeData [16]byte
+	ValidatorTotalStake(uint64(uintptr(unsafe.Pointer(&stakeData[0]))))
+
+	return LoadUint128LE(stakeData[:])
+}
+
+// //go:wasmimport env validator_stake
+// func ValidatorStake(accountIdLen, accountIdPtr, stakePtr uint64)
+
+// //go:wasmimport env validator_total_stake
+// func ValidatorTotalStake(stakePtr uint64)

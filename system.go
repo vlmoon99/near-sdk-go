@@ -82,6 +82,23 @@ func Ecrecover(hashLen, hashPtr, sigLen, sigPtr, v, malleabilityFlag, registerId
 //go:wasmimport env ed25519_verify
 func Ed25519Verify(sigLen, sigPtr, msgLen, msgPtr, pubKeyLen, pubKeyPtr uint64) uint64
 
+//go:wasmimport env alt_bn128_g1_multiexp
+func AltBn128G1Multiexp(valueLen, valuePtr, registerId uint64)
+
+//go:wasmimport env alt_bn128_g1_sum
+func AltBn128G1SumSystem(valueLen, valuePtr, registerId uint64)
+
+//go:wasmimport env alt_bn128_pairing_check
+func AltBn128PairingCheckSystem(valueLen, valuePtr uint64) uint64
+
+// Validator API
+//
+//go:wasmimport env validator_stake
+func ValidatorStake(accountIdLen, accountIdPtr, stakePtr uint64)
+
+//go:wasmimport env validator_total_stake
+func ValidatorTotalStake(stakePtr uint64)
+
 // Miscellaneous API
 //
 //go:wasmimport env value_return
@@ -101,6 +118,29 @@ func LogUtf16(len, ptr uint64)
 
 //go:wasmimport env abort
 func Abort(msgPtr, filenamePtr, line, col uint32)
+
+// Storage API
+//
+//go:wasmimport env storage_write
+func StorageWrite(keyLen, keyPtr, valueLen, valuePtr, registerId uint64) uint64
+
+//go:wasmimport env storage_read
+func StorageRead(keyLen uint64, keyPtr uint64, registerId uint64) uint64
+
+//go:wasmimport env storage_remove
+func StorageRemove(keyLen, keyPtr, registerId uint64) uint64
+
+//go:wasmimport env storage_has_key
+func StorageHasKey(keyLen, keyPtr uint64) uint64
+
+//go:wasmimport env storage_iter_prefix
+func StorageIterPrefix(prefixLen, prefixPtr uint64) uint64
+
+//go:wasmimport env storage_iter_range
+func StorageIterRange(startLen, startPtr, endLen, endPtr uint64) uint64
+
+//go:wasmimport env storage_iter_next
+func StorageIterNext(iteratorId, keyRegisterId, valueRegisterId uint64) uint64
 
 // Promises API
 //
@@ -167,45 +207,3 @@ func PromiseResult(resultIdx uint64, registerId uint64) uint64
 
 //go:wasmimport env promise_return
 func PromiseReturn(promiseId uint64)
-
-// Storage API
-//
-//go:wasmimport env storage_write
-func StorageWrite(keyLen, keyPtr, valueLen, valuePtr, registerId uint64) uint64
-
-//go:wasmimport env storage_read
-func StorageRead(keyLen uint64, keyPtr uint64, registerId uint64) uint64
-
-//go:wasmimport env storage_remove
-func StorageRemove(keyLen, keyPtr, registerId uint64) uint64
-
-//go:wasmimport env storage_has_key
-func StorageHasKey(keyLen, keyPtr uint64) uint64
-
-//go:wasmimport env storage_iter_prefix
-func StorageIterPrefix(prefixLen, prefixPtr uint64) uint64
-
-//go:wasmimport env storage_iter_range
-func StorageIterRange(startLen, startPtr, endLen, endPtr uint64) uint64
-
-//go:wasmimport env storage_iter_next
-func StorageIterNext(iteratorId, keyRegisterId, valueRegisterId uint64) uint64
-
-// Validator API
-//
-//go:wasmimport env validator_stake
-func ValidatorStake(accountIdLen, accountIdPtr, stakePtr uint64)
-
-//go:wasmimport env validator_total_stake
-func ValidatorTotalStake(stakePtr uint64)
-
-// Alt BN128
-//
-//go:wasmimport env alt_bn128_g1_multiexp
-func AltBn128G1Multiexp(valueLen, valuePtr, registerId uint64)
-
-//go:wasmimport env alt_bn128_g1_sum
-func AltBn128G1Sum(valueLen, valuePtr, registerId uint64)
-
-//go:wasmimport env alt_bn128_pairing_check
-func AltBn128PairingCheck(valueLen, valuePtr uint64) uint64

@@ -9,6 +9,18 @@ type Person struct {
 
 //go:export helloworld
 func helloworld() {
+	// accountID := []byte("validator.near")
+
+	// // Get stake for a specific validator
+	// stake, err := ValidatorStakeAmount(accountID)
+	// if err != nil {
+	// 	LogString("Error while retrieving validator stake: " + err.Error())
+	// } else {
+	// 	LogString("Validator stake retrieved successfully: " + fmt.Sprintf("%v", stake))
+	// }
+	// totalStake := ValidatorTotalStakeAmount()
+	// LogString("Total validator stake: " + fmt.Sprintf("%v", totalStake))
+
 	// data := []byte("sample_data")
 
 	// randomSeed, err := GetRandomSeed()
