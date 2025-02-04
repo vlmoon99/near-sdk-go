@@ -8,7 +8,6 @@ import (
 	"unsafe"
 )
 
-// Errors
 var (
 	KeyPathNotFoundError       = errors.New("Key path not found")
 	UnknownValueTypeError      = errors.New("Unknown value type")

@@ -1,8 +1,6 @@
 package main
 
-// #############
-// # Registers #
-// #############
+// Registers
 //
 //go:wasmimport env read_register
 func ReadRegister(registerId, ptr uint64)
@@ -122,16 +120,16 @@ func Abort(msgPtr, filenamePtr, line, col uint32)
 // Storage API
 //
 //go:wasmimport env storage_write
-func StorageWrite(keyLen, keyPtr, valueLen, valuePtr, registerId uint64) uint64
+func StorageWriteSys(keyLen, keyPtr, valueLen, valuePtr, registerId uint64) uint64
 
 //go:wasmimport env storage_read
-func StorageRead(keyLen uint64, keyPtr uint64, registerId uint64) uint64
+func StorageReadSys(keyLen uint64, keyPtr uint64, registerId uint64) uint64
 
 //go:wasmimport env storage_remove
-func StorageRemove(keyLen, keyPtr, registerId uint64) uint64
+func StorageRemoveSys(keyLen, keyPtr, registerId uint64) uint64
 
 //go:wasmimport env storage_has_key
-func StorageHasKey(keyLen, keyPtr uint64) uint64
+func StorageHasKeySys(keyLen, keyPtr uint64) uint64
 
 //go:wasmimport env storage_iter_prefix
 func StorageIterPrefix(prefixLen, prefixPtr uint64) uint64

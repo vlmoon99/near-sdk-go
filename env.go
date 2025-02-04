@@ -6,26 +6,18 @@ import (
 	"unsafe"
 )
 
-// Error message when a register is expected to have data but does not.
 const RegisterExpectedErr = "Register was expected to have data because we just wrote it into it."
 
-// Register used internally for atomic operations. This register is safe to use by the user,
-// since it only needs to be untouched while methods of `Environment` execute, which is guaranteed
-// as guest code is not parallel.
 const AtomicOpRegister uint64 = ^uint64(2)
 
-// Register used to record evicted values from the storage.
 const EvictedRegister uint64 = math.MaxUint64 - 1
 
 const DataIdRegister = 0
 
-// Key used to store the state of the contract.
 var StateKey = []byte("STATE")
 
-// The minimum length of a valid account ID.
 const MinAccountIDLen uint64 = 2
 
-// The maximum length of a valid account ID.
 const MaxAccountIDLen uint64 = 64
 
 // Registers
@@ -283,8 +275,11 @@ func GetUsedGas() NearGas {
 	return NearGas{UsedGas()}
 }
 
+// Economics API
+
 // Storage API
-func ContractStorageWrite(key, value []byte) (bool, error) {
+
+func StorageWrite(key, value []byte) (bool, error) {
 	if len(key) == 0 || len(value) == 0 {
 		return false, errors.New("key not found")
 	}
@@ -295,7 +290,7 @@ func ContractStorageWrite(key, value []byte) (bool, error) {
 	valueLen := uint64(len(value))
 	valuePtr := uint64(uintptr(unsafe.Pointer(&value[0])))
 
-	result := StorageWrite(keyLen, keyPtr, valueLen, valuePtr, EvictedRegister)
+	result := StorageWriteSys(keyLen, keyPtr, valueLen, valuePtr, EvictedRegister)
 	if result == 0 {
 		return false, errors.New("Failed to Write value in the storage by provided key")
 	}
@@ -303,13 +298,13 @@ func ContractStorageWrite(key, value []byte) (bool, error) {
 	return true, nil
 }
 
-func ContractStorageRead(key []byte) ([]byte, error) {
+func StorageRead(key []byte) ([]byte, error) {
 	if len(key) == 0 {
 		return nil, errors.New("key is empty")
 	}
 	keyLen := uint64(len(key))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
-	result := StorageRead(keyLen, keyPtr, EvictedRegister)
+	result := StorageReadSys(keyLen, keyPtr, EvictedRegister)
 
 	if result == 0 {
 		return nil, errors.New("Failed to Read the key")
@@ -323,7 +318,7 @@ func ContractStorageRead(key []byte) ([]byte, error) {
 	return value, nil
 }
 
-func ContractStorageRemove(key []byte) (bool, error) {
+func StorageRemove(key []byte) (bool, error) {
 	if len(key) == 0 {
 		return false, errors.New("key is empty")
 	}
@@ -331,7 +326,7 @@ func ContractStorageRemove(key []byte) (bool, error) {
 	keyLen := uint64(len(key))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
 
-	result := StorageRemove(keyLen, keyPtr, EvictedRegister)
+	result := StorageRemoveSys(keyLen, keyPtr, EvictedRegister)
 	if result == 0 {
 		return false, nil
 	}
@@ -339,7 +334,7 @@ func ContractStorageRemove(key []byte) (bool, error) {
 	return true, nil
 }
 
-func ContractStorageGetEvicted() ([]byte, error) {
+func StorageGetEvicted() ([]byte, error) {
 	value, err := readRegisterSafe(EvictedRegister)
 	if err != nil {
 		return nil, errors.New("failed to read evicted register")
@@ -348,7 +343,7 @@ func ContractStorageGetEvicted() ([]byte, error) {
 	return value, nil
 }
 
-func ContractStorageHasKey(key []byte) (bool, error) {
+func StorageHasKey(key []byte) (bool, error) {
 	if len(key) == 0 {
 		return false, errors.New("key is empty")
 	}
@@ -356,7 +351,7 @@ func ContractStorageHasKey(key []byte) (bool, error) {
 	keyLen := uint64(len(key))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
 
-	result := StorageHasKey(keyLen, keyPtr)
+	result := StorageHasKeySys(keyLen, keyPtr)
 	return result == 1, nil
 }
 
@@ -364,7 +359,7 @@ func StateRead() ([]byte, error) {
 	keyLen := uint64(len(StateKey))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&StateKey[0])))
 
-	result := StorageRead(keyLen, keyPtr, 0)
+	result := StorageReadSys(keyLen, keyPtr, 0)
 	if result == 0 {
 		return nil, errors.New("state not found")
 	}
@@ -385,7 +380,7 @@ func StateWrite(data []byte) error {
 	valueLen := uint64(len(data))
 	valuePtr := uint64(uintptr(unsafe.Pointer(&data[0])))
 
-	result := StorageWrite(keyLen, keyPtr, valueLen, valuePtr, 0)
+	result := StorageWriteSys(keyLen, keyPtr, valueLen, valuePtr, 0)
 	if result == 0 {
 		return errors.New("failed to write state to storage")
 	}
@@ -397,7 +392,7 @@ func StateExists() bool {
 	keyLen := uint64(len(StateKey))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&StateKey[0])))
 
-	result := StorageHasKey(keyLen, keyPtr)
+	result := StorageHasKeySys(keyLen, keyPtr)
 	return result == 1
 }
 
@@ -472,6 +467,10 @@ func AltBn128PairingCheck(value []byte) bool {
 	return AltBn128PairingCheckSystem(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0])))) == 1
 }
 
+// Math API
+
+// Validator API
+
 func ValidatorStakeAmount(accountID []byte) (Uint128, error) {
 	if len(accountID) == 0 {
 		return Uint128{0, 0}, errors.New("account ID must not be empty")
@@ -490,7 +489,10 @@ func ValidatorTotalStakeAmount() Uint128 {
 	return LoadUint128LE(stakeData[:])
 }
 
+// Validator API
+
 // Promises API
+
 func PromiseCreate(accountId []byte, functionName []byte, arguments []byte, amount Uint128, gas uint64) uint64 {
 	return PromiseCreateSys(
 		uint64(len(accountId)),
@@ -539,17 +541,15 @@ func PromiseBatchThen(promiseIdx uint64, accountId []byte) uint64 {
 // Promises API
 
 // Promises API Action
-// func PromiseBatchActionCreateAccount(promiseIndex uint64)
+
 func PromiseBatchActionCreateAccount(promiseIdx uint64) {
 	PromiseBatchActionCreateAccountSys(promiseIdx)
 }
 
-// func PromiseBatchActionDeployContract(promiseIndex, codeLen, codePtr uint64)
 func PromiseBatchActionDeployContract(promiseIdx uint64, bytes []byte) {
 	PromiseBatchActionDeployContractSys(promiseIdx, uint64(len(bytes)), uint64(uintptr(unsafe.Pointer(&bytes[0]))))
 }
 
-// func PromiseBatchActionFunctionCall(promiseIndex, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64)
 func PromiseBatchActionFunctionCall(promiseIdx uint64, functionName []byte, arguments []byte, amount Uint128, gas uint64) {
 	PromiseBatchActionFunctionCallSys(promiseIdx,
 		uint64(len(functionName)),
@@ -563,7 +563,6 @@ func PromiseBatchActionFunctionCall(promiseIdx uint64, functionName []byte, argu
 	)
 }
 
-// func PromiseBatchActionFunctionCallWeight(promise_index, function_name_len, function_name_ptr, arguments_len, arguments_ptr, amount_ptr, gas, weight uint64)
 func PromiseBatchActionFunctionCallWeight(promiseIdx uint64, functionName []byte, arguments []byte, amount Uint128, gas uint64, weight uint64) {
 	PromiseBatchActionFunctionCallWeightSys(promiseIdx,
 		uint64(len(functionName)),
@@ -578,12 +577,10 @@ func PromiseBatchActionFunctionCallWeight(promiseIdx uint64, functionName []byte
 	)
 }
 
-// func PromiseBatchActionTransfer(promiseIndex, amountPtr uint64)
 func PromiseBatchActionTransfer(promiseIdx uint64, amount Uint128) {
 	PromiseBatchActionTransferSys(promiseIdx, uint64(uintptr(unsafe.Pointer(&amount.ToBE()[0]))))
 }
 
-// func PromiseBatchActionStake(promiseIndex, amountPtr, publicKeyLen, publicKeyPtr uint64)
 func PromiseBatchActionStake(promiseIdx uint64, amount Uint128, publicKey []byte) {
 	PromiseBatchActionStakeSys(
 		promiseIdx,
@@ -594,7 +591,6 @@ func PromiseBatchActionStake(promiseIdx uint64, amount Uint128, publicKey []byte
 	)
 }
 
-// func PromiseBatchActionAddKeyWithFullAccess(promiseIndex, publicKeyLen, publicKeyPtr, nonce uint64)
 func PromiseBatchActionAddKeyWithFullAccess(promiseIdx uint64, publicKey []byte, nonce uint64) {
 	PromiseBatchActionAddKeyWithFullAccessSys(
 		promiseIdx,
@@ -606,7 +602,6 @@ func PromiseBatchActionAddKeyWithFullAccess(promiseIdx uint64, publicKey []byte,
 	)
 }
 
-// func PromiseBatchActionAddKeyWithFunctionCall(promiseIndex, publicKeyLen, publicKeyPtr, nonce, allowancePtr, receiverIdLen, receiverIdPtr, functionNamesLen, functionNamesPtr uint64)
 func PromiseBatchActionAddKeyWithFunctionCall(promiseIdx uint64, publicKey []byte, nonce uint64, amount Uint128, receiverId []byte, functionName []byte) {
 	PromiseBatchActionAddKeyWithFunctionCallSys(
 		promiseIdx,
@@ -625,7 +620,6 @@ func PromiseBatchActionAddKeyWithFunctionCall(promiseIdx uint64, publicKey []byt
 	)
 }
 
-// func PromiseBatchActionDeleteKey(promiseIndex, publicKeyLen, publicKeyPtr uint64)
 func PromiseBatchActionDeleteKey(promiseIdx uint64, publicKey []byte) {
 	PromiseBatchActionDeleteKeySys(
 		promiseIdx,
@@ -634,8 +628,6 @@ func PromiseBatchActionDeleteKey(promiseIdx uint64, publicKey []byte) {
 		uint64(uintptr(unsafe.Pointer(&publicKey[0]))),
 	)
 }
-
-// func PromiseBatchActionDeleteAccount(promiseIndex, beneficiaryIdLen, beneficiaryIdPtr uint64)
 
 func PromiseBatchActionDeleteAccount(promiseIdx uint64, beneficiaryId []byte) {
 	PromiseBatchActionDeleteAccountSys(
@@ -646,7 +638,6 @@ func PromiseBatchActionDeleteAccount(promiseIdx uint64, beneficiaryId []byte) {
 	)
 }
 
-// func PromiseYieldCreate(functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, gas, gasWeight, registerId uint64) uint64
 func PromiseYieldCreate(functionName []byte, arguments []byte, gas uint64, gasWeight uint64) uint64 {
 	return PromiseYieldCreateSys(
 		uint64(len(functionName)),
@@ -660,7 +651,6 @@ func PromiseYieldCreate(functionName []byte, arguments []byte, gas uint64, gasWe
 	)
 }
 
-// func PromiseYieldResume(dataIdLen, dataIdPtr, payloadLen, payloadPtr uint64) uint32
 func PromiseYieldResume(data []byte, payload []byte) uint32 {
 	return PromiseYieldResumeSys(
 		uint64(len(data)),
@@ -674,17 +664,14 @@ func PromiseYieldResume(data []byte, payload []byte) uint32 {
 // Promises API Action
 
 // Promise API Results
-// func PromiseResultsCount() uint64
 func PromiseResultsCount(data []byte, payload []byte) uint64 {
 	return PromiseResultsCountSys()
 }
 
-// func PromiseResult(resultIdx uint64, registerId uint64) uint64
 func PromiseResult(resultIdx uint64) uint64 {
 	return PromiseResultSys(resultIdx, AtomicOpRegister)
 }
 
-// func PromiseReturn(promiseId uint64)
 func PromiseReturn(promiseId uint64) {
 	PromiseReturnSys(promiseId)
 }
