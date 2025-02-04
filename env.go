@@ -17,6 +17,8 @@ const AtomicOpRegister uint64 = ^uint64(2)
 // Register used to record evicted values from the storage.
 const EvictedRegister uint64 = math.MaxUint64 - 1
 
+const DataIdRegister = 0
+
 // Key used to store the state of the contract.
 var StateKey = []byte("STATE")
 
@@ -170,7 +172,7 @@ func detectInputType(decodedData []byte, keyPath ...string) ([]byte, string, err
 	}
 }
 
-func ContractInput() ([]byte, string, error) {
+func ContractInput(isRaw bool) ([]byte, string, error) {
 
 	data, err := methodIntoRegister(func(registerID uint64) {
 		Input(registerID)
@@ -178,6 +180,9 @@ func ContractInput() ([]byte, string, error) {
 	if err != nil {
 		LogString("Error in GetContractInput: " + err.Error())
 		return nil, "", err
+	}
+	if isRaw {
+		return data, "rawBytes", nil
 	}
 
 	parsedData, detectedType, err := detectInputType(data)
@@ -485,8 +490,203 @@ func ValidatorTotalStakeAmount() Uint128 {
 	return LoadUint128LE(stakeData[:])
 }
 
-// //go:wasmimport env validator_stake
-// func ValidatorStake(accountIdLen, accountIdPtr, stakePtr uint64)
+// Promises API
+func PromiseCreate(accountId []byte, functionName []byte, arguments []byte, amount Uint128, gas uint64) uint64 {
+	return PromiseCreateSys(
+		uint64(len(accountId)),
+		uint64(uintptr(unsafe.Pointer(&accountId[0]))),
 
-// //go:wasmimport env validator_total_stake
-// func ValidatorTotalStake(stakePtr uint64)
+		uint64(len(functionName)),
+		uint64(uintptr(unsafe.Pointer(&functionName[0]))),
+
+		uint64(len(arguments)),
+		uint64(uintptr(unsafe.Pointer(&arguments[0]))),
+
+		uint64(uintptr(unsafe.Pointer(&amount.ToBE()[0]))),
+		gas,
+	)
+}
+
+func PromiseThen(promiseIdx uint64, accountId []byte, functionName []byte, arguments []byte, amount Uint128, gas uint64) uint64 {
+	return PromiseThenSys(
+		promiseIdx,
+		uint64(len(accountId)),
+		uint64(uintptr(unsafe.Pointer(&accountId[0]))),
+
+		uint64(len(functionName)),
+		uint64(uintptr(unsafe.Pointer(&functionName[0]))),
+
+		uint64(len(arguments)),
+		uint64(uintptr(unsafe.Pointer(&arguments[0]))),
+
+		uint64(uintptr(unsafe.Pointer(&amount.ToBE()[0]))),
+		gas,
+	)
+}
+
+func PromiseAnd(promiseIndices []uint64) uint64 {
+	return PromiseAndSys(uint64(uintptr(unsafe.Pointer(&promiseIndices[0]))), uint64(len(promiseIndices)))
+}
+
+func PromiseBatchCreate(accountId []byte) uint64 {
+	return PromiseBatchCreateSys(uint64(len(accountId)), uint64(uintptr(unsafe.Pointer(&accountId[0]))))
+}
+
+func PromiseBatchThen(promiseIdx uint64, accountId []byte) uint64 {
+	return PromiseBatchThenSys(promiseIdx, uint64(len(accountId)), uint64(uintptr(unsafe.Pointer(&accountId[0]))))
+}
+
+// Promises API
+
+// Promises API Action
+// func PromiseBatchActionCreateAccount(promiseIndex uint64)
+func PromiseBatchActionCreateAccount(promiseIdx uint64) {
+	PromiseBatchActionCreateAccountSys(promiseIdx)
+}
+
+// func PromiseBatchActionDeployContract(promiseIndex, codeLen, codePtr uint64)
+func PromiseBatchActionDeployContract(promiseIdx uint64, bytes []byte) {
+	PromiseBatchActionDeployContractSys(promiseIdx, uint64(len(bytes)), uint64(uintptr(unsafe.Pointer(&bytes[0]))))
+}
+
+// func PromiseBatchActionFunctionCall(promiseIndex, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64)
+func PromiseBatchActionFunctionCall(promiseIdx uint64, functionName []byte, arguments []byte, amount Uint128, gas uint64) {
+	PromiseBatchActionFunctionCallSys(promiseIdx,
+		uint64(len(functionName)),
+		uint64(uintptr(unsafe.Pointer(&functionName[0]))),
+
+		uint64(len(arguments)),
+		uint64(uintptr(unsafe.Pointer(&arguments[0]))),
+
+		uint64(uintptr(unsafe.Pointer(&amount.ToBE()[0]))),
+		gas,
+	)
+}
+
+// func PromiseBatchActionFunctionCallWeight(promise_index, function_name_len, function_name_ptr, arguments_len, arguments_ptr, amount_ptr, gas, weight uint64)
+func PromiseBatchActionFunctionCallWeight(promiseIdx uint64, functionName []byte, arguments []byte, amount Uint128, gas uint64, weight uint64) {
+	PromiseBatchActionFunctionCallWeightSys(promiseIdx,
+		uint64(len(functionName)),
+		uint64(uintptr(unsafe.Pointer(&functionName[0]))),
+
+		uint64(len(arguments)),
+		uint64(uintptr(unsafe.Pointer(&arguments[0]))),
+
+		uint64(uintptr(unsafe.Pointer(&amount.ToBE()[0]))),
+		gas,
+		weight,
+	)
+}
+
+// func PromiseBatchActionTransfer(promiseIndex, amountPtr uint64)
+func PromiseBatchActionTransfer(promiseIdx uint64, amount Uint128) {
+	PromiseBatchActionTransferSys(promiseIdx, uint64(uintptr(unsafe.Pointer(&amount.ToBE()[0]))))
+}
+
+// func PromiseBatchActionStake(promiseIndex, amountPtr, publicKeyLen, publicKeyPtr uint64)
+func PromiseBatchActionStake(promiseIdx uint64, amount Uint128, publicKey []byte) {
+	PromiseBatchActionStakeSys(
+		promiseIdx,
+		uint64(uintptr(unsafe.Pointer(&amount.ToBE()[0]))),
+
+		uint64(len(publicKey)),
+		uint64(uintptr(unsafe.Pointer(&publicKey[0]))),
+	)
+}
+
+// func PromiseBatchActionAddKeyWithFullAccess(promiseIndex, publicKeyLen, publicKeyPtr, nonce uint64)
+func PromiseBatchActionAddKeyWithFullAccess(promiseIdx uint64, publicKey []byte, nonce uint64) {
+	PromiseBatchActionAddKeyWithFullAccessSys(
+		promiseIdx,
+
+		uint64(len(publicKey)),
+		uint64(uintptr(unsafe.Pointer(&publicKey[0]))),
+
+		nonce,
+	)
+}
+
+// func PromiseBatchActionAddKeyWithFunctionCall(promiseIndex, publicKeyLen, publicKeyPtr, nonce, allowancePtr, receiverIdLen, receiverIdPtr, functionNamesLen, functionNamesPtr uint64)
+func PromiseBatchActionAddKeyWithFunctionCall(promiseIdx uint64, publicKey []byte, nonce uint64, amount Uint128, receiverId []byte, functionName []byte) {
+	PromiseBatchActionAddKeyWithFunctionCallSys(
+		promiseIdx,
+
+		uint64(len(publicKey)),
+		uint64(uintptr(unsafe.Pointer(&publicKey[0]))),
+
+		nonce,
+		uint64(uintptr(unsafe.Pointer(&amount.ToBE()[0]))),
+
+		uint64(len(receiverId)),
+		uint64(uintptr(unsafe.Pointer(&receiverId[0]))),
+
+		uint64(len(functionName)),
+		uint64(uintptr(unsafe.Pointer(&functionName[0]))),
+	)
+}
+
+// func PromiseBatchActionDeleteKey(promiseIndex, publicKeyLen, publicKeyPtr uint64)
+func PromiseBatchActionDeleteKey(promiseIdx uint64, publicKey []byte) {
+	PromiseBatchActionDeleteKeySys(
+		promiseIdx,
+
+		uint64(len(publicKey)),
+		uint64(uintptr(unsafe.Pointer(&publicKey[0]))),
+	)
+}
+
+// func PromiseBatchActionDeleteAccount(promiseIndex, beneficiaryIdLen, beneficiaryIdPtr uint64)
+
+func PromiseBatchActionDeleteAccount(promiseIdx uint64, beneficiaryId []byte) {
+	PromiseBatchActionDeleteAccountSys(
+		promiseIdx,
+
+		uint64(len(beneficiaryId)),
+		uint64(uintptr(unsafe.Pointer(&beneficiaryId[0]))),
+	)
+}
+
+// func PromiseYieldCreate(functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, gas, gasWeight, registerId uint64) uint64
+func PromiseYieldCreate(functionName []byte, arguments []byte, gas uint64, gasWeight uint64) uint64 {
+	return PromiseYieldCreateSys(
+		uint64(len(functionName)),
+		uint64(uintptr(unsafe.Pointer(&functionName[0]))),
+
+		uint64(len(arguments)),
+		uint64(uintptr(unsafe.Pointer(&arguments[0]))),
+		gas,
+		gasWeight,
+		DataIdRegister,
+	)
+}
+
+// func PromiseYieldResume(dataIdLen, dataIdPtr, payloadLen, payloadPtr uint64) uint32
+func PromiseYieldResume(data []byte, payload []byte) uint32 {
+	return PromiseYieldResumeSys(
+		uint64(len(data)),
+		uint64(uintptr(unsafe.Pointer(&data[0]))),
+
+		uint64(len(data)),
+		uint64(uintptr(unsafe.Pointer(&data[0]))),
+	)
+}
+
+// Promises API Action
+
+// Promise API Results
+// func PromiseResultsCount() uint64
+func PromiseResultsCount(data []byte, payload []byte) uint64 {
+	return PromiseResultsCountSys()
+}
+
+// func PromiseResult(resultIdx uint64, registerId uint64) uint64
+func PromiseResult(resultIdx uint64) uint64 {
+	return PromiseResultSys(resultIdx, AtomicOpRegister)
+}
+
+// func PromiseReturn(promiseId uint64)
+func PromiseReturn(promiseId uint64) {
+	PromiseReturnSys(promiseId)
+}
+
+// Promise API Results

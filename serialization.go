@@ -2,7 +2,6 @@ package main
 
 import "errors"
 
-// Serializer
 type Builder struct {
 	data []byte
 }

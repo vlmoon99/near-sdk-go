@@ -7,17 +7,91 @@ type Person struct {
 	Email string
 }
 
+//go:export testpromisethen
+func testpromisethen() {
+	value, dataType, err := ContractInput(true)
+
+	if err != nil {
+		LogString("Error while getting contract input")
+	}
+
+	LogString("Test Promise Then")
+	LogString("Test Promise Then value " + string(value))
+	LogString("Test Promise Then dataType " + dataType)
+
+}
+
+//go:export testpromise
+func testpromise() {
+	value, dataType, err := ContractInput(true)
+
+	if err != nil {
+		LogString("Error while getting contract input")
+	}
+
+	LogString("Test Promise")
+	LogString("Test Promise value " + string(value))
+	LogString("Test Promise dataType " + dataType)
+
+}
+
+//go:export testpromise1
+func testpromise1() {
+	value, dataType, err := ContractInput(true)
+
+	if err != nil {
+		LogString("Error while getting contract input")
+	}
+
+	LogString("Test Promise1")
+	LogString("Test Promise1 value " + string(value))
+	LogString("Test Promise1 dataType " + dataType)
+
+}
+
 //go:export helloworld
 func helloworld() {
-	// accountID := []byte("validator.near")
+	// promiseBatchCreate := PromiseBatchCreate([]byte("testiktinygo.testnet"))
+	// LogString("promiseBatchCreate : " + fmt.Sprintf("%d", promiseBatchCreate))
 
-	// // Get stake for a specific validator
-	// stake, err := ValidatorStakeAmount(accountID)
+	// promiseValue := PromiseCreate([]byte("testiktinygo.testnet"), []byte("testpromise"), []byte("test"), Uint128{0, 0}, 5*ONE_TERA_GAS)
+	// LogString("promiseValue : " + fmt.Sprintf("%d", promiseValue))
+
+	// promiseBatchThen := PromiseBatchThen(promiseValue, []byte("testiktinygo.testnet"))
+	// LogString("promiseBatchThen : " + fmt.Sprintf("%d", promiseBatchThen))
+
+	// promiseValue1 := PromiseCreate([]byte("testiktinygo.testnet"), []byte("testpromise1"), []byte("test"), Uint128{0, 0}, 5*ONE_TERA_GAS)
+
+	// promiseThenValue := PromiseThen(promiseValue, []byte("testiktinygo.testnet"), []byte("testpromisethen"), []byte("test"), Uint128{0, 0}, 5*ONE_TERA_GAS)
+	// LogString("promiseValue : " + fmt.Sprintf("%d", promiseValue))
+	// LogString("promiseValue1 : " + fmt.Sprintf("%d", promiseValue1))
+	// LogString("promiseThenValue : " + fmt.Sprintf("%d", promiseThenValue))
+
+	// PromiseAnd([]uint64{promiseValue1, promiseValue, promiseThenValue})
+
+	// // Test AltBn128G1MultiExp
+	// _, err := AltBn128G1MultiExp(data)
 	// if err != nil {
-	// 	LogString("Error while retrieving validator stake: " + err.Error())
+	// 	LogString("Error while executing AltBn128G1MultiExp: " + err.Error())
 	// } else {
-	// 	LogString("Validator stake retrieved successfully: " + fmt.Sprintf("%v", stake))
+	// 	LogString("AltBn128G1MultiExp executed successfully: ")
 	// }
+
+	// // Test AltBn128G1Sum
+	// _, err = AltBn128G1Sum(data)
+	// if err != nil {
+	// 	LogString("Error while executing AltBn128G1Sum: " + err.Error())
+	// } else {
+	// 	LogString("AltBn128G1Sum executed successfully: ")
+	// }
+
+	// // Test AltBn128PairingCheck
+	// if AltBn128PairingCheck(data) {
+	// 	LogString("AltBn128PairingCheck verified successfully.")
+	// } else {
+	// 	LogString("AltBn128PairingCheck verification failed.")
+	// }
+
 	// totalStake := ValidatorTotalStakeAmount()
 	// LogString("Total validator stake: " + fmt.Sprintf("%v", totalStake))
 

@@ -6,13 +6,14 @@ import (
 	"strconv"
 )
 
-//Uint128
-
 const (
 	ONE_NEAR      = 1_000_000_000_000_000_000_000_000
 	ONE_MILI_NEAR = 1_000_000_000_000_000_000_000
+	ONE_TERA_GAS  = 1_000_000_000_000
+	ONE_GIGA_GAS  = 1_000_000_000
 )
 
+// Uint128
 type Uint128 struct {
 	Hi uint64
 	Lo uint64
@@ -119,11 +120,6 @@ func (u Uint128) ToYoctoNear() float64 {
 type NearGas struct {
 	inner uint64
 }
-
-const (
-	ONE_TERA_GAS = 1_000_000_000_000
-	ONE_GIGA_GAS = 1_000_000_000
-)
 
 //Near Gas
 

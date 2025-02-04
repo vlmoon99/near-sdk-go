@@ -145,65 +145,65 @@ func StorageIterNext(iteratorId, keyRegisterId, valueRegisterId uint64) uint64
 // Promises API
 //
 //go:wasmimport env promise_create
-func PromiseCreate(accountIdLen, accountIdPtr, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64) uint64
+func PromiseCreateSys(accountIdLen, accountIdPtr, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64) uint64
 
 //go:wasmimport env promise_then
-func PromiseThen(promiseIndex, accountIdLen, accountIdPtr, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64) uint64
+func PromiseThenSys(promiseIndex, accountIdLen, accountIdPtr, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64) uint64
 
 //go:wasmimport env promise_and
-func PromiseAnd(promiseIdxPtr, promiseIdxCount uint64) uint64
+func PromiseAndSys(promiseIdxPtr, promiseIdxCount uint64) uint64
 
 //go:wasmimport env promise_batch_create
-func PromiseBatchCreate(accountIdLen, accountIdPtr uint64) uint64
+func PromiseBatchCreateSys(accountIdLen, accountIdPtr uint64) uint64
 
 //go:wasmimport env promise_batch_then
-func PromiseBatchThen(promiseIndex, accountIdLen, accountIdPtr uint64) uint64
+func PromiseBatchThenSys(promiseIndex, accountIdLen, accountIdPtr uint64) uint64
 
 // Promise API Actions
 //
 //go:wasmimport env promise_batch_action_create_account
-func PromiseBatchActionCreateAccount(promiseIndex uint64)
+func PromiseBatchActionCreateAccountSys(promiseIndex uint64)
 
 //go:wasmimport env promise_batch_action_deploy_contract
-func PromiseBatchActionDeployContract(promiseIndex, codeLen, codePtr uint64)
+func PromiseBatchActionDeployContractSys(promiseIndex, codeLen, codePtr uint64)
 
 //go:wasmimport env promise_batch_action_function_call
-func PromiseBatchActionFunctionCall(promiseIndex, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64)
+func PromiseBatchActionFunctionCallSys(promiseIndex, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64)
 
 //go:wasmimport env promise_batch_action_function_call_weight
-func PromiseBatchActionFunctionCallWeight(promise_index, function_name_len, function_name_ptr, arguments_len, arguments_ptr, amount_ptr, gas, weight uint64)
+func PromiseBatchActionFunctionCallWeightSys(promise_index, function_name_len, function_name_ptr, arguments_len, arguments_ptr, amount_ptr, gas, weight uint64)
 
 //go:wasmimport env promise_batch_action_transfer
-func PromiseBatchActionTransfer(promiseIndex, amountPtr uint64)
+func PromiseBatchActionTransferSys(promiseIndex, amountPtr uint64)
 
 //go:wasmimport env promise_batch_action_stake
-func PromiseBatchActionStake(promiseIndex, amountPtr, publicKeyLen, publicKeyPtr uint64)
+func PromiseBatchActionStakeSys(promiseIndex, amountPtr, publicKeyLen, publicKeyPtr uint64)
 
 //go:wasmimport env promise_batch_action_add_key_with_full_access
-func PromiseBatchActionAddKeyWithFullAccess(promiseIndex, publicKeyLen, publicKeyPtr, nonce uint64)
+func PromiseBatchActionAddKeyWithFullAccessSys(promiseIndex, publicKeyLen, publicKeyPtr, nonce uint64)
 
 //go:wasmimport env promise_batch_action_add_key_with_function_call
-func PromiseBatchActionAddKeyWithFunctionCall(promiseIndex, publicKeyLen, publicKeyPtr, nonce, allowancePtr, receiverIdLen, receiverIdPtr, functionNamesLen, functionNamesPtr uint64)
+func PromiseBatchActionAddKeyWithFunctionCallSys(promiseIndex, publicKeyLen, publicKeyPtr, nonce, allowancePtr, receiverIdLen, receiverIdPtr, functionNamesLen, functionNamesPtr uint64)
 
 //go:wasmimport env promise_batch_action_delete_key
-func PromiseBatchActionDeleteKey(promiseIndex, publicKeyLen, publicKeyPtr uint64)
+func PromiseBatchActionDeleteKeySys(promiseIndex, publicKeyLen, publicKeyPtr uint64)
 
 //go:wasmimport env promise_batch_action_delete_account
-func PromiseBatchActionDeleteAccount(promiseIndex, beneficiaryIdLen, beneficiaryIdPtr uint64)
+func PromiseBatchActionDeleteAccountSys(promiseIndex, beneficiaryIdLen, beneficiaryIdPtr uint64)
 
 //go:wasmimport env promise_yield_create
-func PromiseYieldCreate(functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, gas, gasWeight, registerId uint64) uint64
+func PromiseYieldCreateSys(functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, gas, gasWeight, registerId uint64) uint64
 
 //go:wasmimport env promise_yield_resume
-func PromiseYieldResume(dataIdLen, dataIdPtr, payloadLen, payloadPtr uint64) uint32
+func PromiseYieldResumeSys(dataIdLen, dataIdPtr, payloadLen, payloadPtr uint64) uint32
 
 // Promise API Results
 //
 //go:wasmimport env promise_results_count
-func PromiseResultsCount() uint64
+func PromiseResultsCountSys() uint64
 
 //go:wasmimport env promise_result
-func PromiseResult(resultIdx uint64, registerId uint64) uint64
+func PromiseResultSys(resultIdx uint64, registerId uint64) uint64
 
 //go:wasmimport env promise_return
-func PromiseReturn(promiseId uint64)
+func PromiseReturnSys(promiseId uint64)
