@@ -1,6 +1,10 @@
 package main
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/vlmoon99/jsonparser"
+)
 
 type Builder struct {
 	data []byte
@@ -65,7 +69,7 @@ func NewParser(data []byte) *Parser {
 }
 
 func (p *Parser) GetRawBytes(key string) ([]byte, error) {
-	data, _, _, err := Get(p.data, key)
+	data, _, _, err := jsonparser.Get(p.data, key)
 	if err != nil {
 		return nil, errors.New("Error while getting raw bytes from the json")
 	}
@@ -73,13 +77,13 @@ func (p *Parser) GetRawBytes(key string) ([]byte, error) {
 }
 
 func (p *Parser) GetString(key string) (string, error) {
-	return GetString(p.data, key)
+	return jsonparser.GetString(p.data, key)
 }
 
 func (p *Parser) GetInt(key string) (int64, error) {
-	return GetInt(p.data, key)
+	return jsonparser.GetInt(p.data, key)
 }
 
 func (p *Parser) GetBoolean(key string) (bool, error) {
-	return GetBoolean(p.data, key)
+	return jsonparser.GetBoolean(p.data, key)
 }

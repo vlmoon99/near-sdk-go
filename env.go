@@ -4,6 +4,8 @@ import (
 	"errors"
 	"math"
 	"unsafe"
+
+	"github.com/vlmoon99/jsonparser"
 )
 
 const RegisterExpectedErr = "Register was expected to have data because we just wrote it into it."
@@ -137,27 +139,27 @@ func GetStorageUsage() uint64 {
 }
 
 func detectInputType(decodedData []byte, keyPath ...string) ([]byte, string, error) {
-	value, dataType, _, err := Get(decodedData, keyPath...)
+	value, dataType, _, err := jsonparser.Get(decodedData, keyPath...)
 
 	if err != nil {
-		if dataType == NotExist {
+		if dataType == jsonparser.NotExist {
 			return nil, "not_exist", errors.New("key not found")
 		}
 		return nil, "unknown", errors.New("failed to parse input")
 	}
 
 	switch dataType {
-	case String:
+	case jsonparser.String:
 		return value, "string", nil
-	case Number:
+	case jsonparser.Number:
 		return value, "number", nil
-	case Boolean:
+	case jsonparser.Boolean:
 		return value, "boolean", nil
-	case Array:
+	case jsonparser.Array:
 		return value, "array", nil
-	case Object:
+	case jsonparser.Object:
 		return value, "object", nil
-	case Null:
+	case jsonparser.Null:
 		return nil, "null", nil
 	default:
 		return nil, "unknown", errors.New("unsupported data format")
