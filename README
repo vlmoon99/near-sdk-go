@@ -1,4 +1,4 @@
-This is a comprehensive guide for working with the alpha version of the Near SDK on Go, specifically using TinyGo for WebAssembly (WASM) compilation. Below is a breakdown of the key points, limitations, and instructions provided:
+This is a guide for working with the alpha version of the Near SDK on Go, specifically using TinyGo for WebAssembly (WASM) compilation. Below is a breakdown of the key points, limitations, and instructions provided:
 
 ---
 
@@ -78,5 +78,3 @@ tinygo build -size short -no-debug -panic=trap -scheduler=none -gc=leaking -o ma
 - **Testing and Debugging**: Since the environment is restrictive, thorough testing is crucial. Use the provided test function calls to validate your contract.
 - **Optimization**: Always aim for the smallest possible WASM binary to reduce gas costs and improve performance.
 - **Community Contributions**: If you fork or modify unsupported packages, consider contributing back to the community.
-
-This guide should help you get started with building and deploying smart contracts using the Near SDK on Go with TinyGo. Let me know if you need further assistance!
