@@ -125,4 +125,15 @@ func InitContract() {
 	msg := NewStatusMessage()
 	serialized := msg.Serialize()
 	StorageWrite(StorageKey, serialized)
+
+	balacne := GetAccountBalance()
+	LogString("balacne.String() " + balacne.String())
+
+	res, err := U128FromString("340282366920938463463374607431768211455")
+	if err != nil {
+		LogString("U128FromString Error " + err.Error())
+	}
+
+	LogString("U128FromString : " + res.String())
+
 }
