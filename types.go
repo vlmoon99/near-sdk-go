@@ -20,11 +20,6 @@ type Uint128 struct {
 	Lo uint64
 }
 
-type Uint256 struct {
-	Lo Uint128
-	Hi Uint128
-}
-
 func LoadUint128BE(b []byte) Uint128 {
 	if len(b) != 16 {
 		PanicStr("byte slice must be exactly 16 bytes long")
@@ -141,6 +136,55 @@ func add64(x, y, carry uint64) (sum, carryOut uint64) {
 	return
 }
 
+func (u Uint128) ShiftLeft(bits uint) Uint128 {
+	if bits >= 64 {
+		return Uint128{Lo: 0, Hi: u.Lo << (bits - 64)}
+	}
+	return Uint128{Lo: u.Lo << bits, Hi: (u.Hi << bits) | (u.Lo >> (64 - bits))}
+}
+
+func (u Uint128) ShiftRight(bits uint) Uint128 {
+	if bits >= 64 {
+		return Uint128{Lo: u.Hi >> (bits - 64), Hi: 0}
+	}
+	return Uint128{Lo: (u.Lo >> bits) | (u.Hi << (64 - bits)), Hi: u.Hi >> bits}
+}
+
+func (u Uint128) GreaterOrEqual(v Uint128) bool {
+	if u.Hi > v.Hi {
+		return true
+	}
+	if u.Hi < v.Hi {
+		return false
+	}
+	return u.Lo >= v.Lo
+}
+
+func sub64(x, y, borrow uint64) (diff, borrowOut uint64) {
+	diff = x - y - borrow
+	if x < y || (x == y && borrow != 0) {
+		borrowOut = 1
+	}
+	return
+}
+
+func mul128(x, y uint64) (lo, hi uint64) {
+	const mask32 = (1 << 32) - 1
+	x0, x1 := x&mask32, x>>32
+	y0, y1 := y&mask32, y>>32
+
+	w0 := x0 * y0
+	t := x1*y0 + w0>>32
+	w1 := t & mask32
+	w2 := t >> 32
+
+	w1 += x0 * y1
+
+	lo = x * y
+	hi = x1*y1 + w2 + w1>>32
+	return
+}
+
 func (u Uint128) Mul64(v uint64) Uint128 {
 	lo, hi := mul64(u.Lo, v)
 	return Uint128{Lo: lo, Hi: hi}
@@ -162,6 +206,117 @@ func (u Uint128) SafeAdd64(v uint64) (Uint128, error) {
 		return Uint128{0, 0}, errors.New("Overflow")
 	}
 	return Uint128{Lo: lo, Hi: hi}, nil
+}
+
+func (u Uint128) Add(v Uint128) (Uint128, error) {
+	lo, carry := add64(u.Lo, v.Lo, 0)
+	hi, carry2 := add64(u.Hi, v.Hi, carry)
+	if carry2 != 0 {
+		return Uint128{0, 0}, errors.New("Overflow")
+	}
+	return Uint128{Lo: lo, Hi: hi}, nil
+}
+func (u Uint128) Sub(v Uint128) (Uint128, error) {
+	lo, borrow := sub64(u.Lo, v.Lo, 0)
+	hi, borrow2 := sub64(u.Hi, v.Hi, borrow)
+	if borrow2 != 0 {
+		return Uint128{0, 0}, errors.New("Underflow")
+	}
+	return Uint128{Lo: lo, Hi: hi}, nil
+}
+
+func (u Uint128) Mul(v Uint128) (Uint128, error) {
+	lo, hi := mul128(u.Lo, v.Lo)
+	hi1 := u.Hi * v.Lo
+	hi2 := u.Lo * v.Hi
+
+	newHi, overflow1 := add64(hi, hi1, 0)
+	if overflow1 != 0 {
+		return Uint128{0, 0}, errors.New("Overflow in multiplication")
+	}
+
+	newHi, overflow2 := add64(newHi, hi2, 0)
+	if overflow2 != 0 {
+		return Uint128{0, 0}, errors.New("Overflow in multiplication")
+	}
+
+	return Uint128{Lo: lo, Hi: newHi}, nil
+}
+
+func (u Uint128) Div(v Uint128) (Uint128, error) {
+	if v.Lo == 0 && v.Hi == 0 {
+		return Uint128{0, 0}, errors.New("Division by zero")
+	}
+
+	var result Uint128
+	var remainder Uint128 = u
+
+	for remainder.GreaterOrEqual(v) {
+		shift := v
+		multiple := Uint128{Lo: 1, Hi: 0}
+
+		for remainder.GreaterOrEqual(shift.ShiftLeft(1)) {
+			shift = shift.ShiftLeft(1)
+			multiple = multiple.ShiftLeft(1)
+		}
+
+		remainder, _ = remainder.Sub(shift)
+		result, _ = result.Add(multiple)
+	}
+
+	return result, nil
+}
+
+func (u Uint128) Bit(i int) uint {
+	if i < 64 {
+		return uint((u.Lo >> i) & 1)
+	}
+	return uint((u.Hi >> (i - 64)) & 1)
+}
+
+func (u Uint128) Lsh(n uint) Uint128 {
+	if n == 0 {
+		return u
+	} else if n < 64 {
+		return Uint128{
+			Lo: u.Lo << n,
+			Hi: (u.Hi << n) | (u.Lo >> (64 - n)),
+		}
+	} else {
+		return Uint128{
+			Lo: 0,
+			Hi: u.Lo << (n - 64),
+		}
+	}
+}
+
+func (u Uint128) Cmp(v Uint128) int {
+	if u.Hi > v.Hi || (u.Hi == v.Hi && u.Lo > v.Lo) {
+		return 1
+	} else if u.Hi < v.Hi || (u.Hi == v.Hi && u.Lo < v.Lo) {
+		return -1
+	}
+	return 0
+}
+
+func (u Uint128) Mod(v Uint128) (Uint128, error) {
+	if v.Lo == 0 && v.Hi == 0 {
+		return Uint128{0, 0}, errors.New("Division by zero")
+	}
+	_, remainder := u.QuoRem64(v.Lo)
+	return U64ToUint128(remainder), nil
+}
+
+func (u Uint128) And(v Uint128) Uint128 {
+	return Uint128{Lo: u.Lo & v.Lo, Hi: u.Hi & v.Hi}
+}
+
+func (u Uint128) Or(v Uint128) Uint128 {
+	return Uint128{Lo: u.Lo | v.Lo, Hi: u.Hi | v.Hi}
+}
+
+func (u Uint128) Xor(v Uint128) Uint128 {
+	return Uint128{Lo: u.Lo ^ v.Lo, Hi: u.Hi ^ v.Hi}
 }
 
 func U128FromString(s string) (Uint128, error) {
