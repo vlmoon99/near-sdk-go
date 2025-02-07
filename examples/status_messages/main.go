@@ -12,8 +12,6 @@ type StatusMessage struct {
 	Data map[string]string
 }
 
-var StorageKey = []byte("State")
-
 func NewStatusMessage() *StatusMessage {
 	return &StatusMessage{
 		Data: make(map[string]string),
@@ -87,7 +85,7 @@ func SetStatus() {
 		sdk.LogString("There are some error :" + inputErr.Error())
 
 	}
-	data, readErr := sdk.StorageRead(StorageKey)
+	data, readErr := sdk.StorageRead(sdk.StateKey)
 	if readErr != nil {
 		sdk.LogString("There are some error :" + readErr.Error())
 	}
@@ -100,13 +98,13 @@ func SetStatus() {
 		sdk.LogString("There are some error :" + errAccountId.Error())
 	}
 	state.Data[accountId] = string(contractInput)
-	sdk.StorageWrite(StorageKey, state.Serialize())
+	sdk.StorageWrite(sdk.StateKey, state.Serialize())
 	sdk.ContractValueReturn([]byte(state.Data[accountId]))
 }
 
 //go:export GetStatus
 func GetStatus() {
-	data, readErr := sdk.StorageRead(StorageKey)
+	data, readErr := sdk.StorageRead(sdk.StateKey)
 	if readErr != nil {
 		sdk.LogString("There are some error :" + readErr.Error())
 	}
@@ -126,5 +124,5 @@ func InitContract() {
 	sdk.LogString("Init Smart Contract")
 	msg := NewStatusMessage()
 	serialized := msg.Serialize()
-	sdk.StorageWrite(StorageKey, serialized)
+	sdk.StorageWrite(sdk.StateKey, serialized)
 }

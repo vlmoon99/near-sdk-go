@@ -42,7 +42,7 @@ func methodIntoRegister(method func(uint64)) ([]byte, error) {
 }
 
 func readRegisterSafe(registerId uint64) ([]byte, error) {
-	length := RegisterLen(registerId)
+	length := registerLen(registerId)
 	if length == 0 {
 		return []byte{}, errors.New("expected data in register, but found none")
 	}
@@ -51,7 +51,7 @@ func readRegisterSafe(registerId uint64) ([]byte, error) {
 
 	ptr := uint64(uintptr(unsafe.Pointer(&buffer[0])))
 
-	ReadRegister(registerId, ptr)
+	readRegister(registerId, ptr)
 
 	return buffer, nil
 }
@@ -63,7 +63,7 @@ func writeRegisterSafe(registerId uint64, data []byte) {
 
 	ptr := uint64(uintptr(unsafe.Pointer(&data[0])))
 
-	WriteRegister(registerId, uint64(len(data)), ptr)
+	writeRegister(registerId, uint64(len(data)), ptr)
 }
 
 // Registers
@@ -77,11 +77,12 @@ func assertValidAccountId(data []byte) (string, error) {
 	return string(data), nil
 }
 
-func GetCurrentAccountID() (string, error) {
-	CurrentAccountId(AtomicOpRegister)
-	data, err := methodIntoRegister(func(registerID uint64) { CurrentAccountId(registerID) })
+func GetCurrentAccountId() (string, error) {
+	currentAccountId(AtomicOpRegister)
+
+	data, err := methodIntoRegister(func(registerID uint64) { currentAccountId(registerID) })
 	if err != nil {
-		LogString("Error in GetCurrentAccountID: " + err.Error())
+		LogString("Error in GetCurrentAccountId: " + err.Error())
 		return "", err
 	}
 
@@ -89,7 +90,7 @@ func GetCurrentAccountID() (string, error) {
 }
 
 func GetSignerAccountID() (string, error) {
-	data, err := methodIntoRegister(func(registerID uint64) { SignerAccountId(registerID) })
+	data, err := methodIntoRegister(func(registerID uint64) { signerAccountId(registerID) })
 	if err != nil {
 		LogString("Error in GetSignerAccountID: " + err.Error())
 		return "", err
@@ -99,7 +100,7 @@ func GetSignerAccountID() (string, error) {
 }
 
 func GetSignerAccountPK() ([]byte, error) {
-	data, err := methodIntoRegister(func(registerID uint64) { SignerAccountPk(registerID) })
+	data, err := methodIntoRegister(func(registerID uint64) { signerAccountPk(registerID) })
 	if err != nil {
 		LogString("Error in GetSignerAccountPK: " + err.Error())
 		return nil, err
@@ -109,7 +110,7 @@ func GetSignerAccountPK() ([]byte, error) {
 }
 
 func GetPredecessorAccountID() (string, error) {
-	data, err := methodIntoRegister(func(registerID uint64) { PredecessorAccountId(registerID) })
+	data, err := methodIntoRegister(func(registerID uint64) { predecessorAccountId(registerID) })
 	if err != nil {
 		LogString("Error in GetPredecessorAccountID: " + err.Error())
 		return "", err
@@ -119,23 +120,23 @@ func GetPredecessorAccountID() (string, error) {
 }
 
 func GetCurrentBlockHeight() uint64 {
-	return BlockIndex()
+	return blockIndex()
 }
 
 func GetCurrentBlockTimeStamp() uint64 {
-	return BlockTimestamp()
+	return blockTimestamp()
 }
 
 func GetBlockTimeMs() uint64 {
-	return BlockTimestamp() / 1_000_000
+	return blockTimestamp() / 1_000_000
 }
 
 func GetEpochHeight() uint64 {
-	return EpochHeight()
+	return epochHeight()
 }
 
 func GetStorageUsage() uint64 {
-	return StorageUsage()
+	return storageUsage()
 }
 
 func detectInputType(decodedData []byte, keyPath ...string) ([]byte, string, error) {
@@ -166,10 +167,11 @@ func detectInputType(decodedData []byte, keyPath ...string) ([]byte, string, err
 	}
 }
 
+// TODO add more structured input in order to control contract input in each cases (json,raw bytes, etc)
 func ContractInput(isRaw bool) ([]byte, string, error) {
 
 	data, err := methodIntoRegister(func(registerID uint64) {
-		Input(registerID)
+		input(registerID)
 	})
 	if err != nil {
 		LogString("Error in GetContractInput: " + err.Error())
@@ -193,7 +195,7 @@ func ContractInput(isRaw bool) ([]byte, string, error) {
 // Miscellaneous API
 
 func ContractValueReturn(inputBytes []byte) {
-	ValueReturn(uint64(len(inputBytes)), uint64(uintptr(unsafe.Pointer(&inputBytes[0]))))
+	valueReturn(uint64(len(inputBytes)), uint64(uintptr(unsafe.Pointer(&inputBytes[0]))))
 }
 
 func PanicStr(input string) {
@@ -206,11 +208,11 @@ func PanicStr(input string) {
 
 	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
 
-	PanicUtf8(inputLength, inputPtr)
+	panicUtf8(inputLength, inputPtr)
 }
 
 func AbortExecution() {
-	Panic()
+	panic()
 }
 
 func LogString(input string) {
@@ -223,7 +225,7 @@ func LogString(input string) {
 
 	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
 
-	LogUtf8(inputLength, inputPtr)
+	logUtf8(inputLength, inputPtr)
 }
 
 func LogStringUtf8(inputBytes []byte) {
@@ -232,7 +234,7 @@ func LogStringUtf8(inputBytes []byte) {
 
 	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
 
-	LogUtf8(inputLength, inputPtr)
+	logUtf8(inputLength, inputPtr)
 }
 
 func LogStringUtf16(inputBytes []byte) {
@@ -241,7 +243,7 @@ func LogStringUtf16(inputBytes []byte) {
 
 	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
 
-	LogUtf16(inputLength, inputPtr)
+	logUtf16(inputLength, inputPtr)
 }
 
 // Miscellaneous API
@@ -250,31 +252,31 @@ func LogStringUtf16(inputBytes []byte) {
 
 func GetAccountBalance() Uint128 {
 	var data [16]byte
-	AccountBalance(uint64(uintptr(unsafe.Pointer(&data[0]))))
+	accountBalance(uint64(uintptr(unsafe.Pointer(&data[0]))))
 	accountBalance := LoadUint128LE(data[:])
 	return accountBalance
 }
 
 func GetAccountLockedBalance() Uint128 {
 	var data [16]byte
-	AccountLockedBalance(uint64(uintptr(unsafe.Pointer(&data[0]))))
+	accountLockedBalance(uint64(uintptr(unsafe.Pointer(&data[0]))))
 	accountBalance := LoadUint128LE(data[:])
 	return accountBalance
 }
 
 func GetAttachedDepoist() Uint128 {
 	var data [16]byte
-	AttachedDeposit(uint64(uintptr(unsafe.Pointer(&data[0]))))
+	attachedDeposit(uint64(uintptr(unsafe.Pointer(&data[0]))))
 	accountBalance := LoadUint128LE(data[:])
 	return accountBalance
 }
 
 func GetPrepaidGas() NearGas {
-	return NearGas{PrepaidGas()}
+	return NearGas{prepaidGas()}
 }
 
 func GetUsedGas() NearGas {
-	return NearGas{UsedGas()}
+	return NearGas{usedGas()}
 }
 
 // Economics API
@@ -292,7 +294,7 @@ func StorageWrite(key, value []byte) (bool, error) {
 	valueLen := uint64(len(value))
 	valuePtr := uint64(uintptr(unsafe.Pointer(&value[0])))
 
-	result := StorageWriteSys(keyLen, keyPtr, valueLen, valuePtr, EvictedRegister)
+	result := storageWriteSys(keyLen, keyPtr, valueLen, valuePtr, EvictedRegister)
 	if result == 0 {
 		return false, errors.New("Failed to Write value in the storage by provided key")
 	}
@@ -306,7 +308,7 @@ func StorageRead(key []byte) ([]byte, error) {
 	}
 	keyLen := uint64(len(key))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
-	result := StorageReadSys(keyLen, keyPtr, EvictedRegister)
+	result := storageReadSys(keyLen, keyPtr, EvictedRegister)
 
 	if result == 0 {
 		return nil, errors.New("Failed to Read the key")
@@ -328,9 +330,9 @@ func StorageRemove(key []byte) (bool, error) {
 	keyLen := uint64(len(key))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
 
-	result := StorageRemoveSys(keyLen, keyPtr, EvictedRegister)
+	result := storageRemoveSys(keyLen, keyPtr, EvictedRegister)
 	if result == 0 {
-		return false, nil
+		return false, errors.New("Can't remove data by that key")
 	}
 
 	return true, nil
@@ -353,7 +355,7 @@ func StorageHasKey(key []byte) (bool, error) {
 	keyLen := uint64(len(key))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
 
-	result := StorageHasKeySys(keyLen, keyPtr)
+	result := storageHasKeySys(keyLen, keyPtr)
 	return result == 1, nil
 }
 
@@ -361,7 +363,7 @@ func StateRead() ([]byte, error) {
 	keyLen := uint64(len(StateKey))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&StateKey[0])))
 
-	result := StorageReadSys(keyLen, keyPtr, 0)
+	result := storageReadSys(keyLen, keyPtr, 0)
 	if result == 0 {
 		return nil, errors.New("state not found")
 	}
@@ -382,7 +384,7 @@ func StateWrite(data []byte) error {
 	valueLen := uint64(len(data))
 	valuePtr := uint64(uintptr(unsafe.Pointer(&data[0])))
 
-	result := StorageWriteSys(keyLen, keyPtr, valueLen, valuePtr, 0)
+	result := storageWriteSys(keyLen, keyPtr, valueLen, valuePtr, 0)
 	if result == 0 {
 		return errors.New("failed to write state to storage")
 	}
@@ -394,7 +396,7 @@ func StateExists() bool {
 	keyLen := uint64(len(StateKey))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&StateKey[0])))
 
-	result := StorageHasKeySys(keyLen, keyPtr)
+	result := storageHasKeySys(keyLen, keyPtr)
 	return result == 1
 }
 
@@ -403,27 +405,27 @@ func StateExists() bool {
 // Math API
 
 func GetRandomSeed() ([]byte, error) {
-	RandomSeed(AtomicOpRegister)
+	randomSeed(AtomicOpRegister)
 	return readRegisterSafe(AtomicOpRegister)
 }
 
 func Sha256Hash(data []byte) ([]byte, error) {
-	Sha256(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), AtomicOpRegister)
+	sha256(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), AtomicOpRegister)
 	return readRegisterSafe(AtomicOpRegister)
 }
 
 func Keccak256Hash(data []byte) ([]byte, error) {
-	Keccak256(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), AtomicOpRegister)
+	keccak256(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), AtomicOpRegister)
 	return readRegisterSafe(AtomicOpRegister)
 }
 
 func Keccak512Hash(data []byte) ([]byte, error) {
-	Keccak512(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), AtomicOpRegister)
+	keccak512(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), AtomicOpRegister)
 	return readRegisterSafe(AtomicOpRegister)
 }
 
 func Ripemd160Hash(data []byte) ([]byte, error) {
-	Ripemd160(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), AtomicOpRegister)
+	ripemd160(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), AtomicOpRegister)
 	return readRegisterSafe(AtomicOpRegister)
 }
 
@@ -432,7 +434,7 @@ func EcrecoverPubKey(hash, signature []byte, v byte, malleabilityFlag bool) ([]b
 		return nil, errors.New("invalid input: hash and signature must not be empty")
 	}
 
-	result := Ecrecover(
+	result := ecrecover(
 		uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))),
 		uint64(len(signature)), uint64(uintptr(unsafe.Pointer(&signature[0]))),
 		uint64(v), BoolToUnit(malleabilityFlag), AtomicOpRegister,
@@ -446,7 +448,7 @@ func EcrecoverPubKey(hash, signature []byte, v byte, malleabilityFlag bool) ([]b
 }
 
 func Ed25519VerifySig(signature [64]byte, message []byte, publicKey [32]byte) bool {
-	result := Ed25519Verify(
+	result := ed25519Verify(
 		uint64(len(signature)), uint64(uintptr(unsafe.Pointer(&signature[0]))),
 		uint64(len(message)), uint64(uintptr(unsafe.Pointer(&message[0]))),
 		uint64(len(publicKey)), uint64(uintptr(unsafe.Pointer(&publicKey[0]))),
@@ -456,17 +458,17 @@ func Ed25519VerifySig(signature [64]byte, message []byte, publicKey [32]byte) bo
 }
 
 func AltBn128G1MultiExp(value []byte) ([]byte, error) {
-	AltBn128G1Multiexp(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))), AtomicOpRegister)
+	altBn128G1Multiexp(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))), AtomicOpRegister)
 	return readRegisterSafe(AtomicOpRegister)
 }
 
 func AltBn128G1Sum(value []byte) ([]byte, error) {
-	AltBn128G1SumSystem(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))), AtomicOpRegister)
+	altBn128G1SumSystem(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))), AtomicOpRegister)
 	return readRegisterSafe(AtomicOpRegister)
 }
 
 func AltBn128PairingCheck(value []byte) bool {
-	return AltBn128PairingCheckSystem(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0])))) == 1
+	return altBn128PairingCheckSystem(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0])))) == 1
 }
 
 // Math API
@@ -479,14 +481,14 @@ func ValidatorStakeAmount(accountID []byte) (Uint128, error) {
 	}
 
 	var stakeData [16]byte
-	ValidatorStake(uint64(len(accountID)), uint64(uintptr(unsafe.Pointer(&accountID[0]))), uint64(uintptr(unsafe.Pointer(&stakeData[0]))))
+	validatorStake(uint64(len(accountID)), uint64(uintptr(unsafe.Pointer(&accountID[0]))), uint64(uintptr(unsafe.Pointer(&stakeData[0]))))
 
 	return LoadUint128LE(stakeData[:]), nil
 }
 
 func ValidatorTotalStakeAmount() Uint128 {
 	var stakeData [16]byte
-	ValidatorTotalStake(uint64(uintptr(unsafe.Pointer(&stakeData[0]))))
+	validatorTotalStake(uint64(uintptr(unsafe.Pointer(&stakeData[0]))))
 
 	return LoadUint128LE(stakeData[:])
 }
@@ -496,7 +498,7 @@ func ValidatorTotalStakeAmount() Uint128 {
 // Promises API
 
 func PromiseCreate(accountId []byte, functionName []byte, arguments []byte, amount Uint128, gas uint64) uint64 {
-	return PromiseCreateSys(
+	return promiseCreateSys(
 		uint64(len(accountId)),
 		uint64(uintptr(unsafe.Pointer(&accountId[0]))),
 
@@ -512,7 +514,7 @@ func PromiseCreate(accountId []byte, functionName []byte, arguments []byte, amou
 }
 
 func PromiseThen(promiseIdx uint64, accountId []byte, functionName []byte, arguments []byte, amount Uint128, gas uint64) uint64 {
-	return PromiseThenSys(
+	return promiseThenSys(
 		promiseIdx,
 		uint64(len(accountId)),
 		uint64(uintptr(unsafe.Pointer(&accountId[0]))),
@@ -529,15 +531,15 @@ func PromiseThen(promiseIdx uint64, accountId []byte, functionName []byte, argum
 }
 
 func PromiseAnd(promiseIndices []uint64) uint64 {
-	return PromiseAndSys(uint64(uintptr(unsafe.Pointer(&promiseIndices[0]))), uint64(len(promiseIndices)))
+	return promiseAndSys(uint64(uintptr(unsafe.Pointer(&promiseIndices[0]))), uint64(len(promiseIndices)))
 }
 
 func PromiseBatchCreate(accountId []byte) uint64 {
-	return PromiseBatchCreateSys(uint64(len(accountId)), uint64(uintptr(unsafe.Pointer(&accountId[0]))))
+	return promiseBatchCreateSys(uint64(len(accountId)), uint64(uintptr(unsafe.Pointer(&accountId[0]))))
 }
 
 func PromiseBatchThen(promiseIdx uint64, accountId []byte) uint64 {
-	return PromiseBatchThenSys(promiseIdx, uint64(len(accountId)), uint64(uintptr(unsafe.Pointer(&accountId[0]))))
+	return promiseBatchThenSys(promiseIdx, uint64(len(accountId)), uint64(uintptr(unsafe.Pointer(&accountId[0]))))
 }
 
 // Promises API
@@ -545,15 +547,15 @@ func PromiseBatchThen(promiseIdx uint64, accountId []byte) uint64 {
 // Promises API Action
 
 func PromiseBatchActionCreateAccount(promiseIdx uint64) {
-	PromiseBatchActionCreateAccountSys(promiseIdx)
+	promiseBatchActionCreateAccountSys(promiseIdx)
 }
 
 func PromiseBatchActionDeployContract(promiseIdx uint64, bytes []byte) {
-	PromiseBatchActionDeployContractSys(promiseIdx, uint64(len(bytes)), uint64(uintptr(unsafe.Pointer(&bytes[0]))))
+	promiseBatchActionDeployContractSys(promiseIdx, uint64(len(bytes)), uint64(uintptr(unsafe.Pointer(&bytes[0]))))
 }
 
 func PromiseBatchActionFunctionCall(promiseIdx uint64, functionName []byte, arguments []byte, amount Uint128, gas uint64) {
-	PromiseBatchActionFunctionCallSys(promiseIdx,
+	promiseBatchActionFunctionCallSys(promiseIdx,
 		uint64(len(functionName)),
 		uint64(uintptr(unsafe.Pointer(&functionName[0]))),
 
@@ -566,7 +568,7 @@ func PromiseBatchActionFunctionCall(promiseIdx uint64, functionName []byte, argu
 }
 
 func PromiseBatchActionFunctionCallWeight(promiseIdx uint64, functionName []byte, arguments []byte, amount Uint128, gas uint64, weight uint64) {
-	PromiseBatchActionFunctionCallWeightSys(promiseIdx,
+	promiseBatchActionFunctionCallWeightSys(promiseIdx,
 		uint64(len(functionName)),
 		uint64(uintptr(unsafe.Pointer(&functionName[0]))),
 
@@ -580,11 +582,11 @@ func PromiseBatchActionFunctionCallWeight(promiseIdx uint64, functionName []byte
 }
 
 func PromiseBatchActionTransfer(promiseIdx uint64, amount Uint128) {
-	PromiseBatchActionTransferSys(promiseIdx, uint64(uintptr(unsafe.Pointer(&amount.ToBE()[0]))))
+	promiseBatchActionTransferSys(promiseIdx, uint64(uintptr(unsafe.Pointer(&amount.ToBE()[0]))))
 }
 
 func PromiseBatchActionStake(promiseIdx uint64, amount Uint128, publicKey []byte) {
-	PromiseBatchActionStakeSys(
+	promiseBatchActionStakeSys(
 		promiseIdx,
 		uint64(uintptr(unsafe.Pointer(&amount.ToBE()[0]))),
 
@@ -594,7 +596,7 @@ func PromiseBatchActionStake(promiseIdx uint64, amount Uint128, publicKey []byte
 }
 
 func PromiseBatchActionAddKeyWithFullAccess(promiseIdx uint64, publicKey []byte, nonce uint64) {
-	PromiseBatchActionAddKeyWithFullAccessSys(
+	promiseBatchActionAddKeyWithFullAccessSys(
 		promiseIdx,
 
 		uint64(len(publicKey)),
@@ -605,7 +607,7 @@ func PromiseBatchActionAddKeyWithFullAccess(promiseIdx uint64, publicKey []byte,
 }
 
 func PromiseBatchActionAddKeyWithFunctionCall(promiseIdx uint64, publicKey []byte, nonce uint64, amount Uint128, receiverId []byte, functionName []byte) {
-	PromiseBatchActionAddKeyWithFunctionCallSys(
+	promiseBatchActionAddKeyWithFunctionCallSys(
 		promiseIdx,
 
 		uint64(len(publicKey)),
@@ -623,7 +625,7 @@ func PromiseBatchActionAddKeyWithFunctionCall(promiseIdx uint64, publicKey []byt
 }
 
 func PromiseBatchActionDeleteKey(promiseIdx uint64, publicKey []byte) {
-	PromiseBatchActionDeleteKeySys(
+	promiseBatchActionDeleteKeySys(
 		promiseIdx,
 
 		uint64(len(publicKey)),
@@ -632,7 +634,7 @@ func PromiseBatchActionDeleteKey(promiseIdx uint64, publicKey []byte) {
 }
 
 func PromiseBatchActionDeleteAccount(promiseIdx uint64, beneficiaryId []byte) {
-	PromiseBatchActionDeleteAccountSys(
+	promiseBatchActionDeleteAccountSys(
 		promiseIdx,
 
 		uint64(len(beneficiaryId)),
@@ -641,7 +643,7 @@ func PromiseBatchActionDeleteAccount(promiseIdx uint64, beneficiaryId []byte) {
 }
 
 func PromiseYieldCreate(functionName []byte, arguments []byte, gas uint64, gasWeight uint64) uint64 {
-	return PromiseYieldCreateSys(
+	return promiseYieldCreateSys(
 		uint64(len(functionName)),
 		uint64(uintptr(unsafe.Pointer(&functionName[0]))),
 
@@ -654,7 +656,7 @@ func PromiseYieldCreate(functionName []byte, arguments []byte, gas uint64, gasWe
 }
 
 func PromiseYieldResume(data []byte, payload []byte) uint32 {
-	return PromiseYieldResumeSys(
+	return promiseYieldResumeSys(
 		uint64(len(data)),
 		uint64(uintptr(unsafe.Pointer(&data[0]))),
 
@@ -667,15 +669,15 @@ func PromiseYieldResume(data []byte, payload []byte) uint32 {
 
 // Promise API Results
 func PromiseResultsCount(data []byte, payload []byte) uint64 {
-	return PromiseResultsCountSys()
+	return promiseResultsCountSys()
 }
 
 func PromiseResult(resultIdx uint64) uint64 {
-	return PromiseResultSys(resultIdx, AtomicOpRegister)
+	return promiseResultSys(resultIdx, AtomicOpRegister)
 }
 
 func PromiseReturn(promiseId uint64) {
-	PromiseReturnSys(promiseId)
+	promiseReturnSys(promiseId)
 }
 
 // Promise API Results

@@ -1,4 +1,4 @@
-module example.com/status_messages
+module github.com/vlmoon99/near-sdk-go/examples/status_messages
 
 go 1.23.5
 
