@@ -14,6 +14,14 @@ const (
 	ONE_GIGA_GAS  = 1_000_000_000
 )
 
+// ContractInputOptions
+
+type ContractInputOptions struct {
+	IsRawBytes bool
+}
+
+//
+
 // Uint128
 type Uint128 struct {
 	Hi uint64
@@ -78,13 +86,6 @@ func U64ToLE(value uint64) []byte {
 
 func U64ToUint128(value uint64) Uint128 {
 	return Uint128{Hi: 0, Lo: value}
-}
-
-func BoolToUnit(b bool) uint64 {
-	if b {
-		return 1
-	}
-	return 0
 }
 
 func (u Uint128) SafeQuoRem64(v uint64) (q Uint128, r uint64, err error) {

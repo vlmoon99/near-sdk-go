@@ -82,7 +82,8 @@ func Deserialize(data []byte) (*StatusMessage, error) {
 
 //go:export SetStatus
 func SetStatus() {
-	contractInput, _, inputErr := sdk.ContractInput(true)
+	options := sdk.ContractInputOptions{IsRawBytes: true}
+	contractInput, _, inputErr := sdk.ContractInput(options)
 	if inputErr != nil {
 		sdk.LogString("There are some error :" + inputErr.Error())
 
@@ -127,4 +128,5 @@ func InitContract() {
 	msg := NewStatusMessage()
 	serialized := msg.Serialize()
 	sdk.StorageWrite(StorageKey, serialized)
+
 }

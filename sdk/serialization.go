@@ -33,6 +33,13 @@ func (b *Builder) AddInt(key string, value int) *Builder {
 	return b
 }
 
+func BoolToUnit(b bool) uint64 {
+	if b {
+		return 1
+	}
+	return 0
+}
+
 func intToBytes(n int) []byte {
 	if n == 0 {
 		return []byte("0")
@@ -86,4 +93,8 @@ func (p *Parser) GetInt(key string) (int64, error) {
 
 func (p *Parser) GetBoolean(key string) (bool, error) {
 	return jsonparser.GetBoolean(p.data, key)
+}
+
+func (p *Parser) GetFloat(key string) (float64, error) {
+	return jsonparser.GetFloat(p.data, key)
 }

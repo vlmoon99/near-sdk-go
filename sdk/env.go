@@ -78,8 +78,6 @@ func assertValidAccountId(data []byte) (string, error) {
 }
 
 func GetCurrentAccountId() (string, error) {
-	currentAccountId(AtomicOpRegister)
-
 	data, err := methodIntoRegister(func(registerID uint64) { currentAccountId(registerID) })
 	if err != nil {
 		LogString("Error in GetCurrentAccountId: " + err.Error())
@@ -167,9 +165,7 @@ func detectInputType(decodedData []byte, keyPath ...string) ([]byte, string, err
 	}
 }
 
-// TODO add more structured input in order to control contract input in each cases (json,raw bytes, etc)
-func ContractInput(isRaw bool) ([]byte, string, error) {
-
+func ContractInput(options ContractInputOptions) ([]byte, string, error) {
 	data, err := methodIntoRegister(func(registerID uint64) {
 		input(registerID)
 	})
@@ -177,7 +173,8 @@ func ContractInput(isRaw bool) ([]byte, string, error) {
 		LogString("Error in GetContractInput: " + err.Error())
 		return nil, "", err
 	}
-	if isRaw {
+
+	if options.IsRawBytes {
 		return data, "rawBytes", nil
 	}
 
@@ -212,7 +209,7 @@ func PanicStr(input string) {
 }
 
 func AbortExecution() {
-	panic()
+	PanicStr("AbortExecution")
 }
 
 func LogString(input string) {
@@ -405,28 +402,33 @@ func StateExists() bool {
 // Math API
 
 func GetRandomSeed() ([]byte, error) {
-	randomSeed(AtomicOpRegister)
-	return readRegisterSafe(AtomicOpRegister)
+	return methodIntoRegister(func(registerID uint64) {
+		randomSeed(registerID)
+	})
 }
 
 func Sha256Hash(data []byte) ([]byte, error) {
-	sha256(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), AtomicOpRegister)
-	return readRegisterSafe(AtomicOpRegister)
+	return methodIntoRegister(func(registerID uint64) {
+		sha256(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), registerID)
+	})
 }
 
 func Keccak256Hash(data []byte) ([]byte, error) {
-	keccak256(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), AtomicOpRegister)
-	return readRegisterSafe(AtomicOpRegister)
+	return methodIntoRegister(func(registerID uint64) {
+		keccak256(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), registerID)
+	})
 }
 
 func Keccak512Hash(data []byte) ([]byte, error) {
-	keccak512(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), AtomicOpRegister)
-	return readRegisterSafe(AtomicOpRegister)
+	return methodIntoRegister(func(registerID uint64) {
+		keccak512(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), registerID)
+	})
 }
 
 func Ripemd160Hash(data []byte) ([]byte, error) {
-	ripemd160(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), AtomicOpRegister)
-	return readRegisterSafe(AtomicOpRegister)
+	return methodIntoRegister(func(registerID uint64) {
+		ripemd160(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), registerID)
+	})
 }
 
 func EcrecoverPubKey(hash, signature []byte, v byte, malleabilityFlag bool) ([]byte, error) {
@@ -434,17 +436,17 @@ func EcrecoverPubKey(hash, signature []byte, v byte, malleabilityFlag bool) ([]b
 		return nil, errors.New("invalid input: hash and signature must not be empty")
 	}
 
-	result := ecrecover(
-		uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))),
-		uint64(len(signature)), uint64(uintptr(unsafe.Pointer(&signature[0]))),
-		uint64(v), BoolToUnit(malleabilityFlag), AtomicOpRegister,
-	)
+	return methodIntoRegister(func(registerID uint64) {
+		result := ecrecover(
+			uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))),
+			uint64(len(signature)), uint64(uintptr(unsafe.Pointer(&signature[0]))),
+			uint64(v), BoolToUnit(malleabilityFlag), registerID,
+		)
 
-	if result == 0 {
-		return nil, errors.New("Ecrecover failed")
-	}
-
-	return readRegisterSafe(AtomicOpRegister)
+		if result == 0 {
+			PanicStr("Ecrecover failed") // methodIntoRegister should catch this and return an error
+		}
+	})
 }
 
 func Ed25519VerifySig(signature [64]byte, message []byte, publicKey [32]byte) bool {
@@ -453,18 +455,19 @@ func Ed25519VerifySig(signature [64]byte, message []byte, publicKey [32]byte) bo
 		uint64(len(message)), uint64(uintptr(unsafe.Pointer(&message[0]))),
 		uint64(len(publicKey)), uint64(uintptr(unsafe.Pointer(&publicKey[0]))),
 	)
-
 	return result == 1
 }
 
 func AltBn128G1MultiExp(value []byte) ([]byte, error) {
-	altBn128G1Multiexp(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))), AtomicOpRegister)
-	return readRegisterSafe(AtomicOpRegister)
+	return methodIntoRegister(func(registerID uint64) {
+		altBn128G1Multiexp(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))), registerID)
+	})
 }
 
 func AltBn128G1Sum(value []byte) ([]byte, error) {
-	altBn128G1SumSystem(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))), AtomicOpRegister)
-	return readRegisterSafe(AtomicOpRegister)
+	return methodIntoRegister(func(registerID uint64) {
+		altBn128G1SumSystem(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))), registerID)
+	})
 }
 
 func AltBn128PairingCheck(value []byte) bool {
