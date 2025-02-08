@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"github.com/vlmoon99/near-sdk-go/sdk"
+	"github.com/vlmoon99/near-sdk-go/types"
 )
 
 type StatusMessage struct {
@@ -82,7 +83,7 @@ func Deserialize(data []byte) (*StatusMessage, error) {
 
 //go:export SetStatus
 func SetStatus() {
-	options := sdk.ContractInputOptions{IsRawBytes: true}
+	options := types.ContractInputOptions{IsRawBytes: true}
 	contractInput, _, inputErr := sdk.ContractInput(options)
 	if inputErr != nil {
 		sdk.LogString("There are some error :" + inputErr.Error())
@@ -128,5 +129,4 @@ func InitContract() {
 	msg := NewStatusMessage()
 	serialized := msg.Serialize()
 	sdk.StorageWrite(StorageKey, serialized)
-
 }

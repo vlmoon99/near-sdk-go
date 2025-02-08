@@ -1,4 +1,4 @@
-package sdk
+package types
 
 import (
 	"encoding/binary"
@@ -28,26 +28,26 @@ type Uint128 struct {
 	Lo uint64
 }
 
-func LoadUint128BE(b []byte) Uint128 {
+func LoadUint128BE(b []byte) (Uint128, error) {
 	if len(b) != 16 {
-		PanicStr("byte slice must be exactly 16 bytes long")
+		return Uint128{0, 0}, errors.New("Error while Loading Uint128 from BE Bytes")
 	}
 
 	hi := binary.BigEndian.Uint64(b[:8])
 	lo := binary.BigEndian.Uint64(b[8:16])
 
-	return Uint128{Hi: hi, Lo: lo}
+	return Uint128{Hi: hi, Lo: lo}, nil
 }
 
-func LoadUint128LE(b []byte) Uint128 {
+func LoadUint128LE(b []byte) (Uint128, error) {
 	if len(b) != 16 {
-		PanicStr("byte slice must be exactly 16 bytes long")
+		return Uint128{0, 0}, errors.New("Error while Loading Uint128 from LE Bytes")
 	}
 
 	lo := binary.LittleEndian.Uint64(b[:8])
 	hi := binary.LittleEndian.Uint64(b[8:16])
 
-	return Uint128{Hi: hi, Lo: lo}
+	return Uint128{Hi: hi, Lo: lo}, nil
 }
 
 func (u Uint128) ToBE() []byte {
@@ -386,7 +386,7 @@ func (u Uint128) String() string {
 
 // Near Gas
 type NearGas struct {
-	inner uint64
+	Inner uint64
 }
 
 //Near Gas
