@@ -33,13 +33,6 @@ func (b *Builder) AddInt(key string, value int) *Builder {
 	return b
 }
 
-func BoolToUnit(b bool) uint64 {
-	if b {
-		return 1
-	}
-	return 0
-}
-
 func intToBytes(n int) []byte {
 	if n == 0 {
 		return []byte("0")

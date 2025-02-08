@@ -390,3 +390,23 @@ type NearGas struct {
 }
 
 //Near Gas
+
+func Uint64ToString(n uint64) string {
+	if n == 0 {
+		return "0"
+	}
+
+	var result []byte
+	for n > 0 {
+		result = append([]byte{byte('0' + n%10)}, result...)
+		n /= 10
+	}
+	return string(result)
+}
+
+func BoolToUnit(b bool) uint64 {
+	if b {
+		return 1
+	}
+	return 0
+}

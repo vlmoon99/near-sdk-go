@@ -3,17 +3,17 @@ package sdk
 import (
 	"errors"
 	"math"
+	"strconv"
 	"unsafe"
 
 	"github.com/vlmoon99/jsonparser"
-	"github.com/vlmoon99/near-sdk-go/serialization"
 	"github.com/vlmoon99/near-sdk-go/system"
 	"github.com/vlmoon99/near-sdk-go/types"
 )
 
 const RegisterExpectedErr = "Register was expected to have data because we just wrote it into it."
 
-const AtomicOpRegister uint64 = ^uint64(2)
+const AtomicOpRegister uint64 = math.MaxUint64 - 2
 
 const EvictedRegister uint64 = math.MaxUint64 - 1
 
@@ -45,8 +45,14 @@ func methodIntoRegister(method func(uint64)) ([]byte, error) {
 }
 
 func readRegisterSafe(registerId uint64) ([]byte, error) {
+
 	length := system.RegisterLen(registerId)
-	if length == 0 {
+
+	//TODO : If len == 0 - ExecutionError("WebAssembly trap: An `unreachable` opcode was executed.") for some reason, if we convert value into string erroe gone
+	envHack := strconv.FormatUint(length, 10)
+	LogString("envHack :  " + envHack)
+
+	if length == 0 || envHack == "0" {
 		return []byte{}, errors.New("expected data in register, but found none")
 	}
 
@@ -448,7 +454,7 @@ func EcrecoverPubKey(hash, signature []byte, v byte, malleabilityFlag bool) ([]b
 		result := system.Ecrecover(
 			uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))),
 			uint64(len(signature)), uint64(uintptr(unsafe.Pointer(&signature[0]))),
-			uint64(v), serialization.BoolToUnit(malleabilityFlag), registerID,
+			uint64(v), types.BoolToUnit(malleabilityFlag), registerID,
 		)
 
 		if result == 0 {

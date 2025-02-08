@@ -125,6 +125,13 @@ func GetStatus() {
 
 //go:export InitContract
 func InitContract() {
+	input, dataType, err := sdk.ContractInput(types.ContractInputOptions{IsRawBytes: true})
+	if err != nil {
+		sdk.LogString("Input error :" + err.Error())
+	}
+	sdk.LogString("Init Smart Contract dataType :" + dataType)
+	sdk.LogString("Init Smart Contract input len :" + string(input))
+
 	sdk.LogString("Init Smart Contract")
 	msg := NewStatusMessage()
 	serialized := msg.Serialize()
