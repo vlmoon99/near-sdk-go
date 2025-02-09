@@ -389,7 +389,7 @@ type NearGas struct {
 	Inner uint64
 }
 
-//Near Gas
+// Near Gas
 
 func Uint64ToString(n uint64) string {
 	if n == 0 {

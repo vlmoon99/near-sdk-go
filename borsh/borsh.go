@@ -1,110 +1,23 @@
-package serialization
+package borsh
 
 import (
 	"encoding/binary"
 	"errors"
 	"reflect"
 
-	"github.com/vlmoon99/jsonparser"
 	"github.com/vlmoon99/near-sdk-go/types"
 )
 
-type Builder struct {
-	data []byte
-}
-
-func NewBuilder() *Builder {
-	return &Builder{data: []byte{'{'}}
-}
-
-func (b *Builder) AddString(key, value string) *Builder {
-	b.data = append(b.data, '"')
-	b.data = append(b.data, key...)
-	b.data = append(b.data, '"', ':')
-	b.data = append(b.data, '"')
-	b.data = append(b.data, value...)
-	b.data = append(b.data, '"', ',')
-	return b
-}
-
-func (b *Builder) AddInt(key string, value int) *Builder {
-	b.data = append(b.data, '"')
-	b.data = append(b.data, key...)
-	b.data = append(b.data, '"', ':')
-	b.data = append(b.data, intToBytes(value)...)
-	b.data = append(b.data, ',')
-	return b
-}
-
-func intToBytes(n int) []byte {
-	if n == 0 {
-		return []byte("0")
-	}
-
-	length := 0
-	for temp := n; temp != 0; temp /= 10 {
-		length++
-	}
-
-	result := make([]byte, length)
-	for i := length - 1; i >= 0; i-- {
-		result[i] = byte('0' + n%10)
-		n /= 10
-	}
-	return result
-}
-
-func (b *Builder) Build() []byte {
-	if len(b.data) > 1 {
-		b.data[len(b.data)-1] = '}'
-	} else {
-		b.data = append(b.data, '}')
-	}
-	return b.data
-}
-
-type Parser struct {
-	data []byte
-}
-
-func NewParser(data []byte) *Parser {
-	return &Parser{data: data}
-}
-
-func (p *Parser) GetRawBytes(key string) ([]byte, error) {
-	data, _, _, err := jsonparser.Get(p.data, key)
-	if err != nil {
-		return nil, errors.New("Error while getting raw bytes from the json")
-	}
-	return data, nil
-}
-
-func (p *Parser) GetString(key string) (string, error) {
-	return jsonparser.GetString(p.data, key)
-}
-
-func (p *Parser) GetInt(key string) (int64, error) {
-	return jsonparser.GetInt(p.data, key)
-}
-
-func (p *Parser) GetBoolean(key string) (bool, error) {
-	return jsonparser.GetBoolean(p.data, key)
-}
-
-func (p *Parser) GetFloat(key string) (float64, error) {
-	return jsonparser.GetFloat(p.data, key)
-}
-
-type byteReader struct {
+type ByteReader struct {
 	data []byte
 	pos  int
 }
 
-func newByteReader(data []byte) *byteReader {
-	return &byteReader{data: data}
+func NewByteReader(data []byte) *ByteReader {
+	return &ByteReader{data: data}
 }
 
-func (r *byteReader) Read(p []byte) (n int, err error) {
+func (r *ByteReader) Read(p []byte) (n int, err error) {
 	if r.pos >= len(r.data) {
 		return 0, errors.New("EOF")
 	}
@@ -113,7 +26,7 @@ func (r *byteReader) Read(p []byte) (n int, err error) {
 	return n, nil
 }
 
-func (r *byteReader) ReadByte() (byte, error) {
+func (r *ByteReader) ReadByte() (byte, error) {
 	if r.pos >= len(r.data) {
 		return 0, errors.New("EOF")
 	}
@@ -122,25 +35,25 @@ func (r *byteReader) ReadByte() (byte, error) {
 	return b, nil
 }
 
-type byteWriter struct {
+type ByteWriter struct {
 	buf []byte
 }
 
-func newByteWriter() *byteWriter {
-	return &byteWriter{}
+func NewByteWriter() *ByteWriter {
+	return &ByteWriter{}
 }
 
-func (w *byteWriter) Write(p []byte) (n int, err error) {
+func (w *ByteWriter) Write(p []byte) (n int, err error) {
 	w.buf = append(w.buf, p...)
 	return len(p), nil
 }
 
-func (w *byteWriter) WriteByte(c byte) error {
+func (w *ByteWriter) WriteByte(c byte) error {
 	w.buf = append(w.buf, c)
 	return nil
 }
 
-func (w *byteWriter) Bytes() []byte {
+func (w *ByteWriter) Bytes() []byte {
 	return w.buf
 }
 
@@ -150,7 +63,7 @@ func Deserialize(data []byte, s interface{}) error {
 		return errors.New("passed struct must be pointer")
 	}
 
-	r := newByteReader(data)
+	r := NewByteReader(data)
 	result, err := deserialize(reflect.TypeOf(s).Elem(), r)
 	if err != nil {
 		return err
@@ -161,7 +74,7 @@ func Deserialize(data []byte, s interface{}) error {
 }
 
 func Serialize(s interface{}) ([]byte, error) {
-	b := newByteWriter()
+	b := NewByteWriter()
 	err := serialize(reflect.ValueOf(s), b)
 	if err != nil {
 		return nil, err
@@ -169,7 +82,8 @@ func Serialize(s interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func deserialize(t reflect.Type, r *byteReader) (interface{}, error) {
+func deserialize(t reflect.Type, r *ByteReader) (interface{}, error) {
+
 	switch t.Kind() {
 	case reflect.Bool:
 		b, err := r.ReadByte()
@@ -271,28 +185,22 @@ func deserialize(t reflect.Type, r *byteReader) (interface{}, error) {
 			}
 			return u128, nil
 		} else {
-			v := reflect.New(t).Elem()
-			for i := 0; i < t.NumField(); i++ {
-				field := t.Field(i)
-				if field.Tag.Get("borsh_skip") == "true" {
-					continue
-				}
-				fv, err := deserialize(field.Type, r)
-				if err != nil {
-					return nil, err
-				}
-				v.Field(i).Set(reflect.ValueOf(fv))
-			}
-			return v.Interface(), nil
+			return nil, nil
 		}
+	case reflect.Array:
+		return nil, nil
 	case reflect.Slice:
+		return nil, nil
+	case reflect.Map:
+		return nil, nil
+	case reflect.Ptr:
 		return nil, nil
 	default:
 		return nil, errors.New("unsupported type:" + t.Name())
 	}
 }
 
-func serialize(v reflect.Value, b *byteWriter) error {
+func serialize(v reflect.Value, b *ByteWriter) error {
 	switch v.Kind() {
 	case reflect.Bool:
 		if v.Bool() {
@@ -355,23 +263,18 @@ func serialize(v reflect.Value, b *byteWriter) error {
 			_, err := b.Write(leBytes)
 			return err
 		} else {
-			t := v.Type()
-			for i := 0; i < t.NumField(); i++ {
-				field := t.Field(i)
-				if field.Tag.Get("borsh_skip") == "true" {
-					continue
-				}
-				err := serialize(v.Field(i), b)
-				if err != nil {
-					return err
-				}
-			}
 			return nil
 		}
+	case reflect.Array:
+		return nil
 	case reflect.Slice:
 		return nil
+	case reflect.Map:
+		return nil
+	case reflect.Ptr:
+		return nil
 	default:
-		return errors.New("unsupported type:" + v.Type().Name())
+		return errors.New("unsupported type:" + v.Type().String())
 
 	}
 }

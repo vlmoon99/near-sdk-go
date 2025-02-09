@@ -1,9 +1,8 @@
-package sdk
+package env
 
 import (
 	"errors"
 	"math"
-	"strconv"
 	"unsafe"
 
 	"github.com/vlmoon99/jsonparser"
@@ -49,10 +48,9 @@ func readRegisterSafe(registerId uint64) ([]byte, error) {
 	length := system.RegisterLen(registerId)
 
 	//TODO : If len == 0 - ExecutionError("WebAssembly trap: An `unreachable` opcode was executed.") for some reason, if we convert value into string erroe gone
-	envHack := strconv.FormatUint(length, 10)
-	LogString("envHack :  " + envHack)
+	assertValidAccountId([]byte(string(length)))
 
-	if length == 0 || envHack == "0" {
+	if length == 0 {
 		return []byte{}, errors.New("expected data in register, but found none")
 	}
 
