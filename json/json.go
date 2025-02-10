@@ -7,6 +7,10 @@ import (
 	"github.com/vlmoon99/jsonparser"
 )
 
+const (
+	errGettingRawBytesFromJson = "error while getting raw bytes from the json"
+)
+
 type Builder struct {
 	data []byte
 }
@@ -32,15 +36,11 @@ func (b *Builder) AddUint64(key string, value uint64) *Builder {
 }
 
 func (b *Builder) AddFloat64(key string, value float64) *Builder {
-	return b.addKey(key).addValue(strconv.FormatFloat(value, 'f', -1, 64)).addComma() // 'f' format, -1 precision
+	return b.addKey(key).addValue(strconv.FormatFloat(value, 'f', -1, 64)).addComma()
 }
 
 func (b *Builder) AddBool(key string, value bool) *Builder {
 	return b.addKey(key).addValue(strconv.FormatBool(value)).addComma()
-}
-
-func (b *Builder) AddBytes(key string, value []byte) *Builder {
-	return b.addKey(key).addValue(string(value)).addComma() // Bytes are added as strings
 }
 
 func (b *Builder) addKey(key string) *Builder {
@@ -62,7 +62,7 @@ func (b *Builder) addComma() *Builder {
 
 func (b *Builder) Build() []byte {
 	if len(b.data) > 1 {
-		b.data[len(b.data)-1] = '}' // Replace last comma with closing brace
+		b.data[len(b.data)-1] = '}'
 	} else {
 		b.data = append(b.data, '}')
 	}
@@ -80,7 +80,7 @@ func NewParser(data []byte) *Parser {
 func (p *Parser) GetRawBytes(key string) ([]byte, error) {
 	data, _, _, err := jsonparser.Get(p.data, key)
 	if err != nil {
-		return nil, errors.New("Error while getting raw bytes from the json")
+		return nil, errors.New(errGettingRawBytesFromJson)
 	}
 	return data, nil
 }
