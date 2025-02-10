@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"math/bits"
+	"strconv"
 )
 
 const (
@@ -22,6 +23,7 @@ type ContractInputOptions struct {
 
 //
 
+// TODO:(improve Uint128)
 // Uint128
 type Uint128 struct {
 	Hi uint64
@@ -88,30 +90,6 @@ func U64ToUint128(value uint64) Uint128 {
 	return Uint128{Hi: 0, Lo: value}
 }
 
-func (u Uint128) SafeQuoRem64(v uint64) (q Uint128, r uint64, err error) {
-	if v == 0 {
-		return Uint128{}, 0, errors.New("Divide by zero")
-	}
-
-	if u.Hi < v {
-		q.Lo, r = bits.Div64(u.Hi, u.Lo, v)
-	} else {
-		q.Hi, r = bits.Div64(0, u.Hi, v)
-		q.Lo, r = bits.Div64(r, u.Lo, v)
-	}
-	return
-}
-
-func (u Uint128) QuoRem64(v uint64) (q Uint128, r uint64) {
-	if u.Hi < v {
-		q.Lo, r = bits.Div64(u.Hi, u.Lo, v)
-	} else {
-		q.Hi, r = bits.Div64(0, u.Hi, v)
-		q.Lo, r = bits.Div64(r, u.Lo, v)
-	}
-	return
-}
-
 func mul64(x, y uint64) (lo, hi uint64) {
 	const mask32 = (1 << 32) - 1
 	x0, x1 := x&mask32, x>>32
@@ -137,34 +115,12 @@ func add64(x, y, carry uint64) (sum, carryOut uint64) {
 	return
 }
 
-func (u Uint128) ShiftLeft(bits uint) Uint128 {
-	if bits >= 64 {
-		return Uint128{Lo: 0, Hi: u.Lo << (bits - 64)}
-	}
-	return Uint128{Lo: u.Lo << bits, Hi: (u.Hi << bits) | (u.Lo >> (64 - bits))}
-}
-
-func (u Uint128) ShiftRight(bits uint) Uint128 {
-	if bits >= 64 {
-		return Uint128{Lo: u.Hi >> (bits - 64), Hi: 0}
-	}
-	return Uint128{Lo: (u.Lo >> bits) | (u.Hi << (64 - bits)), Hi: u.Hi >> bits}
-}
-
-func (u Uint128) GreaterOrEqual(v Uint128) bool {
-	if u.Hi > v.Hi {
-		return true
-	}
-	if u.Hi < v.Hi {
-		return false
-	}
-	return u.Lo >= v.Lo
-}
-
 func sub64(x, y, borrow uint64) (diff, borrowOut uint64) {
 	diff = x - y - borrow
-	if x < y || (x == y && borrow != 0) {
+	if x < y+borrow {
 		borrowOut = 1
+	} else {
+		borrowOut = 0
 	}
 	return
 }
@@ -217,6 +173,7 @@ func (u Uint128) Add(v Uint128) (Uint128, error) {
 	}
 	return Uint128{Lo: lo, Hi: hi}, nil
 }
+
 func (u Uint128) Sub(v Uint128) (Uint128, error) {
 	lo, borrow := sub64(u.Lo, v.Lo, 0)
 	hi, borrow2 := sub64(u.Hi, v.Hi, borrow)
@@ -266,6 +223,54 @@ func (u Uint128) Div(v Uint128) (Uint128, error) {
 	}
 
 	return result, nil
+}
+
+func (u Uint128) SafeQuoRem64(v uint64) (q Uint128, r uint64, err error) {
+	if v == 0 {
+		return Uint128{}, 0, errors.New("Divide by zero")
+	}
+
+	if u.Hi < v {
+		q.Lo, r = bits.Div64(u.Hi, u.Lo, v)
+	} else {
+		q.Hi, r = bits.Div64(0, u.Hi, v)
+		q.Lo, r = bits.Div64(r, u.Lo, v)
+	}
+	return
+}
+
+func (u Uint128) QuoRem64(v uint64) (q Uint128, r uint64) {
+	if u.Hi < v {
+		q.Lo, r = bits.Div64(u.Hi, u.Lo, v)
+	} else {
+		q.Hi, r = bits.Div64(0, u.Hi, v)
+		q.Lo, r = bits.Div64(r, u.Lo, v)
+	}
+	return
+}
+
+func (u Uint128) ShiftLeft(bits uint) Uint128 {
+	if bits >= 64 {
+		return Uint128{Lo: 0, Hi: u.Lo << (bits - 64)}
+	}
+	return Uint128{Lo: u.Lo << bits, Hi: (u.Hi << bits) | (u.Lo >> (64 - bits))}
+}
+
+func (u Uint128) ShiftRight(bits uint) Uint128 {
+	if bits >= 64 {
+		return Uint128{Lo: u.Hi >> (bits - 64), Hi: 0}
+	}
+	return Uint128{Lo: (u.Lo >> bits) | (u.Hi << (64 - bits)), Hi: u.Hi >> bits}
+}
+
+func (u Uint128) GreaterOrEqual(v Uint128) bool {
+	if u.Hi > v.Hi {
+		return true
+	}
+	if u.Hi < v.Hi {
+		return false
+	}
+	return u.Lo >= v.Lo
 }
 
 func (u Uint128) Bit(i int) uint {
@@ -320,12 +325,39 @@ func (u Uint128) Xor(v Uint128) Uint128 {
 	return Uint128{Lo: u.Lo ^ v.Lo, Hi: u.Hi ^ v.Hi}
 }
 
+func isUint128Overflow(s string) bool {
+	if len(s) > 39 {
+		return true
+	}
+
+	if len(s) < 39 {
+		return false
+	}
+
+	maxUint128Str := "340282366920938463463374607431768211455"
+	for i := 0; i < 39; i++ {
+		sDigit, _ := strconv.Atoi(string(s[i]))
+		maxDigit, _ := strconv.Atoi(string(maxUint128Str[i]))
+
+		if sDigit > maxDigit {
+			return true
+		} else if sDigit < maxDigit {
+			return false
+		}
+	}
+	return false
+}
+
 func U128FromString(s string) (Uint128, error) {
-	res := Uint128{0, 0}
+	var res Uint128
 	var err error
 
 	if len(s) == 0 || len(s) > 40 {
 		return Uint128{0, 0}, errors.New("Incorrect len")
+	}
+
+	if isUint128Overflow(s) {
+		return Uint128{}, errors.New("uint128 overflow")
 	}
 
 	res, err = processPart(s)
