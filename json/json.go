@@ -2,6 +2,7 @@ package json
 
 import (
 	"errors"
+	"strconv"
 
 	"github.com/vlmoon99/jsonparser"
 )
@@ -15,45 +16,53 @@ func NewBuilder() *Builder {
 }
 
 func (b *Builder) AddString(key, value string) *Builder {
-	b.data = append(b.data, '"')
-	b.data = append(b.data, key...)
-	b.data = append(b.data, '"', ':')
-	b.data = append(b.data, '"')
-	b.data = append(b.data, value...)
-	b.data = append(b.data, '"', ',')
-	return b
+	return b.addKey(key).addValue(`"` + value + `"`).addComma()
 }
 
 func (b *Builder) AddInt(key string, value int) *Builder {
+	return b.addKey(key).addValue(strconv.Itoa(value)).addComma()
+}
+
+func (b *Builder) AddInt64(key string, value int64) *Builder {
+	return b.addKey(key).addValue(strconv.FormatInt(value, 10)).addComma()
+}
+
+func (b *Builder) AddUint64(key string, value uint64) *Builder {
+	return b.addKey(key).addValue(strconv.FormatUint(value, 10)).addComma()
+}
+
+func (b *Builder) AddFloat64(key string, value float64) *Builder {
+	return b.addKey(key).addValue(strconv.FormatFloat(value, 'f', -1, 64)).addComma() // 'f' format, -1 precision
+}
+
+func (b *Builder) AddBool(key string, value bool) *Builder {
+	return b.addKey(key).addValue(strconv.FormatBool(value)).addComma()
+}
+
+func (b *Builder) AddBytes(key string, value []byte) *Builder {
+	return b.addKey(key).addValue(string(value)).addComma() // Bytes are added as strings
+}
+
+func (b *Builder) addKey(key string) *Builder {
 	b.data = append(b.data, '"')
 	b.data = append(b.data, key...)
 	b.data = append(b.data, '"', ':')
-	b.data = append(b.data, intToBytes(value)...)
+	return b
+}
+
+func (b *Builder) addValue(value string) *Builder {
+	b.data = append(b.data, value...)
+	return b
+}
+
+func (b *Builder) addComma() *Builder {
 	b.data = append(b.data, ',')
 	return b
 }
 
-func intToBytes(n int) []byte {
-	if n == 0 {
-		return []byte("0")
-	}
-
-	length := 0
-	for temp := n; temp != 0; temp /= 10 {
-		length++
-	}
-
-	result := make([]byte, length)
-	for i := length - 1; i >= 0; i-- {
-		result[i] = byte('0' + n%10)
-		n /= 10
-	}
-	return result
-}
-
 func (b *Builder) Build() []byte {
 	if len(b.data) > 1 {
-		b.data[len(b.data)-1] = '}'
+		b.data[len(b.data)-1] = '}' // Replace last comma with closing brace
 	} else {
 		b.data = append(b.data, '}')
 	}
@@ -84,10 +93,18 @@ func (p *Parser) GetInt(key string) (int64, error) {
 	return jsonparser.GetInt(p.data, key)
 }
 
+func (p *Parser) GetFloat64(key string) (float64, error) {
+	return jsonparser.GetFloat(p.data, key)
+}
+
 func (p *Parser) GetBoolean(key string) (bool, error) {
 	return jsonparser.GetBoolean(p.data, key)
 }
 
-func (p *Parser) GetFloat(key string) (float64, error) {
-	return jsonparser.GetFloat(p.data, key)
+func (p *Parser) GetBytes(key string) ([]byte, error) {
+	s, err := jsonparser.GetString(p.data, key)
+	if err != nil {
+		return nil, err
+	}
+	return []byte(s), nil
 }
