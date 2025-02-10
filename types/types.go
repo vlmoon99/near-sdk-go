@@ -15,16 +15,34 @@ const (
 	ONE_GIGA_GAS  = 1_000_000_000
 )
 
-// ContractInputOptions
+const (
+	errLoadingUint128FromBEBytes = "error while loading Uint128 from BE bytes"
+	errLoadingUint128FromLEBytes = "error while loading Uint128 from LE bytes"
+	errOverflow                  = "overflow"
+	errUnderflow                 = "underflow"
+	errOverflowInMultiplication  = "overflow in multiplication"
+	errDivisionByZero            = "division by zero"
+	errDivideByZero              = "divide by zero"
+	errIncorrectLen              = "incorrect length"
+	errUint128Overflow           = "uint128 overflow"
+	errIncorrectSymbolInString   = "incorrect symbol in string"
+)
 
+// ContractInputOptions represents the options for obtaining smart contract input from the user.
+//
+// Input can be provided in two formats:
+// 1. Raw bytes
+// 2. Structured as JSON
+//
+// For more details, refer to the `ContractInput` method in `env.go`.
 type ContractInputOptions struct {
 	IsRawBytes bool
 }
 
+// Uint128 represents a 128-bit unsigned integer.
 //
-
-// TODO:(improve Uint128)
-// Uint128
+// This struct is used extensively in various operations, particularly with NEAR native tokens.
+// Additionally, it can be utilized to create and manage custom tokens.
 type Uint128 struct {
 	Hi uint64
 	Lo uint64
@@ -32,7 +50,7 @@ type Uint128 struct {
 
 func LoadUint128BE(b []byte) (Uint128, error) {
 	if len(b) != 16 {
-		return Uint128{0, 0}, errors.New("Error while Loading Uint128 from BE Bytes")
+		return Uint128{0, 0}, errors.New(errLoadingUint128FromBEBytes)
 	}
 
 	hi := binary.BigEndian.Uint64(b[:8])
@@ -43,7 +61,7 @@ func LoadUint128BE(b []byte) (Uint128, error) {
 
 func LoadUint128LE(b []byte) (Uint128, error) {
 	if len(b) != 16 {
-		return Uint128{0, 0}, errors.New("Error while Loading Uint128 from LE Bytes")
+		return Uint128{0, 0}, errors.New(errLoadingUint128FromLEBytes)
 	}
 
 	lo := binary.LittleEndian.Uint64(b[:8])
@@ -151,7 +169,7 @@ func (u Uint128) SafeMul64(v uint64) (Uint128, error) {
 	lo, hi := mul64(u.Lo, v)
 	hi += u.Hi * v
 	if hi < u.Hi {
-		return Uint128{0, 0}, errors.New("Overflow")
+		return Uint128{0, 0}, errors.New(errOverflow)
 	}
 	return Uint128{Lo: lo, Hi: hi}, nil
 }
@@ -160,7 +178,7 @@ func (u Uint128) SafeAdd64(v uint64) (Uint128, error) {
 	lo, carry := add64(u.Lo, v, 0)
 	hi, carry2 := add64(u.Hi, 0, carry)
 	if carry2 != 0 {
-		return Uint128{0, 0}, errors.New("Overflow")
+		return Uint128{0, 0}, errors.New(errOverflow)
 	}
 	return Uint128{Lo: lo, Hi: hi}, nil
 }
@@ -169,7 +187,7 @@ func (u Uint128) Add(v Uint128) (Uint128, error) {
 	lo, carry := add64(u.Lo, v.Lo, 0)
 	hi, carry2 := add64(u.Hi, v.Hi, carry)
 	if carry2 != 0 {
-		return Uint128{0, 0}, errors.New("Overflow")
+		return Uint128{0, 0}, errors.New(errOverflow)
 	}
 	return Uint128{Lo: lo, Hi: hi}, nil
 }
@@ -178,7 +196,7 @@ func (u Uint128) Sub(v Uint128) (Uint128, error) {
 	lo, borrow := sub64(u.Lo, v.Lo, 0)
 	hi, borrow2 := sub64(u.Hi, v.Hi, borrow)
 	if borrow2 != 0 {
-		return Uint128{0, 0}, errors.New("Underflow")
+		return Uint128{0, 0}, errors.New(errUnderflow)
 	}
 	return Uint128{Lo: lo, Hi: hi}, nil
 }
@@ -190,12 +208,12 @@ func (u Uint128) Mul(v Uint128) (Uint128, error) {
 
 	newHi, overflow1 := add64(hi, hi1, 0)
 	if overflow1 != 0 {
-		return Uint128{0, 0}, errors.New("Overflow in multiplication")
+		return Uint128{0, 0}, errors.New(errOverflowInMultiplication)
 	}
 
 	newHi, overflow2 := add64(newHi, hi2, 0)
 	if overflow2 != 0 {
-		return Uint128{0, 0}, errors.New("Overflow in multiplication")
+		return Uint128{0, 0}, errors.New(errOverflowInMultiplication)
 	}
 
 	return Uint128{Lo: lo, Hi: newHi}, nil
@@ -203,7 +221,7 @@ func (u Uint128) Mul(v Uint128) (Uint128, error) {
 
 func (u Uint128) Div(v Uint128) (Uint128, error) {
 	if v.Lo == 0 && v.Hi == 0 {
-		return Uint128{0, 0}, errors.New("Division by zero")
+		return Uint128{0, 0}, errors.New(errDivisionByZero)
 	}
 
 	var result Uint128
@@ -227,7 +245,7 @@ func (u Uint128) Div(v Uint128) (Uint128, error) {
 
 func (u Uint128) SafeQuoRem64(v uint64) (q Uint128, r uint64, err error) {
 	if v == 0 {
-		return Uint128{}, 0, errors.New("Divide by zero")
+		return Uint128{0, 0}, 0, errors.New(errDivideByZero)
 	}
 
 	if u.Hi < v {
@@ -307,7 +325,7 @@ func (u Uint128) Cmp(v Uint128) int {
 
 func (u Uint128) Mod(v Uint128) (Uint128, error) {
 	if v.Lo == 0 && v.Hi == 0 {
-		return Uint128{0, 0}, errors.New("Division by zero")
+		return Uint128{0, 0}, errors.New(errDivisionByZero)
 	}
 	_, remainder := u.QuoRem64(v.Lo)
 	return U64ToUint128(remainder), nil
@@ -348,16 +366,19 @@ func isUint128Overflow(s string) bool {
 	return false
 }
 
+// U128FromString transforms a string into a Uint128 type.
+//
+// Returns an error if the string length is zero, exceeds 40 characters, or causes a Uint128 overflow.
 func U128FromString(s string) (Uint128, error) {
 	var res Uint128
 	var err error
 
 	if len(s) == 0 || len(s) > 40 {
-		return Uint128{0, 0}, errors.New("Incorrect len")
+		return Uint128{0, 0}, errors.New(errIncorrectLen)
 	}
 
 	if isUint128Overflow(s) {
-		return Uint128{}, errors.New("uint128 overflow")
+		return Uint128{0, 0}, errors.New(errUint128Overflow)
 	}
 
 	res, err = processPart(s)
@@ -376,7 +397,7 @@ func processPart(s string) (Uint128, error) {
 	for i := 0; i < len(s); i++ {
 		ch := s[i]
 		if ch < '0' || ch > '9' {
-			return Uint128{0, 0}, errors.New("Incorrect symbol in string")
+			return Uint128{0, 0}, errors.New(errIncorrectLen)
 		}
 
 		val := uint64(ch - '0')
@@ -414,14 +435,13 @@ func (u Uint128) String() string {
 	}
 }
 
-//Uint128
-
-// Near Gas
+// NearGas represents the Gas consumed during smart contract execution.
+//
+// Each function call consumes a certain amount of gas. Optimizing and improving the efficiency of your code
+// will reduce the amount of gas spent, resulting in faster transactions.
 type NearGas struct {
 	Inner uint64
 }
-
-// Near Gas
 
 func Uint64ToString(n uint64) string {
 	if n == 0 {

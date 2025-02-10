@@ -65,7 +65,7 @@ func TestLoadUint128BE(t *testing.T) {
 		{
 			name:        "Invalid Length",
 			input:       []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-			expected:    Uint128{},
+			expected:    Uint128{0, 0},
 			expectedErr: true,
 		},
 	}
@@ -100,7 +100,7 @@ func TestLoadUint128LE(t *testing.T) {
 		{
 			name:        "Invalid Length",
 			input:       []byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-			expected:    Uint128{},
+			expected:    Uint128{0, 0},
 			expectedErr: true,
 		},
 	}
@@ -210,19 +210,19 @@ func TestU128FromString(t *testing.T) {
 		{
 			name:        "Too Long Input",
 			input:       "12345678901234567890123456789012345678901",
-			expected:    Uint128{},
+			expected:    Uint128{0, 0},
 			expectedErr: true,
 		},
 		{
 			name:        "Empty Input",
 			input:       "",
-			expected:    Uint128{},
+			expected:    Uint128{0, 0},
 			expectedErr: true,
 		},
 		{
 			name:        "Invalid Character",
 			input:       "123a456",
-			expected:    Uint128{},
+			expected:    Uint128{0, 0},
 			expectedErr: true,
 		},
 		{
