@@ -65,12 +65,9 @@ tinygo build -size short -no-debug -panic=trap -scheduler=none -gc=leaking -o ma
 ---
 
 ### **TODO List**
-1. **Implement and Test U128 Type**: Add support for 128-bit unsigned integers.
-2. **Custom Borsh Serializer**: Write a reflection-free serializer, possibly using code generation.
-3. **Add More Types**: Introduce additional types to simplify development.
-4. **Basic Abstractions**: Create higher-level abstractions for common tasks.
-5. **Write Tests**: Expand unit and integration tests.
-6. **Add Benchmarks**: Measure and optimize performance.
+1. **Mock Env Package and Test IT**: Mock env pacakge and provide isoladet VM-like env for testing env methods
+2. **Add More Types**: Introduce additional types to simplify development.
+3. **Write More Tests**: Expand unit and integration tests.
 
 ---
 
