@@ -3,6 +3,7 @@ package borsh
 import (
 	"encoding/binary"
 	"errors"
+	"math"
 	"reflect"
 
 	"github.com/vlmoon99/near-sdk-go/types"
@@ -83,7 +84,6 @@ func Serialize(s interface{}) ([]byte, error) {
 }
 
 func deserialize(t reflect.Type, r *ByteReader) (interface{}, error) {
-
 	switch t.Kind() {
 	case reflect.Bool:
 		b, err := r.ReadByte()
@@ -145,20 +145,45 @@ func deserialize(t reflect.Type, r *ByteReader) (interface{}, error) {
 			return nil, err
 		}
 		return uint32(binary.LittleEndian.Uint32(tmp)), nil
-	case reflect.Uint64:
+	case reflect.Uint64, reflect.Uint, reflect.Uintptr:
 		tmp := make([]byte, 8)
 		_, err := r.Read(tmp)
 		if err != nil {
 			return nil, err
 		}
 		return uint64(binary.LittleEndian.Uint64(tmp)), nil
-	case reflect.Uint:
+	case reflect.Float32:
+		tmp := make([]byte, 4)
+		_, err := r.Read(tmp)
+		if err != nil {
+			return nil, err
+		}
+		return math.Float32frombits(binary.LittleEndian.Uint32(tmp)), nil
+	case reflect.Float64:
 		tmp := make([]byte, 8)
 		_, err := r.Read(tmp)
 		if err != nil {
 			return nil, err
 		}
-		return uint(binary.LittleEndian.Uint64(tmp)), nil
+		return math.Float64frombits(binary.LittleEndian.Uint64(tmp)), nil
+	case reflect.Complex64:
+		tmp := make([]byte, 8)
+		_, err := r.Read(tmp)
+		if err != nil {
+			return nil, err
+		}
+		realPart := math.Float32frombits(binary.LittleEndian.Uint32(tmp))
+		imagPart := math.Float32frombits(binary.LittleEndian.Uint32(tmp[4:]))
+		return complex(realPart, imagPart), nil
+	case reflect.Complex128:
+		tmp := make([]byte, 16)
+		_, err := r.Read(tmp)
+		if err != nil {
+			return nil, err
+		}
+		realPart := math.Float64frombits(binary.LittleEndian.Uint64(tmp))
+		imagPart := math.Float64frombits(binary.LittleEndian.Uint64(tmp[8:]))
+		return complex(realPart, imagPart), nil
 	case reflect.String:
 		lenBytes := make([]byte, 4)
 		_, err := r.Read(lenBytes)
@@ -184,19 +209,79 @@ func deserialize(t reflect.Type, r *ByteReader) (interface{}, error) {
 				return nil, err
 			}
 			return u128, nil
-		} else {
-			return nil, nil
 		}
-	case reflect.Array:
-		return nil, nil
+		result := reflect.New(t).Elem()
+		for i := 0; i < t.NumField(); i++ {
+			field, err := deserialize(t.Field(i).Type, r)
+			if err != nil {
+				return nil, err
+			}
+			result.Field(i).Set(reflect.ValueOf(field))
+		}
+		return result.Interface(), nil
 	case reflect.Slice:
-		return nil, nil
+		lenBytes := make([]byte, 4)
+		_, err := r.Read(lenBytes)
+		if err != nil {
+			return nil, err
+		}
+		sliceLen := int(binary.LittleEndian.Uint32(lenBytes))
+		slice := reflect.MakeSlice(t, sliceLen, sliceLen)
+		for i := 0; i < sliceLen; i++ {
+			elem, err := deserialize(t.Elem(), r)
+			if err != nil {
+				return nil, err
+			}
+			slice.Index(i).Set(reflect.ValueOf(elem))
+		}
+		return slice.Interface(), nil
+	case reflect.Array:
+		array := reflect.New(t).Elem()
+		for i := 0; i < t.Len(); i++ {
+			elem, err := deserialize(t.Elem(), r)
+			if err != nil {
+				return nil, err
+			}
+			array.Index(i).Set(reflect.ValueOf(elem))
+		}
+		return array.Interface(), nil
 	case reflect.Map:
-		return nil, nil
+		lenBytes := make([]byte, 4)
+		_, err := r.Read(lenBytes)
+		if err != nil {
+			return nil, err
+		}
+		mapLen := int(binary.LittleEndian.Uint32(lenBytes))
+		mapType := reflect.MakeMapWithSize(t, mapLen)
+		for i := 0; i < mapLen; i++ {
+			key, err := deserialize(t.Key(), r)
+			if err != nil {
+				return nil, err
+			}
+			value, err := deserialize(t.Elem(), r)
+			if err != nil {
+				return nil, err
+			}
+			mapType.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(value))
+		}
+		return mapType.Interface(), nil
 	case reflect.Ptr:
-		return nil, nil
+		tmp, err := r.ReadByte()
+		if err != nil {
+			return nil, err
+		}
+		if tmp == 0 {
+			return reflect.Zero(t).Interface(), nil
+		}
+		elem, err := deserialize(t.Elem(), r)
+		if err != nil {
+			return nil, err
+		}
+		ptr := reflect.New(t.Elem())
+		ptr.Elem().Set(reflect.ValueOf(elem))
+		return ptr.Interface(), nil
 	default:
-		return nil, errors.New("unsupported type:" + t.Name())
+		return nil, errors.New("unsupported type: " + t.Name())
 	}
 }
 
@@ -241,9 +326,31 @@ func serialize(v reflect.Value, b *ByteWriter) error {
 		binary.LittleEndian.PutUint32(tmp, uint32(v.Uint()))
 		_, err := b.Write(tmp)
 		return err
-	case reflect.Uint64, reflect.Uint:
+	case reflect.Uint64, reflect.Uint, reflect.Uintptr:
 		tmp := make([]byte, 8)
 		binary.LittleEndian.PutUint64(tmp, v.Uint())
+		_, err := b.Write(tmp)
+		return err
+	case reflect.Float32:
+		tmp := make([]byte, 4)
+		binary.LittleEndian.PutUint32(tmp, math.Float32bits(float32(v.Float())))
+		_, err := b.Write(tmp)
+		return err
+	case reflect.Float64:
+		tmp := make([]byte, 8)
+		binary.LittleEndian.PutUint64(tmp, math.Float64bits(v.Float()))
+		_, err := b.Write(tmp)
+		return err
+	case reflect.Complex64:
+		tmp := make([]byte, 8)
+		binary.LittleEndian.PutUint32(tmp, math.Float32bits(float32(real(v.Complex()))))
+		binary.LittleEndian.PutUint32(tmp[4:], math.Float32bits(float32(imag(v.Complex()))))
+		_, err := b.Write(tmp)
+		return err
+	case reflect.Complex128:
+		tmp := make([]byte, 16)
+		binary.LittleEndian.PutUint64(tmp, math.Float64bits(real(v.Complex())))
+		binary.LittleEndian.PutUint64(tmp[8:], math.Float64bits(imag(v.Complex())))
 		_, err := b.Write(tmp)
 		return err
 	case reflect.String:
@@ -262,19 +369,64 @@ func serialize(v reflect.Value, b *ByteWriter) error {
 			leBytes := u128.ToLE()
 			_, err := b.Write(leBytes)
 			return err
-		} else {
-			return nil
 		}
-	case reflect.Array:
+		for i := 0; i < v.NumField(); i++ {
+			err := serialize(v.Field(i), b)
+			if err != nil {
+				return err
+			}
+		}
 		return nil
 	case reflect.Slice:
+		lenBytes := make([]byte, 4)
+		binary.LittleEndian.PutUint32(lenBytes, uint32(v.Len()))
+		_, err := b.Write(lenBytes)
+		if err != nil {
+			return err
+		}
+		for i := 0; i < v.Len(); i++ {
+			err := serialize(v.Index(i), b)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	case reflect.Array:
+		for i := 0; i < v.Len(); i++ {
+			err := serialize(v.Index(i), b)
+			if err != nil {
+				return err
+			}
+		}
 		return nil
 	case reflect.Map:
+		lenBytes := make([]byte, 4)
+		binary.LittleEndian.PutUint32(lenBytes, uint32(v.Len()))
+		_, err := b.Write(lenBytes)
+		if err != nil {
+			return err
+		}
+		for _, key := range v.MapKeys() {
+			err := serialize(key, b)
+			if err != nil {
+				return err
+			}
+			err = serialize(v.MapIndex(key), b)
+			if err != nil {
+				return err
+			}
+		}
 		return nil
 	case reflect.Ptr:
-		return nil
+		if v.IsNil() {
+			return b.WriteByte(0)
+		}
+		err := b.WriteByte(1)
+		if err != nil {
+			return err
+		}
+		return serialize(v.Elem(), b)
 	default:
-		return errors.New("unsupported type:" + v.Type().String())
-
+		return errors.New("unsupported type: " + v.Type().String())
 	}
 }

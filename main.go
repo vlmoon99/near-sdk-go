@@ -67,11 +67,4 @@ func GetStatus() {
 //go:export InitContract
 func InitContract() {
 	env.LogString("Init Smart Contract")
-	data, err := types.U128FromString("99")
-	if err != nil {
-		env.LogString("err.Error() : " + err.Error())
-	}
-
-	env.LogString("types.U128FromString(99)  : " + data.String())
-
 }

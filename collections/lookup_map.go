@@ -8,18 +8,18 @@ import (
 )
 
 type LookupMap struct {
-	keyPrefix []byte
+	KeyPrefix []byte
 }
 
 func NewLookupMap(keyPrefix []byte) *LookupMap {
-	return &LookupMap{keyPrefix: keyPrefix}
+	return &LookupMap{KeyPrefix: keyPrefix}
 }
 
 func (m *LookupMap) rawKeyToStorageKey(rawKey []byte) []byte {
-	combined := make([]byte, len(m.keyPrefix)+len(rawKey))
+	combined := make([]byte, len(m.KeyPrefix)+len(rawKey))
 
-	copy(combined, m.keyPrefix)
-	copy(combined[len(m.keyPrefix):], rawKey)
+	copy(combined, m.KeyPrefix)
+	copy(combined[len(m.KeyPrefix):], rawKey)
 
 	return combined
 }
@@ -77,4 +77,17 @@ func (m *LookupMap) Remove(key []byte) error {
 	}
 
 	return nil
+}
+
+func (m *LookupMap) Serialize() ([]byte, error) {
+	return borsh.Serialize(m)
+}
+
+func DeserializeLookupMap(data []byte) (*LookupMap, error) {
+	var lm LookupMap
+	err := borsh.Deserialize(data, &lm)
+	if err != nil {
+		return nil, err
+	}
+	return &lm, nil
 }
