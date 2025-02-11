@@ -1,8 +1,11 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/vlmoon99/near-sdk-go/collections"
 	"github.com/vlmoon99/near-sdk-go/env"
+	"github.com/vlmoon99/near-sdk-go/system"
 	"github.com/vlmoon99/near-sdk-go/types"
 )
 
@@ -67,4 +70,10 @@ func GetStatus() {
 //go:export InitContract
 func InitContract() {
 	env.LogString("Init Smart Contract")
+	realSys := system.RealSystem{}
+
+	len := realSys.RegisterLenSys(env.AtomicOpRegister)
+
+	env.LogString("len  : " + fmt.Sprintf("%d", len))
+
 }

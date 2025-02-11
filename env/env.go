@@ -24,6 +24,8 @@ const MinAccountIDLen uint64 = 2
 
 const MaxAccountIDLen uint64 = 64
 
+var NearBlockchainImports system.System = system.RealSystem{}
+
 // Registers
 
 func tryMethodIntoRegister(method func(uint64)) ([]byte, error) {
@@ -45,7 +47,7 @@ func methodIntoRegister(method func(uint64)) ([]byte, error) {
 
 func readRegisterSafe(registerId uint64) ([]byte, error) {
 
-	length := system.RegisterLen(registerId)
+	length := NearBlockchainImports.RegisterLenSys(registerId)
 
 	//TODO : If len == 0 - ExecutionError("WebAssembly trap: An `unreachable` opcode was executed.") for some reason, if we convert value into string erroe gone
 	assertValidAccountId([]byte(string(length)))
@@ -58,7 +60,7 @@ func readRegisterSafe(registerId uint64) ([]byte, error) {
 
 	ptr := uint64(uintptr(unsafe.Pointer(&buffer[0])))
 
-	system.ReadRegister(registerId, ptr)
+	NearBlockchainImports.ReadRegisterSys(registerId, ptr)
 
 	return buffer, nil
 }
@@ -70,7 +72,7 @@ func writeRegisterSafe(registerId uint64, data []byte) {
 
 	ptr := uint64(uintptr(unsafe.Pointer(&data[0])))
 
-	system.WriteRegister(registerId, uint64(len(data)), ptr)
+	NearBlockchainImports.WriteRegisterSys(registerId, uint64(len(data)), ptr)
 }
 
 // Registers

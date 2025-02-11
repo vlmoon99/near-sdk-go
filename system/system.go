@@ -4,6 +4,23 @@
 // It is not recommended to use this package directly unless you fully understand what you are doing.
 package system
 
+type System interface {
+	ReadRegisterSys(registerId, ptr uint64)
+	RegisterLenSys(registerId uint64) uint64
+	WriteRegisterSys(registerId, dataLen, dataPtr uint64)
+}
+
+type RealSystem struct{}
+
+//go:wasmimport env read_register
+func (RealSystem) ReadRegisterSys(registerId, ptr uint64)
+
+//go:wasmimport env register_len
+func (RealSystem) RegisterLenSys(registerId uint64) uint64
+
+//go:wasmimport env write_register
+func (RealSystem) WriteRegisterSys(registerId, dataLen, dataPtr uint64)
+
 // ReadRegister provides read register functionality.
 //
 // registerId is the ID of the register from which we want to read the data.
