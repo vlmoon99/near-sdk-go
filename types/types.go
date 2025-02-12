@@ -16,16 +16,16 @@ const (
 )
 
 const (
-	errLoadingUint128FromBEBytes = "error while loading Uint128 from BE bytes"
-	errLoadingUint128FromLEBytes = "error while loading Uint128 from LE bytes"
-	errOverflow                  = "overflow"
-	errUnderflow                 = "underflow"
-	errOverflowInMultiplication  = "overflow in multiplication"
-	errDivisionByZero            = "division by zero"
-	errDivideByZero              = "divide by zero"
-	errIncorrectLen              = "incorrect length"
-	errUint128Overflow           = "uint128 overflow"
-	errIncorrectSymbolInString   = "incorrect symbol in string"
+	ErrLoadingUint128FromBEBytes = "(UINT128_ERROR): error while loading Uint128 from BE bytes"
+	ErrLoadingUint128FromLEBytes = "(UINT128_ERROR): error while loading Uint128 from LE bytes"
+	ErrOverflow                  = "(UINT128_ERROR): overflow"
+	ErrUnderflow                 = "(UINT128_ERROR): underflow"
+	ErrOverflowInMultiplication  = "(UINT128_ERROR): overflow in multiplication"
+	ErrDivisionByZero            = "(UINT128_ERROR): division by zero"
+	ErrDivideByZero              = "(UINT128_ERROR): divide by zero"
+	ErrIncorrectLen              = "(UINT128_ERROR): incorrect length"
+	ErrUint128Overflow           = "(UINT128_ERROR): uint128 overflow"
+	ErrIncorrectSymbolInString   = "(UINT128_ERROR): incorrect symbol in string"
 )
 
 // ContractInputOptions represents the options for obtaining smart contract input from the user.
@@ -50,7 +50,7 @@ type Uint128 struct {
 
 func LoadUint128BE(b []byte) (Uint128, error) {
 	if len(b) != 16 {
-		return Uint128{0, 0}, errors.New(errLoadingUint128FromBEBytes)
+		return Uint128{0, 0}, errors.New(ErrLoadingUint128FromBEBytes)
 	}
 
 	hi := binary.BigEndian.Uint64(b[:8])
@@ -61,7 +61,7 @@ func LoadUint128BE(b []byte) (Uint128, error) {
 
 func LoadUint128LE(b []byte) (Uint128, error) {
 	if len(b) != 16 {
-		return Uint128{0, 0}, errors.New(errLoadingUint128FromLEBytes)
+		return Uint128{0, 0}, errors.New(ErrLoadingUint128FromLEBytes)
 	}
 
 	lo := binary.LittleEndian.Uint64(b[:8])
@@ -169,7 +169,7 @@ func (u Uint128) SafeMul64(v uint64) (Uint128, error) {
 	lo, hi := mul64(u.Lo, v)
 	hi += u.Hi * v
 	if hi < u.Hi {
-		return Uint128{0, 0}, errors.New(errOverflow)
+		return Uint128{0, 0}, errors.New(ErrOverflow)
 	}
 	return Uint128{Lo: lo, Hi: hi}, nil
 }
@@ -178,7 +178,7 @@ func (u Uint128) SafeAdd64(v uint64) (Uint128, error) {
 	lo, carry := add64(u.Lo, v, 0)
 	hi, carry2 := add64(u.Hi, 0, carry)
 	if carry2 != 0 {
-		return Uint128{0, 0}, errors.New(errOverflow)
+		return Uint128{0, 0}, errors.New(ErrOverflow)
 	}
 	return Uint128{Lo: lo, Hi: hi}, nil
 }
@@ -187,7 +187,7 @@ func (u Uint128) Add(v Uint128) (Uint128, error) {
 	lo, carry := add64(u.Lo, v.Lo, 0)
 	hi, carry2 := add64(u.Hi, v.Hi, carry)
 	if carry2 != 0 {
-		return Uint128{0, 0}, errors.New(errOverflow)
+		return Uint128{0, 0}, errors.New(ErrOverflow)
 	}
 	return Uint128{Lo: lo, Hi: hi}, nil
 }
@@ -196,7 +196,7 @@ func (u Uint128) Sub(v Uint128) (Uint128, error) {
 	lo, borrow := sub64(u.Lo, v.Lo, 0)
 	hi, borrow2 := sub64(u.Hi, v.Hi, borrow)
 	if borrow2 != 0 {
-		return Uint128{0, 0}, errors.New(errUnderflow)
+		return Uint128{0, 0}, errors.New(ErrUnderflow)
 	}
 	return Uint128{Lo: lo, Hi: hi}, nil
 }
@@ -208,12 +208,12 @@ func (u Uint128) Mul(v Uint128) (Uint128, error) {
 
 	newHi, overflow1 := add64(hi, hi1, 0)
 	if overflow1 != 0 {
-		return Uint128{0, 0}, errors.New(errOverflowInMultiplication)
+		return Uint128{0, 0}, errors.New(ErrOverflowInMultiplication)
 	}
 
 	newHi, overflow2 := add64(newHi, hi2, 0)
 	if overflow2 != 0 {
-		return Uint128{0, 0}, errors.New(errOverflowInMultiplication)
+		return Uint128{0, 0}, errors.New(ErrOverflowInMultiplication)
 	}
 
 	return Uint128{Lo: lo, Hi: newHi}, nil
@@ -221,7 +221,7 @@ func (u Uint128) Mul(v Uint128) (Uint128, error) {
 
 func (u Uint128) Div(v Uint128) (Uint128, error) {
 	if v.Lo == 0 && v.Hi == 0 {
-		return Uint128{0, 0}, errors.New(errDivisionByZero)
+		return Uint128{0, 0}, errors.New(ErrDivisionByZero)
 	}
 
 	var result Uint128
@@ -245,7 +245,7 @@ func (u Uint128) Div(v Uint128) (Uint128, error) {
 
 func (u Uint128) SafeQuoRem64(v uint64) (q Uint128, r uint64, err error) {
 	if v == 0 {
-		return Uint128{0, 0}, 0, errors.New(errDivideByZero)
+		return Uint128{0, 0}, 0, errors.New(ErrDivideByZero)
 	}
 
 	if u.Hi < v {
@@ -325,7 +325,7 @@ func (u Uint128) Cmp(v Uint128) int {
 
 func (u Uint128) Mod(v Uint128) (Uint128, error) {
 	if v.Lo == 0 && v.Hi == 0 {
-		return Uint128{0, 0}, errors.New(errDivisionByZero)
+		return Uint128{0, 0}, errors.New(ErrDivisionByZero)
 	}
 	_, remainder := u.QuoRem64(v.Lo)
 	return U64ToUint128(remainder), nil
@@ -374,11 +374,11 @@ func U128FromString(s string) (Uint128, error) {
 	var err error
 
 	if len(s) == 0 || len(s) > 40 {
-		return Uint128{0, 0}, errors.New(errIncorrectLen)
+		return Uint128{0, 0}, errors.New(ErrIncorrectLen)
 	}
 
 	if isUint128Overflow(s) {
-		return Uint128{0, 0}, errors.New(errUint128Overflow)
+		return Uint128{0, 0}, errors.New(ErrUint128Overflow)
 	}
 
 	res, err = processPart(s)
@@ -397,7 +397,7 @@ func processPart(s string) (Uint128, error) {
 	for i := 0; i < len(s); i++ {
 		ch := s[i]
 		if ch < '0' || ch > '9' {
-			return Uint128{0, 0}, errors.New(errIncorrectLen)
+			return Uint128{0, 0}, errors.New(ErrIncorrectLen)
 		}
 
 		val := uint64(ch - '0')

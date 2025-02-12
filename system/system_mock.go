@@ -4,13 +4,14 @@ package system
 import (
 	// "crypto/rand"
 	// "crypto/sha256"
+	// "golang.org/x/crypto/ripemd160"
+	// "golang.org/x/crypto/sha3"
 	"fmt"
-	"log"
 	"time"
 	"unicode/utf16"
 	"unsafe"
-	// "golang.org/x/crypto/ripemd160"
-	// "golang.org/x/crypto/sha3"
+
+	"github.com/vlmoon99/near-sdk-go/types"
 )
 
 type MockPromise struct {
@@ -22,6 +23,8 @@ type MockPromise struct {
 	PromiseIndex uint64
 }
 
+// Test Mock impl of the System interface
+// TODO : improve it + tests this system , make it very simmilar to the Near Blockchain behaviour
 type MockSystem struct {
 	Promises             []MockPromise
 	Registers            map[uint64][]byte
@@ -35,9 +38,9 @@ type MockSystem struct {
 	blockTimestamp       uint64
 	epochHeight          uint64
 	storageUsage         uint64
-	accountBalance       uint64
-	accountLockedBalance uint64
-	attachedDeposit      uint64
+	accountBalance       types.Uint128
+	accountLockedBalance types.Uint128
+	attachedDeposit      types.Uint128
 	prepaidGas           uint64
 	usedGas              uint64
 }
@@ -55,13 +58,227 @@ func NewMockSystem() *MockSystem {
 		blockTimestamp:       uint64(time.Now().UnixNano()),
 		epochHeight:          1,
 		storageUsage:         0,
-		accountBalance:       1000000,
-		accountLockedBalance: 500000,
-		attachedDeposit:      10000,
+		accountBalance:       types.Uint128{Hi: 0, Lo: 0},
+		accountLockedBalance: types.Uint128{Hi: 0, Lo: 0},
+		attachedDeposit:      types.Uint128{Hi: 0, Lo: 0},
 		prepaidGas:           5000,
 		usedGas:              2500,
 	}
 }
+
+// Registers API
+func (m *MockSystem) ReadRegister(registerId, ptr uint64) {
+	if data, exists := m.Registers[registerId]; exists {
+		buffer := *(*[]byte)(unsafe.Pointer(&ptr))
+		copy(buffer, data)
+	}
+}
+
+func (m *MockSystem) RegisterLen(registerId uint64) uint64 {
+	return uint64(len(m.Registers[registerId]))
+}
+
+func (m *MockSystem) WriteRegister(registerId, dataLen, dataPtr uint64) {
+	data := *(*[]byte)(unsafe.Pointer(&dataPtr))
+	m.Registers[registerId] = make([]byte, dataLen)
+	copy(m.Registers[registerId], data)
+}
+
+// Storage API
+func (m *MockSystem) StorageWrite(keyLen, keyPtr, valueLen, valuePtr, registerId uint64) uint64 {
+	key := *(*[]byte)(unsafe.Pointer(&keyPtr))
+	value := *(*[]byte)(unsafe.Pointer(&valuePtr))
+	keyStr := string(key[:keyLen])
+
+	if _, exists := m.Storage[keyStr]; exists {
+		m.Storage[keyStr] = value[:valueLen]
+		return 1
+	}
+	m.Storage[keyStr] = value[:valueLen]
+	return 0
+}
+
+func (m *MockSystem) StorageRead(keyLen, keyPtr, registerId uint64) uint64 {
+	key := *(*[]byte)(unsafe.Pointer(&keyPtr))
+	keyStr := string(key[:keyLen])
+
+	if value, exists := m.Storage[keyStr]; exists {
+		m.WriteRegister(registerId, uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))))
+		return 1
+	}
+	return 0
+}
+
+func (m *MockSystem) StorageRemove(keyLen, keyPtr, registerId uint64) uint64 {
+	key := *(*[]byte)(unsafe.Pointer(&keyPtr))
+	keyStr := string(key[:keyLen])
+
+	if _, exists := m.Storage[keyStr]; exists {
+		delete(m.Storage, keyStr)
+		return 1
+	}
+	return 0
+}
+
+func (m *MockSystem) StorageHasKey(keyLen, keyPtr uint64) uint64 {
+	key := *(*[]byte)(unsafe.Pointer(&keyPtr))
+	keyStr := string(key[:keyLen])
+
+	if _, exists := m.Storage[keyStr]; exists {
+		return 1
+	}
+	return 0
+}
+
+// Storage API
+
+// Context API
+func (m *MockSystem) CurrentAccountId(registerId uint64) {
+	m.WriteRegister(registerId, uint64(len(m.currentAccountId)), uint64(uintptr(unsafe.Pointer(&m.currentAccountId))))
+}
+
+func (m *MockSystem) SignerAccountId(registerId uint64) {
+	m.WriteRegister(registerId, uint64(len(m.signerAccountId)), uint64(uintptr(unsafe.Pointer(&m.signerAccountId))))
+}
+
+func (m *MockSystem) SignerAccountPk(registerId uint64) {
+	m.WriteRegister(registerId, uint64(len(m.signerAccountPk)), uint64(uintptr(unsafe.Pointer(&m.signerAccountPk))))
+}
+
+func (m *MockSystem) PredecessorAccountId(registerId uint64) {
+	m.WriteRegister(registerId, uint64(len(m.predecessorAccountId)), uint64(uintptr(unsafe.Pointer(&m.predecessorAccountId))))
+}
+
+func (m *MockSystem) Input(registerId uint64) {
+	m.WriteRegister(registerId, uint64(len(m.input)), uint64(uintptr(unsafe.Pointer(&m.input))))
+}
+
+func (m *MockSystem) BlockIndex() uint64 {
+	return m.blockIndex
+}
+
+func (m *MockSystem) BlockTimestamp() uint64 {
+	return m.blockTimestamp
+}
+
+func (m *MockSystem) EpochHeight() uint64 {
+	return m.epochHeight
+}
+
+func (m *MockSystem) StorageUsage() uint64 {
+	return m.storageUsage
+}
+
+// Economics API
+func (m *MockSystem) AccountBalance(balancePtr uint64) {
+	balance := *(*[]byte)(unsafe.Pointer(&balancePtr))
+	balance = m.accountBalance.ToBE()
+	fmt.Printf("balance: %v\n", balance)
+}
+
+func (m *MockSystem) AccountLockedBalance(balancePtr uint64) {
+	balance := *(*[]byte)(unsafe.Pointer(&balancePtr))
+	balance = m.accountBalance.ToBE()
+	fmt.Printf("balance: %v\n", balance)
+}
+
+func (m *MockSystem) AttachedDeposit(balancePtr uint64) {
+	balance := *(*[]byte)(unsafe.Pointer(&balancePtr))
+	balance = m.attachedDeposit.ToBE()
+	fmt.Printf("balance: %v\n", balance)
+}
+
+func (m *MockSystem) PrepaidGas() uint64 {
+	return m.prepaidGas
+}
+
+func (m *MockSystem) UsedGas() uint64 {
+	return m.usedGas
+}
+
+// Math API
+func (m *MockSystem) RandomSeed(registerId uint64) {
+	// seed := make([]byte, 32)
+	// rand.Read(seed)
+	// m.WriteRegister(registerId, uint64(len(seed)), uint64(uintptr(unsafe.Pointer(&seed[0]))))
+}
+
+func (m *MockSystem) Sha256(valueLen, valuePtr, registerId uint64) {
+	// data := *(*[]byte)(unsafe.Pointer(&valuePtr))
+	// hash := sha256.Sum256(data[:valueLen])
+	// m.WriteRegister(registerId, uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))))
+}
+
+func (m *MockSystem) Keccak256(valueLen, valuePtr, registerId uint64) {
+	// data := *(*[]byte)(unsafe.Pointer(&valuePtr))
+	// hash := sha3.Sum256(data[:valueLen])
+	// m.WriteRegister(registerId, uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))))
+}
+
+func (m *MockSystem) Keccak512(valueLen, valuePtr, registerId uint64) {
+	// data := *(*[]byte)(unsafe.Pointer(&valuePtr))
+	// hash := sha3.Sum512(data[:valueLen])
+	// m.WriteRegister(registerId, uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))))
+}
+
+func (m *MockSystem) Ripemd160(valueLen, valuePtr, registerId uint64) {
+	// data := *(*[]byte)(unsafe.Pointer(&valuePtr))
+	// hasher := ripemd160.New()
+	// hasher.Write(data[:valueLen])
+	// hash := hasher.Sum(nil)
+	// m.WriteRegister(registerId, uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))))
+}
+
+func (m *MockSystem) Ecrecover(hashLen, hashPtr, sigLen, sigPtr, v, malleabilityFlag, registerId uint64) uint64 {
+	// Implement ECDSA recover functionality if necessary.
+	return 0 // Placeholder return value
+}
+
+func (m *MockSystem) Ed25519Verify(sigLen, sigPtr, msgLen, msgPtr, pubKeyLen, pubKeyPtr uint64) uint64 {
+	// Implement ED25519 verify functionality if necessary.
+	return 0 // Placeholder return value
+}
+
+func (m *MockSystem) AltBn128G1Multiexp(valueLen, valuePtr, registerId uint64) {
+	// Implement AltBn128G1Multiexp functionality if necessary.
+}
+
+func (m *MockSystem) AltBn128G1SumSystem(valueLen, valuePtr, registerId uint64) {
+	// Implement AltBn128G1Sum functionality if necessary.
+}
+
+func (m *MockSystem) AltBn128PairingCheckSystem(valueLen, valuePtr uint64) uint64 {
+	// Implement AltBn128PairingCheck functionality if necessary.
+	return 0 // Placeholder return value
+}
+
+// Math API
+
+// Miscellaneous API
+func (m *MockSystem) ValueReturn(valueLen, valuePtr uint64) {
+	value := *(*[]byte)(unsafe.Pointer(&valuePtr))
+	// Normally this would return the value from the smart contract
+	// Since this is a mock implementation, we can store it or just simulate the return
+	m.Registers[0] = value[:valueLen]
+}
+
+func (m *MockSystem) PanicUtf8(len, ptr uint64) {
+	message := *(*string)(unsafe.Pointer(&ptr))
+	fmt.Printf("Panic: %s", message[:len])
+}
+
+func (m *MockSystem) LogUtf8(len, ptr uint64) {
+	message := *(*string)(unsafe.Pointer(&ptr))
+	fmt.Printf("Log: %s", message[:len])
+}
+
+func (m *MockSystem) LogUtf16(len, ptr uint64) {
+	utf16Bytes := *(*[]uint16)(unsafe.Pointer(&ptr))
+	message := string(utf16.Decode(utf16Bytes[:len]))
+	fmt.Printf("Log: %s", message)
+}
+
+// Miscellaneous API
 
 // Validator API
 func (m *MockSystem) ValidatorStake(accountIdLen, accountIdPtr, stakePtr uint64) {
@@ -289,223 +506,3 @@ func (m *MockSystem) PromiseBatchThen(promiseIndex, accountIdLen, accountIdPtr u
 
 	return uint64(len(m.Promises)) - 1
 }
-
-// Storage API
-func (m *MockSystem) StorageWrite(keyLen, keyPtr, valueLen, valuePtr, registerId uint64) uint64 {
-	key := *(*[]byte)(unsafe.Pointer(&keyPtr))
-	value := *(*[]byte)(unsafe.Pointer(&valuePtr))
-	keyStr := string(key[:keyLen])
-
-	if _, exists := m.Storage[keyStr]; exists {
-		m.Storage[keyStr] = value[:valueLen]
-		return 1
-	}
-	m.Storage[keyStr] = value[:valueLen]
-	return 0
-}
-
-func (m *MockSystem) StorageRead(keyLen, keyPtr, registerId uint64) uint64 {
-	key := *(*[]byte)(unsafe.Pointer(&keyPtr))
-	keyStr := string(key[:keyLen])
-
-	if value, exists := m.Storage[keyStr]; exists {
-		m.WriteRegister(registerId, uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))))
-		return 1
-	}
-	return 0
-}
-
-func (m *MockSystem) StorageRemove(keyLen, keyPtr, registerId uint64) uint64 {
-	key := *(*[]byte)(unsafe.Pointer(&keyPtr))
-	keyStr := string(key[:keyLen])
-
-	if _, exists := m.Storage[keyStr]; exists {
-		delete(m.Storage, keyStr)
-		return 1
-	}
-	return 0
-}
-
-func (m *MockSystem) StorageHasKey(keyLen, keyPtr uint64) uint64 {
-	key := *(*[]byte)(unsafe.Pointer(&keyPtr))
-	keyStr := string(key[:keyLen])
-
-	if _, exists := m.Storage[keyStr]; exists {
-		return 1
-	}
-	return 0
-}
-
-// Storage API
-
-// Miscellaneous API
-func (m *MockSystem) ValueReturn(valueLen, valuePtr uint64) {
-	value := *(*[]byte)(unsafe.Pointer(&valuePtr))
-	// Normally this would return the value from the smart contract
-	// Since this is a mock implementation, we can store it or just simulate the return
-	m.Registers[0] = value[:valueLen]
-}
-
-func (m *MockSystem) PanicUtf8(len, ptr uint64) {
-	message := *(*string)(unsafe.Pointer(&ptr))
-	log.Fatalf("Panic: %s", message[:len])
-}
-
-func (m *MockSystem) LogUtf8(len, ptr uint64) {
-	message := *(*string)(unsafe.Pointer(&ptr))
-	log.Printf("Log: %s", message[:len])
-}
-
-func (m *MockSystem) LogUtf16(len, ptr uint64) {
-	utf16Bytes := *(*[]uint16)(unsafe.Pointer(&ptr))
-	message := string(utf16.Decode(utf16Bytes[:len]))
-	log.Printf("Log: %s", message)
-}
-
-// Miscellaneous API
-
-// Math API
-func (m *MockSystem) RandomSeed(registerId uint64) {
-	// seed := make([]byte, 32)
-	// rand.Read(seed)
-	// m.WriteRegister(registerId, uint64(len(seed)), uint64(uintptr(unsafe.Pointer(&seed[0]))))
-}
-
-func (m *MockSystem) Sha256(valueLen, valuePtr, registerId uint64) {
-	// data := *(*[]byte)(unsafe.Pointer(&valuePtr))
-	// hash := sha256.Sum256(data[:valueLen])
-	// m.WriteRegister(registerId, uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))))
-}
-
-func (m *MockSystem) Keccak256(valueLen, valuePtr, registerId uint64) {
-	// data := *(*[]byte)(unsafe.Pointer(&valuePtr))
-	// hash := sha3.Sum256(data[:valueLen])
-	// m.WriteRegister(registerId, uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))))
-}
-
-func (m *MockSystem) Keccak512(valueLen, valuePtr, registerId uint64) {
-	// data := *(*[]byte)(unsafe.Pointer(&valuePtr))
-	// hash := sha3.Sum512(data[:valueLen])
-	// m.WriteRegister(registerId, uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))))
-}
-
-func (m *MockSystem) Ripemd160(valueLen, valuePtr, registerId uint64) {
-	// data := *(*[]byte)(unsafe.Pointer(&valuePtr))
-	// hasher := ripemd160.New()
-	// hasher.Write(data[:valueLen])
-	// hash := hasher.Sum(nil)
-	// m.WriteRegister(registerId, uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))))
-}
-
-func (m *MockSystem) Ecrecover(hashLen, hashPtr, sigLen, sigPtr, v, malleabilityFlag, registerId uint64) uint64 {
-	// Implement ECDSA recover functionality if necessary.
-	return 0 // Placeholder return value
-}
-
-func (m *MockSystem) Ed25519Verify(sigLen, sigPtr, msgLen, msgPtr, pubKeyLen, pubKeyPtr uint64) uint64 {
-	// Implement ED25519 verify functionality if necessary.
-	return 0 // Placeholder return value
-}
-
-func (m *MockSystem) AltBn128G1Multiexp(valueLen, valuePtr, registerId uint64) {
-	// Implement AltBn128G1Multiexp functionality if necessary.
-}
-
-func (m *MockSystem) AltBn128G1SumSystem(valueLen, valuePtr, registerId uint64) {
-	// Implement AltBn128G1Sum functionality if necessary.
-}
-
-func (m *MockSystem) AltBn128PairingCheckSystem(valueLen, valuePtr uint64) uint64 {
-	// Implement AltBn128PairingCheck functionality if necessary.
-	return 0 // Placeholder return value
-}
-
-// Math API
-
-// Economics API
-func (m *MockSystem) AccountBalance(balancePtr uint64) {
-	balance := *(*uint64)(unsafe.Pointer(&balancePtr))
-	balance = m.accountBalance
-	fmt.Printf("balance: %v\n", balance)
-}
-
-func (m *MockSystem) AccountLockedBalance(balancePtr uint64) {
-	balance := *(*uint64)(unsafe.Pointer(&balancePtr))
-	balance = m.accountLockedBalance
-	fmt.Printf("balance: %v\n", balance)
-}
-
-func (m *MockSystem) AttachedDeposit(balancePtr uint64) {
-	balance := *(*uint64)(unsafe.Pointer(&balancePtr))
-	balance = m.attachedDeposit
-	fmt.Printf("balance: %v\n", balance)
-}
-
-func (m *MockSystem) PrepaidGas() uint64 {
-	return m.prepaidGas
-}
-
-func (m *MockSystem) UsedGas() uint64 {
-	return m.usedGas
-}
-
-// Economics API
-
-// Registers API
-func (m *MockSystem) ReadRegister(registerId, ptr uint64) {
-	if data, exists := m.Registers[registerId]; exists {
-		buffer := *(*[]byte)(unsafe.Pointer(&ptr))
-		copy(buffer, data)
-	}
-}
-
-func (m *MockSystem) RegisterLen(registerId uint64) uint64 {
-	return uint64(len(m.Registers[registerId]))
-}
-
-func (m *MockSystem) WriteRegister(registerId, dataLen, dataPtr uint64) {
-	data := *(*[]byte)(unsafe.Pointer(&dataPtr))
-	m.Registers[registerId] = make([]byte, dataLen)
-	copy(m.Registers[registerId], data)
-}
-
-// Registers API
-
-// Context API
-func (m *MockSystem) CurrentAccountId(registerId uint64) {
-	m.WriteRegister(registerId, uint64(len(m.currentAccountId)), uint64(uintptr(unsafe.Pointer(&m.currentAccountId))))
-}
-
-func (m *MockSystem) SignerAccountId(registerId uint64) {
-	m.WriteRegister(registerId, uint64(len(m.signerAccountId)), uint64(uintptr(unsafe.Pointer(&m.signerAccountId))))
-}
-
-func (m *MockSystem) SignerAccountPk(registerId uint64) {
-	m.WriteRegister(registerId, uint64(len(m.signerAccountPk)), uint64(uintptr(unsafe.Pointer(&m.signerAccountPk))))
-}
-
-func (m *MockSystem) PredecessorAccountId(registerId uint64) {
-	m.WriteRegister(registerId, uint64(len(m.predecessorAccountId)), uint64(uintptr(unsafe.Pointer(&m.predecessorAccountId))))
-}
-
-func (m *MockSystem) Input(registerId uint64) {
-	m.WriteRegister(registerId, uint64(len(m.input)), uint64(uintptr(unsafe.Pointer(&m.input))))
-}
-
-func (m *MockSystem) BlockIndex() uint64 {
-	return m.blockIndex
-}
-
-func (m *MockSystem) BlockTimestamp() uint64 {
-	return m.blockTimestamp
-}
-
-func (m *MockSystem) EpochHeight() uint64 {
-	return m.epochHeight
-}
-
-func (m *MockSystem) StorageUsage() uint64 {
-	return m.storageUsage
-}
-
-// Context API

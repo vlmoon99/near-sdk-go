@@ -1,3 +1,5 @@
+// Package borsh provides functions and types for serializing and deserializing data
+// using Binary Object Representation Serialization (BORSH).
 package borsh
 
 import (
@@ -9,59 +11,119 @@ import (
 	"github.com/vlmoon99/near-sdk-go/types"
 )
 
+const (
+	ErrEOF             = "(BORSH_ERROR): EOF"
+	ErrPointerRequired = "(BORSH_ERROR): passed struct must be pointer"
+	ErrUnsupportedType = "(BORSH_ERROR): unsupported type: "
+)
+
+// The ByteReader type is used to read bytes from a byte slice.
 type ByteReader struct {
 	data []byte
 	pos  int
 }
 
+// NewByteReader creates and returns a new ByteReader instance.
+//
+// Parameters:
+//
+//	data: The byte slice to read from.
 func NewByteReader(data []byte) *ByteReader {
 	return &ByteReader{data: data}
 }
 
+// Read reads up to len(p) bytes into p.
+//
+// Parameters:
+//
+//	p: The byte slice to read into.
+//
+// Returns:
+//
+//	n: The number of bytes read.
+//	err: An error if reading fails.
 func (r *ByteReader) Read(p []byte) (n int, err error) {
 	if r.pos >= len(r.data) {
-		return 0, errors.New("EOF")
+		return 0, errors.New(ErrEOF)
 	}
 	n = copy(p, r.data[r.pos:])
 	r.pos += n
 	return n, nil
 }
 
+// ReadByte reads and returns a single byte.
+//
+// Returns:
+//
+//	b: The byte read.
+//	err: An error if reading fails.
 func (r *ByteReader) ReadByte() (byte, error) {
 	if r.pos >= len(r.data) {
-		return 0, errors.New("EOF")
+		return 0, errors.New(ErrEOF)
 	}
 	b := r.data[r.pos]
 	r.pos++
 	return b, nil
 }
 
+// The ByteWriter type is used to write bytes to a buffer.
 type ByteWriter struct {
 	buf []byte
 }
 
+// NewByteWriter creates and returns a new ByteWriter instance.
 func NewByteWriter() *ByteWriter {
 	return &ByteWriter{}
 }
 
+// Write writes the byte slice p to the buffer.
+//
+// Parameters:
+//
+//	p: The byte slice to write.
+//
+// Returns:
+//
+//	n: The number of bytes written.
+//	err: An error if writing fails.
 func (w *ByteWriter) Write(p []byte) (n int, err error) {
 	w.buf = append(w.buf, p...)
 	return len(p), nil
 }
 
+// WriteByte writes a single byte to the buffer.
+//
+// Parameters:
+//
+//	c: The byte to write.
+//
+// Returns:
+//
+//	err: An error if writing fails.
 func (w *ByteWriter) WriteByte(c byte) error {
 	w.buf = append(w.buf, c)
 	return nil
 }
 
+// Bytes returns the buffer as a byte slice.
 func (w *ByteWriter) Bytes() []byte {
 	return w.buf
 }
 
+// Deserialize deserializes the byte slice data into the provided struct.
+//
+// Parameters:
+//
+//	data: The byte slice to deserialize.
+//	s: The struct to deserialize into.
+//
+// Returns:
+//
+//	err: An error if deserialization fails.
 func Deserialize(data []byte, s interface{}) error {
 	v := reflect.ValueOf(s)
 	if v.Kind() != reflect.Ptr {
-		return errors.New("passed struct must be pointer")
+		return errors.New(ErrPointerRequired)
 	}
 
 	r := NewByteReader(data)
@@ -74,6 +136,16 @@ func Deserialize(data []byte, s interface{}) error {
 	return nil
 }
 
+// Serialize serializes the provided struct into a byte slice.
+//
+// Parameters:
+//
+//	s: The struct to serialize.
+//
+// Returns:
+//
+//	b: The serialized byte slice.
+//	err: An error if serialization fails.
 func Serialize(s interface{}) ([]byte, error) {
 	b := NewByteWriter()
 	err := serialize(reflect.ValueOf(s), b)
@@ -83,6 +155,17 @@ func Serialize(s interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
+// deserialize deserializes the supported types.
+//
+// Parameters:
+//
+//	t: The type to deserialize.
+//	r: The ByteReader instance to read the serialized data.
+//
+// Returns:
+//
+//	v: The deserialized value.
+//	err: An error if deserialization fails.
 func deserialize(t reflect.Type, r *ByteReader) (interface{}, error) {
 	switch t.Kind() {
 	case reflect.Bool:
@@ -145,7 +228,7 @@ func deserialize(t reflect.Type, r *ByteReader) (interface{}, error) {
 			return nil, err
 		}
 		return uint32(binary.LittleEndian.Uint32(tmp)), nil
-	case reflect.Uint64, reflect.Uint, reflect.Uintptr:
+	case reflect.Uint64, reflect.Uint:
 		tmp := make([]byte, 8)
 		_, err := r.Read(tmp)
 		if err != nil {
@@ -281,10 +364,20 @@ func deserialize(t reflect.Type, r *ByteReader) (interface{}, error) {
 		ptr.Elem().Set(reflect.ValueOf(elem))
 		return ptr.Interface(), nil
 	default:
-		return nil, errors.New("unsupported type: " + t.Name())
+		return nil, errors.New(ErrUnsupportedType + t.Name())
 	}
 }
 
+// serialize serializes the supported types.
+//
+// Parameters:
+//
+//	v: The value to serialize.
+//	b: The ByteWriter instance to write the serialized data.
+//
+// Returns:
+//
+//	err: An error if serialization fails.
 func serialize(v reflect.Value, b *ByteWriter) error {
 	switch v.Kind() {
 	case reflect.Bool:
@@ -326,7 +419,7 @@ func serialize(v reflect.Value, b *ByteWriter) error {
 		binary.LittleEndian.PutUint32(tmp, uint32(v.Uint()))
 		_, err := b.Write(tmp)
 		return err
-	case reflect.Uint64, reflect.Uint, reflect.Uintptr:
+	case reflect.Uint64, reflect.Uint:
 		tmp := make([]byte, 8)
 		binary.LittleEndian.PutUint64(tmp, v.Uint())
 		_, err := b.Write(tmp)
@@ -427,6 +520,6 @@ func serialize(v reflect.Value, b *ByteWriter) error {
 		}
 		return serialize(v.Elem(), b)
 	default:
-		return errors.New("unsupported type: " + v.Type().String())
+		return errors.New(ErrUnsupportedType + v.Type().String())
 	}
 }

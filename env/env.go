@@ -24,7 +24,31 @@ const MinAccountIDLen uint64 = 2
 
 const MaxAccountIDLen uint64 = 64
 
-var NearBlockchainImports system.System = system.RealSystem{}
+var NearBlockchainImports system.System = system.SystemNear{}
+
+const (
+	ErrExpectedDataInRegister            = "(REGISTER_ERROR): expected data in register, but found none"
+	ErrInvalidAccountID                  = "(ACCOUNT_ERROR): invalid account ID"
+	ErrKeyNotFound                       = "(STORAGE_ERROR): key not found"
+	ErrFailedToParseInput                = "(INPUT_ERROR): failed to parse input"
+	ErrUnsupportedDataFormat             = "(FORMAT_ERROR): unsupported data format"
+	ErrGettingAccountBalance             = "(BALANCE_ERROR): error while getting account balance"
+	ErrGettingLockedAccountBalance       = "(BALANCE_ERROR): error while getting locked account balance"
+	ErrGettingAttachedDeposit            = "(DEPOSIT_ERROR): error while getting attached deposit"
+	ErrFailedToWriteValueInStorage       = "(STORAGE_ERROR): failed to write value in the storage by provided key"
+	ErrKeyIsEmpty                        = "(INPUT_ERROR): key is empty"
+	ErrFailedToReadKey                   = "(STORAGE_ERROR): failed to read the key"
+	ErrFailedToReadRegister              = "(REGISTER_ERROR): failed to read register"
+	ErrCantRemoveDataByKey               = "(STORAGE_ERROR): can't remove data by that key"
+	ErrFailedToReadEvictedRegister       = "(REGISTER_ERROR): failed to read evicted register"
+	ErrStateNotFound                     = "(STATE_ERROR): state not found"
+	ErrFailedToWriteStateToStorage       = "(STORAGE_ERROR): failed to write state to storage"
+	ErrInvalidInputHashAndSignatureEmpty = "(INPUT_ERROR): invalid input: hash and signature must not be empty"
+	PanicStrEcrecoverFailed              = "(PANIC): Ecrecover failed"
+	ErrAccountIDMustNotBeEmpty           = "(ACCOUNT_ERROR): account ID must not be empty"
+	ErrGettingValidatorStakeAmount       = "(STAKE_ERROR): error while getting validator stake amount"
+	ErrGettingValidatorTotalStakeAmount  = "(STAKE_ERROR): error while getting validator total stake amount"
+)
 
 // Registers
 
@@ -40,7 +64,7 @@ func methodIntoRegister(method func(uint64)) ([]byte, error) {
 		return nil, err
 	}
 	if len(data) == 0 {
-		return nil, errors.New("expected data in register, but found none")
+		return nil, errors.New(ErrExpectedDataInRegister)
 	}
 	return data, nil
 }
@@ -53,7 +77,7 @@ func readRegisterSafe(registerId uint64) ([]byte, error) {
 	assertValidAccountId([]byte(string(length)))
 
 	if length == 0 {
-		return []byte{}, errors.New("expected data in register, but found none")
+		return []byte{}, errors.New(ErrExpectedDataInRegister)
 	}
 
 	buffer := make([]byte, length)
@@ -81,7 +105,7 @@ func writeRegisterSafe(registerId uint64, data []byte) {
 
 func assertValidAccountId(data []byte) (string, error) {
 	if len(data) == 0 {
-		return "", errors.New("invalid account ID")
+		return "", errors.New(ErrInvalidAccountID)
 	}
 	return string(data), nil
 }
@@ -147,9 +171,9 @@ func detectInputType(decodedData []byte, keyPath ...string) ([]byte, string, err
 
 	if err != nil {
 		if dataType == jsonparser.NotExist {
-			return nil, "not_exist", errors.New("key not found")
+			return nil, "not_exist", errors.New(ErrKeyNotFound)
 		}
-		return nil, "unknown", errors.New("failed to parse input")
+		return nil, "unknown", errors.New(ErrFailedToParseInput)
 	}
 
 	switch dataType {
@@ -166,7 +190,7 @@ func detectInputType(decodedData []byte, keyPath ...string) ([]byte, string, err
 	case jsonparser.Null:
 		return nil, "null", nil
 	default:
-		return nil, "unknown", errors.New("unsupported data format")
+		return nil, "unknown", errors.New(ErrUnsupportedDataFormat)
 	}
 }
 
@@ -257,7 +281,7 @@ func GetAccountBalance() (types.Uint128, error) {
 	NearBlockchainImports.AccountBalance(uint64(uintptr(unsafe.Pointer(&data[0]))))
 	accountBalance, err := types.LoadUint128LE(data[:])
 	if err != nil {
-		return types.Uint128{Hi: 0, Lo: 0}, errors.New("Error while getting Account Balacne")
+		return types.Uint128{Hi: 0, Lo: 0}, errors.New(ErrGettingAccountBalance)
 	}
 	return accountBalance, nil
 }
@@ -267,7 +291,7 @@ func GetAccountLockedBalance() (types.Uint128, error) {
 	NearBlockchainImports.AccountLockedBalance(uint64(uintptr(unsafe.Pointer(&data[0]))))
 	accountBalance, err := types.LoadUint128LE(data[:])
 	if err != nil {
-		return types.Uint128{Hi: 0, Lo: 0}, errors.New("Error while getting Locked Account Balacne")
+		return types.Uint128{Hi: 0, Lo: 0}, errors.New(ErrGettingLockedAccountBalance)
 	}
 	return accountBalance, nil
 }
@@ -277,7 +301,7 @@ func GetAttachedDepoist() (types.Uint128, error) {
 	NearBlockchainImports.AttachedDeposit(uint64(uintptr(unsafe.Pointer(&data[0]))))
 	attachedDeposit, err := types.LoadUint128LE(data[:])
 	if err != nil {
-		return types.Uint128{Hi: 0, Lo: 0}, errors.New("Error while getting Attached Deposit")
+		return types.Uint128{Hi: 0, Lo: 0}, errors.New(ErrGettingAttachedDeposit)
 	}
 	return attachedDeposit, nil
 }
@@ -296,7 +320,7 @@ func GetUsedGas() types.NearGas {
 
 func StorageWrite(key, value []byte) (bool, error) {
 	if len(key) == 0 || len(value) == 0 {
-		return false, errors.New("key not found")
+		return false, errors.New(ErrKeyNotFound)
 	}
 
 	keyLen := uint64(len(key))
@@ -307,7 +331,7 @@ func StorageWrite(key, value []byte) (bool, error) {
 
 	result := NearBlockchainImports.StorageWrite(keyLen, keyPtr, valueLen, valuePtr, EvictedRegister)
 	if result == 0 {
-		return false, errors.New("Failed to Write value in the storage by provided key")
+		return false, errors.New(ErrFailedToWriteValueInStorage)
 	}
 
 	return true, nil
@@ -315,19 +339,19 @@ func StorageWrite(key, value []byte) (bool, error) {
 
 func StorageRead(key []byte) ([]byte, error) {
 	if len(key) == 0 {
-		return nil, errors.New("key is empty")
+		return nil, errors.New(ErrKeyIsEmpty)
 	}
 	keyLen := uint64(len(key))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
 	result := NearBlockchainImports.StorageRead(keyLen, keyPtr, EvictedRegister)
 
 	if result == 0 {
-		return nil, errors.New("Failed to Read the key")
+		return nil, errors.New(ErrFailedToReadKey)
 	}
 
 	value, err := readRegisterSafe(EvictedRegister)
 	if err != nil {
-		return nil, errors.New("Failed to Read Register")
+		return nil, errors.New(ErrFailedToReadRegister)
 	}
 
 	return value, nil
@@ -335,7 +359,7 @@ func StorageRead(key []byte) ([]byte, error) {
 
 func StorageRemove(key []byte) (bool, error) {
 	if len(key) == 0 {
-		return false, errors.New("key is empty")
+		return false, errors.New(ErrKeyIsEmpty)
 	}
 
 	keyLen := uint64(len(key))
@@ -343,7 +367,7 @@ func StorageRemove(key []byte) (bool, error) {
 
 	result := NearBlockchainImports.StorageRemove(keyLen, keyPtr, EvictedRegister)
 	if result == 0 {
-		return false, errors.New("Can't remove data by that key")
+		return false, errors.New(ErrCantRemoveDataByKey)
 	}
 
 	return true, nil
@@ -352,7 +376,7 @@ func StorageRemove(key []byte) (bool, error) {
 func StorageGetEvicted() ([]byte, error) {
 	value, err := readRegisterSafe(EvictedRegister)
 	if err != nil {
-		return nil, errors.New("failed to read evicted register")
+		return nil, errors.New(ErrFailedToReadEvictedRegister)
 	}
 
 	return value, nil
@@ -360,7 +384,7 @@ func StorageGetEvicted() ([]byte, error) {
 
 func StorageHasKey(key []byte) (bool, error) {
 	if len(key) == 0 {
-		return false, errors.New("key is empty")
+		return false, errors.New(ErrKeyIsEmpty)
 	}
 
 	keyLen := uint64(len(key))
@@ -376,12 +400,12 @@ func StateRead() ([]byte, error) {
 
 	result := NearBlockchainImports.StorageRead(keyLen, keyPtr, 0)
 	if result == 0 {
-		return nil, errors.New("state not found")
+		return nil, errors.New(ErrStateNotFound)
 	}
 
 	data, err := readRegisterSafe(0)
 	if err != nil {
-		return nil, errors.New("failed to read register")
+		return nil, errors.New(ErrFailedToReadRegister)
 	}
 
 	return data, nil
@@ -397,7 +421,7 @@ func StateWrite(data []byte) error {
 
 	result := NearBlockchainImports.StorageWrite(keyLen, keyPtr, valueLen, valuePtr, 0)
 	if result == 0 {
-		return errors.New("failed to write state to storage")
+		return errors.New(ErrFailedToWriteStateToStorage)
 	}
 
 	return nil
@@ -447,7 +471,7 @@ func Ripemd160Hash(data []byte) ([]byte, error) {
 
 func EcrecoverPubKey(hash, signature []byte, v byte, malleabilityFlag bool) ([]byte, error) {
 	if len(hash) == 0 || len(signature) == 0 {
-		return nil, errors.New("invalid input: hash and signature must not be empty")
+		return nil, errors.New(ErrInvalidInputHashAndSignatureEmpty)
 	}
 
 	return methodIntoRegister(func(registerID uint64) {
@@ -458,7 +482,7 @@ func EcrecoverPubKey(hash, signature []byte, v byte, malleabilityFlag bool) ([]b
 		)
 
 		if result == 0 {
-			PanicStr("Ecrecover failed") // methodIntoRegister should catch this and return an error
+			PanicStr(PanicStrEcrecoverFailed)
 		}
 	})
 }
@@ -494,7 +518,7 @@ func AltBn128PairingCheck(value []byte) bool {
 
 func ValidatorStakeAmount(accountID []byte) (types.Uint128, error) {
 	if len(accountID) == 0 {
-		return types.Uint128{Hi: 0, Lo: 0}, errors.New("account ID must not be empty")
+		return types.Uint128{Hi: 0, Lo: 0}, errors.New(ErrAccountIDMustNotBeEmpty)
 	}
 
 	var stakeData [16]byte
@@ -502,7 +526,7 @@ func ValidatorStakeAmount(accountID []byte) (types.Uint128, error) {
 
 	validatorStakeAmount, err := types.LoadUint128LE(stakeData[:])
 	if err != nil {
-		return types.Uint128{Hi: 0, Lo: 0}, errors.New("Error while getting Validator Stake Amount")
+		return types.Uint128{Hi: 0, Lo: 0}, errors.New(ErrGettingValidatorStakeAmount)
 	}
 
 	return validatorStakeAmount, nil
@@ -514,7 +538,7 @@ func ValidatorTotalStakeAmount() (types.Uint128, error) {
 
 	validatorTotalStakeAmount, err := types.LoadUint128LE(stakeData[:])
 	if err != nil {
-		return types.Uint128{Hi: 0, Lo: 0}, errors.New("Error while getting Validator Total Stake Amount")
+		return types.Uint128{Hi: 0, Lo: 0}, errors.New(ErrGettingValidatorTotalStakeAmount)
 	}
 
 	return validatorTotalStakeAmount, nil

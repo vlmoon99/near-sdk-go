@@ -331,25 +331,6 @@ func TestSerializeDeserializeString(t *testing.T) {
 	}
 }
 
-// func TestSerializeDeserializeUintptr(t *testing.T) {
-// 	value := uintptr(123456)
-
-// 	serialized, err := Serialize(value)
-// 	if err != nil {
-// 		t.Fatalf("Serialization failed: %v", err)
-// 	}
-
-// 	var deserialized uintptr
-// 	err = Deserialize(serialized, &deserialized)
-// 	if err != nil {
-// 		t.Fatalf("Deserialization failed: %v", err)
-// 	}
-
-// 	if value != deserialized {
-// 		t.Fatalf("Expected %v, but got %v", value, deserialized)
-// 	}
-// }
-
 func TestSerializeDeserializeUint128(t *testing.T) {
 	value, _ := types.U128FromString("123456789012345678901234567890")
 

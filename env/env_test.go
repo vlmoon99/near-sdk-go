@@ -6,8 +6,13 @@ import (
 	"github.com/vlmoon99/near-sdk-go/system"
 )
 
-func TestRegisterAPI(t *testing.T) {
+//TODO : add env tests, but before create system mocks them in according to the Near Runtime functionality
+
+func init() {
 	NearBlockchainImports = system.NewMockSystem()
+}
+
+func TestRegisterAPI(t *testing.T) {
 
 	NearBlockchainImports.WriteRegister(1, 5, 0)
 
