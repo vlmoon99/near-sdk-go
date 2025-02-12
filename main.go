@@ -72,7 +72,7 @@ func InitContract() {
 	env.LogString("Init Smart Contract")
 	realSys := system.RealSystem{}
 
-	len := realSys.RegisterLenSys(env.AtomicOpRegister)
+	len := realSys.RegisterLen(env.AtomicOpRegister)
 
 	env.LogString("len  : " + fmt.Sprintf("%d", len))
 

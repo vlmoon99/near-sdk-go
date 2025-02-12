@@ -5,21 +5,98 @@
 package system
 
 type System interface {
-	ReadRegisterSys(registerId, ptr uint64)
-	RegisterLenSys(registerId uint64) uint64
-	WriteRegisterSys(registerId, dataLen, dataPtr uint64)
+	//Registers API
+	ReadRegister(registerId, ptr uint64)
+	RegisterLen(registerId uint64) uint64
+	WriteRegister(registerId, dataLen, dataPtr uint64)
+	//Registers API
+
+	//Context API
+	CurrentAccountId(registerId uint64)
+	SignerAccountId(registerId uint64)
+	SignerAccountPk(registerId uint64)
+	PredecessorAccountId(registerId uint64)
+	Input(registerId uint64)
+	BlockIndex() uint64
+	BlockTimestamp() uint64
+	EpochHeight() uint64
+	StorageUsage() uint64
+	//Context API
+
+	// Economics API
+	AccountBalance(balancePtr uint64)
+	AccountLockedBalance(balancePtr uint64)
+	AttachedDeposit(balancePtr uint64)
+	PrepaidGas() uint64
+	UsedGas() uint64
+	// Economics API
+
+	// Math API
+	RandomSeed(registerId uint64)
+	Sha256(valueLen, valuePtr, registerId uint64)
+	Keccak256(valueLen, valuePtr, registerId uint64)
+	Keccak512(valueLen, valuePtr, registerId uint64)
+	Ripemd160(valueLen, valuePtr, registerId uint64)
+	Ecrecover(hashLen, hashPtr, sigLen, sigPtr, v, malleabilityFlag, registerId uint64) uint64
+	Ed25519Verify(sigLen, sigPtr, msgLen, msgPtr, pubKeyLen, pubKeyPtr uint64) uint64
+	AltBn128G1Multiexp(valueLen, valuePtr, registerId uint64)
+	AltBn128G1SumSystem(valueLen, valuePtr, registerId uint64)
+	AltBn128PairingCheckSystem(valueLen, valuePtr uint64) uint64
+	// Math API
+
+	// Validator API
+	ValidatorStake(accountIdLen, accountIdPtr, stakePtr uint64)
+	ValidatorTotalStake(stakePtr uint64)
+	// Validator API
+
+	// Miscellaneous API
+	ValueReturn(valueLen, valuePtr uint64)
+	PanicUtf8(len, ptr uint64)
+	LogUtf8(len, ptr uint64)
+	LogUtf16(len, ptr uint64)
+	// Abort(msgPtr, filenamePtr, line, col uint32)
+	// Panic()
+	// Miscellaneous API
+
+	// Storage API
+	StorageWrite(keyLen, keyPtr, valueLen, valuePtr, registerId uint64) uint64
+	StorageRead(keyLen uint64, keyPtr uint64, registerId uint64) uint64
+	StorageRemove(keyLen, keyPtr, registerId uint64) uint64
+	StorageHasKey(keyLen, keyPtr uint64) uint64
+	// Storage API
+
+	// Promises API
+	PromiseCreate(accountIdLen, accountIdPtr, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64) uint64
+	PromiseThen(promiseIndex, accountIdLen, accountIdPtr, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64) uint64
+	PromiseAnd(promiseIdxPtr, promiseIdxCount uint64) uint64
+	PromiseBatchCreate(accountIdLen, accountIdPtr uint64) uint64
+	PromiseBatchThen(promiseIndex, accountIdLen, accountIdPtr uint64) uint64
+	// Promises API
+
+	// Promise API Actions
+	PromiseBatchActionCreateAccount(promiseIndex uint64)
+	PromiseBatchActionDeployContract(promiseIndex, codeLen, codePtr uint64)
+	PromiseBatchActionFunctionCall(promiseIndex, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64)
+	PromiseBatchActionFunctionCallWeight(promise_index, function_name_len, function_name_ptr, arguments_len, arguments_ptr, amount_ptr, gas, weight uint64)
+	PromiseBatchActionTransfer(promiseIndex, amountPtr uint64)
+	PromiseBatchActionStake(promiseIndex, amountPtr, publicKeyLen, publicKeyPtr uint64)
+	PromiseBatchActionAddKeyWithFullAccess(promiseIndex, publicKeyLen, publicKeyPtr, nonce uint64)
+	PromiseBatchActionAddKeyWithFunctionCall(promiseIndex, publicKeyLen, publicKeyPtr, nonce, allowancePtr, receiverIdLen, receiverIdPtr, functionNamesLen, functionNamesPtr uint64)
+	PromiseBatchActionDeleteKey(promiseIndex, publicKeyLen, publicKeyPtr uint64)
+	PromiseBatchActionDeleteAccount(promiseIndex, beneficiaryIdLen, beneficiaryIdPtr uint64)
+	PromiseYieldCreate(functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, gas, gasWeight, registerId uint64) uint64
+	PromiseYieldResume(dataIdLen, dataIdPtr, payloadLen, payloadPtr uint64) uint32
+	// Promise API Actions
+
+	// Promise API Results
+	PromiseResultsCount() uint64
+	PromiseResult(resultIdx uint64, registerId uint64) uint64
+	PromiseReturn(promiseId uint64)
+	// Promise API Results
+
 }
 
 type RealSystem struct{}
-
-//go:wasmimport env read_register
-func (RealSystem) ReadRegisterSys(registerId, ptr uint64)
-
-//go:wasmimport env register_len
-func (RealSystem) RegisterLenSys(registerId uint64) uint64
-
-//go:wasmimport env write_register
-func (RealSystem) WriteRegisterSys(registerId, dataLen, dataPtr uint64)
 
 // ReadRegister provides read register functionality.
 //
@@ -28,14 +105,14 @@ func (RealSystem) WriteRegisterSys(registerId, dataLen, dataPtr uint64)
 // ptr is a pointer to the buffer where this function will write the data from the register.
 //
 //go:wasmimport env read_register
-func ReadRegister(registerId, ptr uint64)
+func (RealSystem) ReadRegister(registerId, ptr uint64)
 
 // RegisterLen provides register length retrieval functionality.
 //
 // registerId is the ID of the register whose length we want to obtain.
 //
 //go:wasmimport env register_len
-func RegisterLen(registerId uint64) uint64
+func (RealSystem) RegisterLen(registerId uint64) uint64
 
 // WriteRegister is a function that provides write register functionality.
 //
@@ -46,7 +123,7 @@ func RegisterLen(registerId uint64) uint64
 // dataPtr is a pointer to the buffer containing the data to be written.
 //
 //go:wasmimport env write_register
-func WriteRegister(registerId, dataLen, dataPtr uint64)
+func (RealSystem) WriteRegister(registerId, dataLen, dataPtr uint64)
 
 // CurrentAccountId retrieves the ID of the account that owns the current contract.
 //
@@ -55,7 +132,7 @@ func WriteRegister(registerId, dataLen, dataPtr uint64)
 // For the standard implementation, it is set to `const AtomicOpRegister uint64 = math.MaxUint64 - 2`.
 //
 //go:wasmimport env current_account_id
-func CurrentAccountId(registerId uint64)
+func (RealSystem) CurrentAccountId(registerId uint64)
 
 // SignerAccountId retrieves the ID of the account that signed the original transaction
 // or issued the initial cross-contract call.
@@ -65,7 +142,7 @@ func CurrentAccountId(registerId uint64)
 // For the standard implementation, it is set to `const AtomicOpRegister uint64 = math.MaxUint64 - 2`.
 //
 //go:wasmimport env signer_account_id
-func SignerAccountId(registerId uint64)
+func (RealSystem) SignerAccountId(registerId uint64)
 
 // SignerAccountPk retrieves the public key of the account that performed the signing.
 //
@@ -74,7 +151,7 @@ func SignerAccountId(registerId uint64)
 // For the standard implementation, it is set to `const AtomicOpRegister uint64 = math.MaxUint64 - 2`.
 //
 //go:wasmimport env signer_account_pk
-func SignerAccountPk(registerId uint64)
+func (RealSystem) SignerAccountPk(registerId uint64)
 
 // PredecessorAccountId retrieves the ID of the account that was the previous contract
 // in the chain of cross-contract calls.
@@ -85,7 +162,7 @@ func SignerAccountPk(registerId uint64)
 // For the standard implementation, it is set to `const AtomicOpRegister uint64 = math.MaxUint64 - 2`.
 //
 //go:wasmimport env predecessor_account_id
-func PredecessorAccountId(registerId uint64)
+func (RealSystem) PredecessorAccountId(registerId uint64)
 
 // Input retrieves the smart contract function input for the contract call, serialized as bytes.
 //
@@ -93,27 +170,27 @@ func PredecessorAccountId(registerId uint64)
 // For the standard implementation, it is set to `const AtomicOpRegister uint64 = math.MaxUint64 - 2`.
 //
 //go:wasmimport env input
-func Input(registerId uint64)
+func (RealSystem) Input(registerId uint64)
 
 // BlockIndex retrieves the current block index (aka height of the current block)
 //
 //go:wasmimport env block_index
-func BlockIndex() uint64
+func (RealSystem) BlockIndex() uint64
 
 // BlockTimestamp retrieves the current block timestamp, i.e, number of non-leap-nanoseconds since January 1, 1970 0:00:00 UTC.
 //
 //go:wasmimport env block_timestamp
-func BlockTimestamp() uint64
+func (RealSystem) BlockTimestamp() uint64
 
 // EpochHeight retrieves the current epoch height
 //
 //go:wasmimport env epoch_height
-func EpochHeight() uint64
+func (RealSystem) EpochHeight() uint64
 
 // StorageUsage retrieves the current total storage usage of this smart contract that this account would be paying for.
 //
 //go:wasmimport env storage_usage
-func StorageUsage() uint64
+func (RealSystem) StorageUsage() uint64
 
 // AccountBalance retrieves the balance attached to the given account. This includes the attached_deposit that was
 // attached to the transaction.
@@ -121,7 +198,7 @@ func StorageUsage() uint64
 // balancePtr is a pointer to the buffer containing the data to be written.
 //
 //go:wasmimport env account_balance
-func AccountBalance(balancePtr uint64)
+func (RealSystem) AccountBalance(balancePtr uint64)
 
 // AccountLockedBalance retrieves the balance that was attached to the call that will be immediately deposited before the
 // contract execution starts.
@@ -129,31 +206,31 @@ func AccountBalance(balancePtr uint64)
 // balancePtr is a pointer to the buffer containing the data to be written.
 //
 //go:wasmimport env account_locked_balance
-func AccountLockedBalance(balancePtr uint64)
+func (RealSystem) AccountLockedBalance(balancePtr uint64)
 
 // AttachedDeposit retrieves the balance locked for potential validator staking.
 //
 // balancePtr is a pointer to the buffer containing the data to be written.
 //
 //go:wasmimport env attached_deposit
-func AttachedDeposit(balancePtr uint64)
+func (RealSystem) AttachedDeposit(balancePtr uint64)
 
 // PrepaidGas retrieves the amount of gas attached to the call that can be used to pay for the gas fees.
 //
 //go:wasmimport env prepaid_gas
-func PrepaidGas() uint64
+func (RealSystem) PrepaidGas() uint64
 
 // PrepaidGas retrieves the gas that was already burnt during the contract execution (cannot exceed `prepaid_gas`).
 //
 //go:wasmimport env used_gas
-func UsedGas() uint64
+func (RealSystem) UsedGas() uint64
 
 // RandomSeed returns the random seed from the current block. This 32 byte hash is based on the VRF value from
 // the block. This value is not modified in any way each time this function is called within the
 // same method/block.
 //
 //go:wasmimport env random_seed
-func RandomSeed(registerId uint64)
+func (RealSystem) RandomSeed(registerId uint64)
 
 // Sha256 computes the SHA-256 hash of a sequence of bytes.
 //
@@ -166,7 +243,7 @@ func RandomSeed(registerId uint64)
 // For the standard implementation, it is set to `const AtomicOpRegister uint64 = math.MaxUint64 - 2`.
 //
 //go:wasmimport env sha256
-func Sha256(valueLen, valuePtr, registerId uint64)
+func (RealSystem) Sha256(valueLen, valuePtr, registerId uint64)
 
 // Keccak256 computes the Keccak-256 hash of a sequence of bytes.
 //
@@ -179,7 +256,7 @@ func Sha256(valueLen, valuePtr, registerId uint64)
 // For the standard implementation, it is set to `const AtomicOpRegister uint64 = math.MaxUint64 - 2`.
 //
 //go:wasmimport env keccak256
-func Keccak256(valueLen, valuePtr, registerId uint64)
+func (RealSystem) Keccak256(valueLen, valuePtr, registerId uint64)
 
 // Keccak512 computes the Keccak-512 hash of a sequence of bytes.
 //
@@ -192,7 +269,7 @@ func Keccak256(valueLen, valuePtr, registerId uint64)
 // For the standard implementation, it is set to `const AtomicOpRegister uint64 = math.MaxUint64 - 2`.
 //
 //go:wasmimport env keccak512
-func Keccak512(valueLen, valuePtr, registerId uint64)
+func (RealSystem) Keccak512(valueLen, valuePtr, registerId uint64)
 
 // Ripemd160 computes the RIPEMD-160 hash of a sequence of bytes.
 //
@@ -207,7 +284,7 @@ func Keccak512(valueLen, valuePtr, registerId uint64)
 // For the standard implementation, it is set to `const AtomicOpRegister uint64 = math.MaxUint64 - 2`.
 //
 //go:wasmimport env ripemd160
-func Ripemd160(valueLen, valuePtr, registerId uint64)
+func (RealSystem) Ripemd160(valueLen, valuePtr, registerId uint64)
 
 // Ecrecover recovers an ECDSA signer address from a 32-byte message hash and a corresponding signature
 // along with the `v` recovery byte.
@@ -229,7 +306,7 @@ func Ripemd160(valueLen, valuePtr, registerId uint64)
 // registerId is the ID of the register where the recovered public key will be written.
 //
 //go:wasmimport env ecrecover
-func Ecrecover(hashLen, hashPtr, sigLen, sigPtr, v, malleabilityFlag, registerId uint64) uint64
+func (RealSystem) Ecrecover(hashLen, hashPtr, sigLen, sigPtr, v, malleabilityFlag, registerId uint64) uint64
 
 // Ed25519Verify verifies the signature of a message using the provided ED25519 public key.
 //
@@ -248,7 +325,7 @@ func Ecrecover(hashLen, hashPtr, sigLen, sigPtr, v, malleabilityFlag, registerId
 // Returns 1 if the signature is valid, 0 otherwise.
 //
 //go:wasmimport env ed25519_verify
-func Ed25519Verify(sigLen, sigPtr, msgLen, msgPtr, pubKeyLen, pubKeyPtr uint64) uint64
+func (RealSystem) Ed25519Verify(sigLen, sigPtr, msgLen, msgPtr, pubKeyLen, pubKeyPtr uint64) uint64
 
 // AltBn128G1Multiexp computes the multi-exponentiation operation on the `alt_bn128` curve.
 // `alt_bn128` is a specific curve from the Barreto-Naehrig (BN) family, particularly
@@ -262,7 +339,7 @@ func Ed25519Verify(sigLen, sigPtr, msgLen, msgPtr, pubKeyLen, pubKeyPtr uint64) 
 // registerId is the ID of the register where the result will be written.
 //
 //go:wasmimport env alt_bn128_g1_multiexp
-func AltBn128G1Multiexp(valueLen, valuePtr, registerId uint64)
+func (RealSystem) AltBn128G1Multiexp(valueLen, valuePtr, registerId uint64)
 
 // AltBn128G1Sum computes the sum of multiple G1 points on the `alt_bn128` curve.
 // `alt_bn128` is a specific curve from the Barreto-Naehrig (BN) family, particularly
@@ -276,7 +353,7 @@ func AltBn128G1Multiexp(valueLen, valuePtr, registerId uint64)
 // registerId is the ID of the register where the result will be written.
 //
 //go:wasmimport env alt_bn128_g1_sum
-func AltBn128G1SumSystem(valueLen, valuePtr, registerId uint64)
+func (RealSystem) AltBn128G1SumSystem(valueLen, valuePtr, registerId uint64)
 
 // AltBn128PairingCheck performs a pairing check on the `alt_bn128` curve to validate
 // cryptographic proofs.
@@ -291,7 +368,7 @@ func AltBn128G1SumSystem(valueLen, valuePtr, registerId uint64)
 // Returns 1 if the pairing check is valid, 0 otherwise.
 //
 //go:wasmimport env alt_bn128_pairing_check
-func AltBn128PairingCheckSystem(valueLen, valuePtr uint64) uint64
+func (RealSystem) AltBn128PairingCheckSystem(valueLen, valuePtr uint64) uint64
 
 // ValidatorStake returns the current stake of a given account.
 // If the account is not a validator, it returns 0.
@@ -303,14 +380,14 @@ func AltBn128PairingCheckSystem(valueLen, valuePtr uint64) uint64
 // stakePtr is a pointer to the register where the stake amount will be written.
 //
 //go:wasmimport env validator_stake
-func ValidatorStake(accountIdLen, accountIdPtr, stakePtr uint64)
+func (RealSystem) ValidatorStake(accountIdLen, accountIdPtr, stakePtr uint64)
 
 // ValidatorTotalStake returns the total stake of all validators in the current epoch.
 //
 // stakePtr is a pointer to the register where the total stake amount will be written.
 //
 //go:wasmimport env validator_total_stake
-func ValidatorTotalStake(stakePtr uint64)
+func (RealSystem) ValidatorTotalStake(stakePtr uint64)
 
 // ValueReturn sets the blob of data as the return value of the contract.
 //
@@ -319,7 +396,7 @@ func ValidatorTotalStake(stakePtr uint64)
 // valuePtr is a pointer to the value.
 //
 //go:wasmimport env value_return
-func ValueReturn(valueLen, valuePtr uint64)
+func (RealSystem) ValueReturn(valueLen, valuePtr uint64)
 
 // PanicUtf8 terminates the execution of the program with a UTF-8 encoded message.
 //
@@ -328,7 +405,7 @@ func ValueReturn(valueLen, valuePtr uint64)
 // ptr is a pointer to the UTF-8 encoded message.
 //
 //go:wasmimport env panic_utf8
-func PanicUtf8(len, ptr uint64)
+func (RealSystem) PanicUtf8(len, ptr uint64)
 
 // LogUtf8 logs a message encoded in UTF-8.
 //
@@ -337,7 +414,7 @@ func PanicUtf8(len, ptr uint64)
 // ptr is a pointer to the UTF-8 encoded message.
 //
 //go:wasmimport env log_utf8
-func LogUtf8(len, ptr uint64)
+func (RealSystem) LogUtf8(len, ptr uint64)
 
 // LogUtf16 logs a message encoded in UTF-16.
 //
@@ -346,9 +423,9 @@ func LogUtf8(len, ptr uint64)
 // ptr is a pointer to the UTF-16 encoded message.
 //
 //go:wasmimport env log_utf16
-func LogUtf16(len, ptr uint64)
+func (RealSystem) LogUtf16(len, ptr uint64)
 
-// StorageWriteSys writes a key-value pair into storage.
+// StorageWrite writes a key-value pair into storage.
 // If a key-value pair with the same key already exists, it returns 1; otherwise, it returns 0.
 // Storage functions are typically used to upgrade or migrate the contract state.
 //
@@ -363,9 +440,9 @@ func LogUtf16(len, ptr uint64)
 // registerId is the ID of the register where the operation result is stored.
 //
 //go:wasmimport env storage_write
-func StorageWriteSys(keyLen, keyPtr, valueLen, valuePtr, registerId uint64) uint64
+func (RealSystem) StorageWrite(keyLen, keyPtr, valueLen, valuePtr, registerId uint64) uint64
 
-// StorageReadSys reads the value stored under the given key.
+// StorageRead reads the value stored under the given key.
 // Storage functions are typically used to upgrade or migrate the contract state.
 //
 // keyLen is the length of the key.
@@ -375,9 +452,9 @@ func StorageWriteSys(keyLen, keyPtr, valueLen, valuePtr, registerId uint64) uint
 // registerId is the ID of the register where the retrieved value is stored.
 //
 //go:wasmimport env storage_read
-func StorageReadSys(keyLen, keyPtr, registerId uint64) uint64
+func (RealSystem) StorageRead(keyLen, keyPtr, registerId uint64) uint64
 
-// StorageRemoveSys removes the value stored under the given key.
+// StorageRemove removes the value stored under the given key.
 // If the key-value pair existed, it returns 1; otherwise, it returns 0.
 // Storage functions are typically used to upgrade or migrate the contract state.
 //
@@ -388,9 +465,9 @@ func StorageReadSys(keyLen, keyPtr, registerId uint64) uint64
 // registerId is the ID of the register where the operation result is stored.
 //
 //go:wasmimport env storage_remove
-func StorageRemoveSys(keyLen, keyPtr, registerId uint64) uint64
+func (RealSystem) StorageRemove(keyLen, keyPtr, registerId uint64) uint64
 
-// StorageHasKeySys checks if a key-value pair exists in the storage.
+// StorageHasKey checks if a key-value pair exists in the storage.
 // Storage functions are typically used to upgrade or migrate the contract state.
 //
 // keyLen is the length of the key.
@@ -398,9 +475,9 @@ func StorageRemoveSys(keyLen, keyPtr, registerId uint64) uint64
 // keyPtr is a pointer to the key.
 //
 //go:wasmimport env storage_has_key
-func StorageHasKeySys(keyLen, keyPtr uint64) uint64
+func (RealSystem) StorageHasKey(keyLen, keyPtr uint64) uint64
 
-// PromiseCreateSys creates a promise to execute a method on a specified account with the given arguments,
+// PromiseCreate creates a promise to execute a method on a specified account with the given arguments,
 // attaching the specified amount and gas.
 //
 // accountIdLen is the length of the target account ID.
@@ -420,9 +497,9 @@ func StorageHasKeySys(keyLen, keyPtr uint64) uint64
 // gas is the amount of gas allocated for the execution (must be a u64 value).
 //
 //go:wasmimport env promise_create
-func PromiseCreateSys(accountIdLen, accountIdPtr, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64) uint64
+func (RealSystem) PromiseCreate(accountIdLen, accountIdPtr, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64) uint64
 
-// PromiseThenSys attaches a callback that executes after the promise specified by `promiseIndex` completes.
+// PromiseThen attaches a callback that executes after the promise specified by `promiseIndex` completes.
 //
 // promiseIndex is the index of the promise to attach the callback to.
 //
@@ -443,18 +520,18 @@ func PromiseCreateSys(accountIdLen, accountIdPtr, functionNameLen, functionNameP
 // gas is the amount of gas allocated for the execution (must be a u64 value).
 //
 //go:wasmimport env promise_then
-func PromiseThenSys(promiseIndex, accountIdLen, accountIdPtr, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64) uint64
+func (RealSystem) PromiseThen(promiseIndex, accountIdLen, accountIdPtr, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64) uint64
 
-// PromiseAndSys creates a new promise that completes when all promises passed as arguments complete.
+// PromiseAnd creates a new promise that completes when all promises passed as arguments complete.
 //
 // promiseIdxPtr is a pointer to an array of promise indexes.
 //
 // promiseIdxCount is the number of promises in the array.
 //
 //go:wasmimport env promise_and
-func PromiseAndSys(promiseIdxPtr, promiseIdxCount uint64) uint64
+func (RealSystem) PromiseAnd(promiseIdxPtr, promiseIdxCount uint64) uint64
 
-// PromiseBatchCreateSys creates a new batch promise for a specified account.
+// PromiseBatchCreate creates a new batch promise for a specified account.
 //
 // accountIdLen is the length of the target account ID.
 //
@@ -463,9 +540,9 @@ func PromiseAndSys(promiseIdxPtr, promiseIdxCount uint64) uint64
 // Returns the index of the created promise batch.
 //
 //go:wasmimport env promise_batch_create
-func PromiseBatchCreateSys(accountIdLen, accountIdPtr uint64) uint64
+func (RealSystem) PromiseBatchCreate(accountIdLen, accountIdPtr uint64) uint64
 
-// PromiseBatchThenSys creates a "then" callback function that executes after the specified promise completes.
+// PromiseBatchThen creates a "then" callback function that executes after the specified promise completes.
 //
 // promiseIndex is the index of the existing promise to attach the callback to.
 //
@@ -476,17 +553,17 @@ func PromiseBatchCreateSys(accountIdLen, accountIdPtr uint64) uint64
 // Returns the index of the created callback promise.
 //
 //go:wasmimport env promise_batch_then
-func PromiseBatchThenSys(promiseIndex, accountIdLen, accountIdPtr uint64) uint64
+func (RealSystem) PromiseBatchThen(promiseIndex, accountIdLen, accountIdPtr uint64) uint64
 
-// PromiseBatchActionCreateAccountSys represents the action of creating a new account as part of a promise batch.
+// PromiseBatchActionCreateAccount represents the action of creating a new account as part of a promise batch.
 // This action can be called after a promise batch has already been created with the represented accountId.
 //
 // promiseIndex is the index of the promise batch to which the account creation action will be attached.
 //
 //go:wasmimport env promise_batch_action_create_account
-func PromiseBatchActionCreateAccountSys(promiseIndex uint64)
+func (RealSystem) PromiseBatchActionCreateAccount(promiseIndex uint64)
 
-// PromiseBatchActionDeployContractSys represents the action of deploying a contract as part of a promise batch.
+// PromiseBatchActionDeployContract represents the action of deploying a contract as part of a promise batch.
 // This action can be called after a promise batch has already been created with the represented accountId.
 //
 // promiseIndex is the index of the promise batch to which the contract deployment action will be attached.
@@ -498,9 +575,9 @@ func PromiseBatchActionCreateAccountSys(promiseIndex uint64)
 // Returns nothing, but performs the contract deployment action as part of the promise batch.
 //
 //go:wasmimport env promise_batch_action_deploy_contract
-func PromiseBatchActionDeployContractSys(promiseIndex, codeLen, codePtr uint64)
+func (RealSystem) PromiseBatchActionDeployContract(promiseIndex, codeLen, codePtr uint64)
 
-// PromiseBatchActionFunctionCallSys represents the action of invoking a function on a contract as part of a promise batch.
+// PromiseBatchActionFunctionCall represents the action of invoking a function on a contract as part of a promise batch.
 // This action can be called after a promise batch has already been created with the represented accountId.
 //
 // promiseIndex is the index of the promise batch to which the function call action will be attached.
@@ -520,9 +597,9 @@ func PromiseBatchActionDeployContractSys(promiseIndex, codeLen, codePtr uint64)
 // Returns nothing, but performs the function call action as part of the promise batch.
 //
 //go:wasmimport env promise_batch_action_function_call
-func PromiseBatchActionFunctionCallSys(promiseIndex, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64)
+func (RealSystem) PromiseBatchActionFunctionCall(promiseIndex, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64)
 
-// PromiseBatchActionFunctionCallWeightSys represents the action of invoking a function on a contract with a specified weight as part of a promise batch.
+// PromiseBatchActionFunctionCallWeight represents the action of invoking a function on a contract with a specified weight as part of a promise batch.
 // This action can be called after a promise batch has already been created with the represented accountId.
 //
 // promiseIndex is the index of the promise batch to which the function call action will be attached.
@@ -544,9 +621,9 @@ func PromiseBatchActionFunctionCallSys(promiseIndex, functionNameLen, functionNa
 // Returns nothing, but performs the function call action with weight as part of the promise batch.
 //
 //go:wasmimport env promise_batch_action_function_call_weight
-func PromiseBatchActionFunctionCallWeightSys(promise_index, function_name_len, function_name_ptr, arguments_len, arguments_ptr, amount_ptr, gas, weight uint64)
+func (RealSystem) PromiseBatchActionFunctionCallWeight(promise_index, function_name_len, function_name_ptr, arguments_len, arguments_ptr, amount_ptr, gas, weight uint64)
 
-// PromiseBatchActionTransferSys represents the action of transferring tokens as part of a promise batch.
+// PromiseBatchActionTransfer represents the action of transferring tokens as part of a promise batch.
 // This action can be called after a promise batch has already been created with the represented accountId.
 //
 // promiseIndex is the index of the promise batch to which the transfer action will be attached.
@@ -556,9 +633,9 @@ func PromiseBatchActionFunctionCallWeightSys(promise_index, function_name_len, f
 // Returns nothing, but performs the transfer action as part of the promise batch.
 //
 //go:wasmimport env promise_batch_action_transfer
-func PromiseBatchActionTransferSys(promiseIndex, amountPtr uint64)
+func (RealSystem) PromiseBatchActionTransfer(promiseIndex, amountPtr uint64)
 
-// PromiseBatchActionStakeSys represents the action of staking tokens as part of a promise batch.
+// PromiseBatchActionStake represents the action of staking tokens as part of a promise batch.
 // This action can be called after a promise batch has already been created with the represented accountId.
 //
 // promiseIndex is the index of the promise batch to which the staking action will be attached.
@@ -572,9 +649,9 @@ func PromiseBatchActionTransferSys(promiseIndex, amountPtr uint64)
 // Returns nothing, but performs the staking action as part of the promise batch.
 //
 //go:wasmimport env promise_batch_action_stake
-func PromiseBatchActionStakeSys(promiseIndex, amountPtr, publicKeyLen, publicKeyPtr uint64)
+func (RealSystem) PromiseBatchActionStake(promiseIndex, amountPtr, publicKeyLen, publicKeyPtr uint64)
 
-// PromiseBatchActionAddKeyWithFullAccessSys represents the action of adding a key with full access as part of a promise batch.
+// PromiseBatchActionAddKeyWithFullAccess represents the action of adding a key with full access as part of a promise batch.
 // This action can be called after a promise batch has already been created with the represented accountId.
 //
 // promiseIndex is the index of the promise batch to which the key addition action will be attached.
@@ -588,9 +665,9 @@ func PromiseBatchActionStakeSys(promiseIndex, amountPtr, publicKeyLen, publicKey
 // Returns nothing, but performs the key addition with full access as part of the promise batch.
 //
 //go:wasmimport env promise_batch_action_add_key_with_full_access
-func PromiseBatchActionAddKeyWithFullAccessSys(promiseIndex, publicKeyLen, publicKeyPtr, nonce uint64)
+func (RealSystem) PromiseBatchActionAddKeyWithFullAccess(promiseIndex, publicKeyLen, publicKeyPtr, nonce uint64)
 
-// PromiseBatchActionAddKeyWithFunctionCallSys represents the action of adding a key with function call access as part of a promise batch.
+// PromiseBatchActionAddKeyWithFunctionCall represents the action of adding a key with function call access as part of a promise batch.
 // This action can be called after a promise batch has already been created with the represented accountId.
 //
 // promiseIndex is the index of the promise batch to which the key addition action will be attached.
@@ -614,9 +691,9 @@ func PromiseBatchActionAddKeyWithFullAccessSys(promiseIndex, publicKeyLen, publi
 // Returns nothing, but performs the key addition with function call access as part of the promise batch.
 //
 //go:wasmimport env promise_batch_action_add_key_with_function_call
-func PromiseBatchActionAddKeyWithFunctionCallSys(promiseIndex, publicKeyLen, publicKeyPtr, nonce, allowancePtr, receiverIdLen, receiverIdPtr, functionNamesLen, functionNamesPtr uint64)
+func (RealSystem) PromiseBatchActionAddKeyWithFunctionCall(promiseIndex, publicKeyLen, publicKeyPtr, nonce, allowancePtr, receiverIdLen, receiverIdPtr, functionNamesLen, functionNamesPtr uint64)
 
-// PromiseBatchActionDeleteKeySys represents the action of deleting a key as part of a promise batch.
+// PromiseBatchActionDeleteKey represents the action of deleting a key as part of a promise batch.
 // This action can be called after a promise batch has already been created with the represented accountId.
 //
 // promiseIndex is the index of the promise batch to which the key deletion action will be attached.
@@ -628,9 +705,9 @@ func PromiseBatchActionAddKeyWithFunctionCallSys(promiseIndex, publicKeyLen, pub
 // Returns nothing, but performs the key deletion as part of the promise batch.
 //
 //go:wasmimport env promise_batch_action_delete_key
-func PromiseBatchActionDeleteKeySys(promiseIndex, publicKeyLen, publicKeyPtr uint64)
+func (RealSystem) PromiseBatchActionDeleteKey(promiseIndex, publicKeyLen, publicKeyPtr uint64)
 
-// PromiseBatchActionDeleteAccountSys represents the action of deleting an account as part of a promise batch.
+// PromiseBatchActionDeleteAccount represents the action of deleting an account as part of a promise batch.
 // This action can be called after a promise batch has already been created with the represented accountId.
 //
 // promiseIndex is the index of the promise batch to which the account deletion action will be attached.
@@ -642,9 +719,9 @@ func PromiseBatchActionDeleteKeySys(promiseIndex, publicKeyLen, publicKeyPtr uin
 // Returns nothing, but performs the account deletion as part of the promise batch.
 //
 //go:wasmimport env promise_batch_action_delete_account
-func PromiseBatchActionDeleteAccountSys(promiseIndex, beneficiaryIdLen, beneficiaryIdPtr uint64)
+func (RealSystem) PromiseBatchActionDeleteAccount(promiseIndex, beneficiaryIdLen, beneficiaryIdPtr uint64)
 
-// PromiseYieldCreateSys creates a promise that will execute a method on the current account with the given arguments.
+// PromiseYieldCreate creates a promise that will execute a method on the current account with the given arguments.
 // It writes a resumption token (data id) to the specified register. The callback method will execute
 // after `promise_yield_resume` is called with the data id, or after enough blocks have passed. The timeout
 // length is specified by the protocol-level parameter `yield_timeout_length_in_blocks = 200`.
@@ -671,9 +748,9 @@ func PromiseBatchActionDeleteAccountSys(promiseIndex, beneficiaryIdLen, benefici
 // Returns the index of the created promise.
 //
 //go:wasmimport env promise_yield_create
-func PromiseYieldCreateSys(functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, gas, gasWeight, registerId uint64) uint64
+func (RealSystem) PromiseYieldCreate(functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, gas, gasWeight, registerId uint64) uint64
 
-// PromiseYieldResumeSys accepts a resumption token `data_id` created by `promise_yield_create` on the local account.
+// PromiseYieldResume accepts a resumption token `data_id` created by `promise_yield_create` on the local account.
 // The `data` is a payload to be passed to the callback method as a promise input. Returns false if
 // no promise yield with the specified `data_id` is found. Returns true otherwise, guaranteeing
 // that the callback method will be executed with a user-provided payload.
@@ -692,18 +769,18 @@ func PromiseYieldCreateSys(functionNameLen, functionNamePtr, argumentsLen, argum
 // Returns a `uint32`, where '1' indicates success, and '0' indicates failure (if no promise yield is found).
 //
 //go:wasmimport env promise_yield_resume
-func PromiseYieldResumeSys(dataIdLen, dataIdPtr, payloadLen, payloadPtr uint64) uint32
+func (RealSystem) PromiseYieldResume(dataIdLen, dataIdPtr, payloadLen, payloadPtr uint64) uint32
 
-// PromiseResultsCountSys returns the number of complete and incomplete callback results from the promises
+// PromiseResultsCount returns the number of complete and incomplete callback results from the promises
 // that triggered the current callback execution. This function can only be called if the current function
 // was invoked by a callback. It helps in checking how many promise results are available for processing.
 //
 // Returns the count of complete and incomplete callback results.
 //
 //go:wasmimport env promise_results_count
-func PromiseResultsCountSys() uint64
+func (RealSystem) PromiseResultsCount() uint64
 
-// PromiseResultSys retrieves the execution result of a promise identified by `resultIdx` that caused the
+// PromiseResult retrieves the execution result of a promise identified by `resultIdx` that caused the
 // current callback. It allows access to the outcome of the promise. This function can only be called if the
 // current function was invoked by a callback.
 //
@@ -714,13 +791,13 @@ func PromiseResultsCountSys() uint64
 // Returns the execution result of the specified promise.
 //
 //go:wasmimport env promise_result
-func PromiseResultSys(resultIdx uint64, registerId uint64) uint64
+func (RealSystem) PromiseResult(resultIdx uint64, registerId uint64) uint64
 
-// PromiseReturnSys considers the execution result of the promise specified by `promiseId` as the execution
+// PromiseReturn considers the execution result of the promise specified by `promiseId` as the execution
 // result of the current function. This allows the callback to finalize or return the result of a promise as
 // the outcome of the function.
 //
 // promiseId is the index of the promise whose result will be treated as the execution result of this function.
 //
 //go:wasmimport env promise_return
-func PromiseReturnSys(promiseId uint64)
+func (RealSystem) PromiseReturn(promiseId uint64)
