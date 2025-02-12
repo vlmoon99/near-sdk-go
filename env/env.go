@@ -107,6 +107,130 @@ func writeRegisterSafe(registerId uint64, data []byte) {
 
 // Registers
 
+// Storage API
+
+func StorageWrite(key, value []byte) (bool, error) {
+	if len(key) == 0 {
+		return false, errors.New(ErrKeyNotFound)
+	}
+
+	if len(value) == 0 {
+		return false, errors.New(ErrValueNotFound + " " + string(value) + " " + fmt.Sprintf("%d", len(value)))
+	}
+	keyLen := uint64(len(key))
+	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
+
+	valueLen := uint64(len(value))
+	valuePtr := uint64(uintptr(unsafe.Pointer(&value[0])))
+
+	result := nearBlockchainImports.StorageWrite(keyLen, keyPtr, valueLen, valuePtr, EvictedRegister)
+	if result == 0 {
+		return false, errors.New(ErrFailedToWriteValueInStorage)
+	}
+
+	return true, nil
+}
+
+func StorageRead(key []byte) ([]byte, error) {
+	if len(key) == 0 {
+		return nil, errors.New(ErrKeyIsEmpty)
+	}
+	keyLen := uint64(len(key))
+	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
+	result := nearBlockchainImports.StorageRead(keyLen, keyPtr, EvictedRegister)
+
+	if result == 0 {
+		return nil, errors.New(ErrFailedToReadKey)
+	}
+
+	value, err := readRegisterSafe(EvictedRegister)
+	if err != nil {
+		return nil, errors.New(ErrFailedToReadRegister)
+	}
+
+	return value, nil
+}
+
+func StorageRemove(key []byte) (bool, error) {
+	if len(key) == 0 {
+		return false, errors.New(ErrKeyIsEmpty)
+	}
+
+	keyLen := uint64(len(key))
+	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
+
+	result := nearBlockchainImports.StorageRemove(keyLen, keyPtr, EvictedRegister)
+	if result == 0 {
+		return false, errors.New(ErrCantRemoveDataByKey)
+	}
+
+	return true, nil
+}
+
+func StorageGetEvicted() ([]byte, error) {
+	value, err := readRegisterSafe(EvictedRegister)
+	if err != nil {
+		return nil, errors.New(ErrFailedToReadEvictedRegister)
+	}
+
+	return value, nil
+}
+
+func StorageHasKey(key []byte) (bool, error) {
+	if len(key) == 0 {
+		return false, errors.New(ErrKeyIsEmpty)
+	}
+
+	keyLen := uint64(len(key))
+	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
+
+	result := nearBlockchainImports.StorageHasKey(keyLen, keyPtr)
+	return result == 1, nil
+}
+
+func StateRead() ([]byte, error) {
+	keyLen := uint64(len(StateKey))
+	keyPtr := uint64(uintptr(unsafe.Pointer(&StateKey[0])))
+
+	result := nearBlockchainImports.StorageRead(keyLen, keyPtr, 0)
+	if result == 0 {
+		return nil, errors.New(ErrStateNotFound)
+	}
+
+	data, err := readRegisterSafe(0)
+	if err != nil {
+		return nil, errors.New(ErrFailedToReadRegister)
+	}
+
+	return data, nil
+}
+
+func StateWrite(data []byte) error {
+
+	keyLen := uint64(len(StateKey))
+	keyPtr := uint64(uintptr(unsafe.Pointer(&StateKey[0])))
+
+	valueLen := uint64(len(data))
+	valuePtr := uint64(uintptr(unsafe.Pointer(&data[0])))
+
+	result := nearBlockchainImports.StorageWrite(keyLen, keyPtr, valueLen, valuePtr, 0)
+	if result == 0 {
+		return errors.New(ErrFailedToWriteStateToStorage)
+	}
+
+	return nil
+}
+
+func StateExists() bool {
+	keyLen := uint64(len(StateKey))
+	keyPtr := uint64(uintptr(unsafe.Pointer(&StateKey[0])))
+
+	result := nearBlockchainImports.StorageHasKey(keyLen, keyPtr)
+	return result == 1
+}
+
+// Storage API
+
 // Context API
 
 func assertValidAccountId(data []byte) (string, error) {
@@ -321,130 +445,6 @@ func GetUsedGas() types.NearGas {
 }
 
 // Economics API
-
-// Storage API
-
-func StorageWrite(key, value []byte) (bool, error) {
-	if len(key) == 0 {
-		return false, errors.New(ErrKeyNotFound)
-	}
-
-	if len(value) == 0 {
-		return false, errors.New(ErrValueNotFound + " " + string(value) + " " + fmt.Sprintf("%d", len(value)))
-	}
-	keyLen := uint64(len(key))
-	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
-
-	valueLen := uint64(len(value))
-	valuePtr := uint64(uintptr(unsafe.Pointer(&value[0])))
-
-	result := nearBlockchainImports.StorageWrite(keyLen, keyPtr, valueLen, valuePtr, EvictedRegister)
-	if result == 0 {
-		return false, errors.New(ErrFailedToWriteValueInStorage)
-	}
-
-	return true, nil
-}
-
-func StorageRead(key []byte) ([]byte, error) {
-	if len(key) == 0 {
-		return nil, errors.New(ErrKeyIsEmpty)
-	}
-	keyLen := uint64(len(key))
-	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
-	result := nearBlockchainImports.StorageRead(keyLen, keyPtr, EvictedRegister)
-
-	if result == 0 {
-		return nil, errors.New(ErrFailedToReadKey)
-	}
-
-	value, err := readRegisterSafe(EvictedRegister)
-	if err != nil {
-		return nil, errors.New(ErrFailedToReadRegister)
-	}
-
-	return value, nil
-}
-
-func StorageRemove(key []byte) (bool, error) {
-	if len(key) == 0 {
-		return false, errors.New(ErrKeyIsEmpty)
-	}
-
-	keyLen := uint64(len(key))
-	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
-
-	result := nearBlockchainImports.StorageRemove(keyLen, keyPtr, EvictedRegister)
-	if result == 0 {
-		return false, errors.New(ErrCantRemoveDataByKey)
-	}
-
-	return true, nil
-}
-
-func StorageGetEvicted() ([]byte, error) {
-	value, err := readRegisterSafe(EvictedRegister)
-	if err != nil {
-		return nil, errors.New(ErrFailedToReadEvictedRegister)
-	}
-
-	return value, nil
-}
-
-func StorageHasKey(key []byte) (bool, error) {
-	if len(key) == 0 {
-		return false, errors.New(ErrKeyIsEmpty)
-	}
-
-	keyLen := uint64(len(key))
-	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
-
-	result := nearBlockchainImports.StorageHasKey(keyLen, keyPtr)
-	return result == 1, nil
-}
-
-func StateRead() ([]byte, error) {
-	keyLen := uint64(len(StateKey))
-	keyPtr := uint64(uintptr(unsafe.Pointer(&StateKey[0])))
-
-	result := nearBlockchainImports.StorageRead(keyLen, keyPtr, 0)
-	if result == 0 {
-		return nil, errors.New(ErrStateNotFound)
-	}
-
-	data, err := readRegisterSafe(0)
-	if err != nil {
-		return nil, errors.New(ErrFailedToReadRegister)
-	}
-
-	return data, nil
-}
-
-func StateWrite(data []byte) error {
-
-	keyLen := uint64(len(StateKey))
-	keyPtr := uint64(uintptr(unsafe.Pointer(&StateKey[0])))
-
-	valueLen := uint64(len(data))
-	valuePtr := uint64(uintptr(unsafe.Pointer(&data[0])))
-
-	result := nearBlockchainImports.StorageWrite(keyLen, keyPtr, valueLen, valuePtr, 0)
-	if result == 0 {
-		return errors.New(ErrFailedToWriteStateToStorage)
-	}
-
-	return nil
-}
-
-func StateExists() bool {
-	keyLen := uint64(len(StateKey))
-	keyPtr := uint64(uintptr(unsafe.Pointer(&StateKey[0])))
-
-	result := nearBlockchainImports.StorageHasKey(keyLen, keyPtr)
-	return result == 1
-}
-
-// Storage API
 
 // Math API
 

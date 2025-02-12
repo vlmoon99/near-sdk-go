@@ -64,6 +64,14 @@ func NewMockSystem() *MockSystem {
 
 // Work with env tests and with my impl env methods, but not work with system_mock_tests.go
 // Registers API
+
+func (m *MockSystem) WriteRegister(registerId, dataLen, dataPtr uint64) {
+	dataSlice := make([]byte, dataLen)
+	copy(dataSlice, unsafe.Slice((*byte)(unsafe.Pointer(uintptr(dataPtr))), dataLen)) // ✅ Safe conversion
+
+	m.Registers[registerId] = dataSlice
+}
+
 func (m *MockSystem) ReadRegister(registerId, ptr uint64) {
 	if data, exists := m.Registers[registerId]; exists {
 		copy(unsafe.Slice((*byte)(unsafe.Pointer(uintptr(ptr))), len(data)), data) // ✅ Safe
@@ -77,30 +85,19 @@ func (m *MockSystem) RegisterLen(registerId uint64) uint64 {
 	return 0
 }
 
-func (m *MockSystem) WriteRegister(registerId, dataLen, dataPtr uint64) {
-	dataSlice := make([]byte, dataLen)
-	copy(dataSlice, unsafe.Slice((*byte)(unsafe.Pointer(uintptr(dataPtr))), dataLen)) // ✅ Safe conversion
-
-	m.Registers[registerId] = dataSlice
-}
-
 // Storage API
 func (m *MockSystem) StorageWrite(keyLen, keyPtr, valueLen, valuePtr, registerId uint64) uint64 {
-	key := *(*[]byte)(unsafe.Pointer(&keyPtr))
-	value := *(*[]byte)(unsafe.Pointer(&valuePtr))
-	keyStr := string(key[:keyLen])
+	key := unsafe.Slice((*byte)(unsafe.Pointer(uintptr(keyPtr))), keyLen)
+	value := unsafe.Slice((*byte)(unsafe.Pointer(uintptr(valuePtr))), valueLen)
+	keyStr := string(key)
 
-	if _, exists := m.Storage[keyStr]; exists {
-		m.Storage[keyStr] = value[:valueLen]
-		return 1
-	}
-	m.Storage[keyStr] = value[:valueLen]
-	return 0
+	m.Storage[keyStr] = value
+	return 1
 }
 
 func (m *MockSystem) StorageRead(keyLen, keyPtr, registerId uint64) uint64 {
-	key := *(*[]byte)(unsafe.Pointer(&keyPtr))
-	keyStr := string(key[:keyLen])
+	key := unsafe.Slice((*byte)(unsafe.Pointer(uintptr(keyPtr))), keyLen)
+	keyStr := string(key)
 
 	if value, exists := m.Storage[keyStr]; exists {
 		m.WriteRegister(registerId, uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))))
@@ -110,19 +107,20 @@ func (m *MockSystem) StorageRead(keyLen, keyPtr, registerId uint64) uint64 {
 }
 
 func (m *MockSystem) StorageRemove(keyLen, keyPtr, registerId uint64) uint64 {
-	key := *(*[]byte)(unsafe.Pointer(&keyPtr))
-	keyStr := string(key[:keyLen])
+	key := unsafe.Slice((*byte)(unsafe.Pointer(uintptr(keyPtr))), keyLen)
+	keyStr := string(key)
 
-	if _, exists := m.Storage[keyStr]; exists {
+	if value, exists := m.Storage[keyStr]; exists {
 		delete(m.Storage, keyStr)
+		m.WriteRegister(registerId, uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))))
 		return 1
 	}
 	return 0
 }
 
 func (m *MockSystem) StorageHasKey(keyLen, keyPtr uint64) uint64 {
-	key := *(*[]byte)(unsafe.Pointer(&keyPtr))
-	keyStr := string(key[:keyLen])
+	key := unsafe.Slice((*byte)(unsafe.Pointer(uintptr(keyPtr))), keyLen)
+	keyStr := string(key)
 
 	if _, exists := m.Storage[keyStr]; exists {
 		return 1

@@ -130,7 +130,7 @@ func (m *LookupMap) Remove(key []byte) error {
 //	[]byte: The serialized byte slice.
 //	error: An error if the serialization fails.
 func (m *LookupMap) Serialize() ([]byte, error) {
-	return borsh.Serialize(m)
+	return m.keyPrefix, nil
 }
 
 // Deserializes a byte slice into a LookupMap instance.
@@ -144,10 +144,5 @@ func (m *LookupMap) Serialize() ([]byte, error) {
 //	*LookupMap: The deserialized LookupMap instance.
 //	error: An error if the deserialization fails.
 func DeserializeLookupMap(data []byte) (*LookupMap, error) {
-	var lm LookupMap
-	err := borsh.Deserialize(data, &lm)
-	if err != nil {
-		return nil, err
-	}
-	return &lm, nil
+	return &LookupMap{keyPrefix: data}, nil
 }
