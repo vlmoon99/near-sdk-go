@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	env.NearBlockchainImports = system.NewMockSystem()
+	env.SetEnv(system.NewMockSystem())
 }
 
 // TODO: Understand why these errors happen

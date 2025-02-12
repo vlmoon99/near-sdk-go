@@ -6,19 +6,21 @@ import (
 	"github.com/vlmoon99/near-sdk-go/system"
 )
 
-//TODO : add env tests, but before create system mocks them in according to the Near Runtime functionality
-
 func init() {
-	NearBlockchainImports = system.NewMockSystem()
+	SetEnv(system.NewMockSystem())
 }
 
 func TestRegisterAPI(t *testing.T) {
+	initData := []byte("Bytes")
+	writeRegisterSafe(1, initData)
 
-	NearBlockchainImports.WriteRegister(1, 5, 0)
+	data, err := readRegisterSafe(1)
 
-	length := NearBlockchainImports.RegisterLen(1)
-	if length != 5 {
-		t.Errorf("Expected length 5, got %d", length)
+	if err != nil {
+		t.Errorf("Error: readRegisterSafe failed")
 	}
 
+	if string(data) != string(initData) {
+		t.Errorf("Error: incorrect data, got %s, expected %s", string(data), string(initData))
+	}
 }

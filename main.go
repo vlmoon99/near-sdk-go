@@ -11,6 +11,7 @@ type StatusMessage struct {
 }
 
 func GetState() StatusMessage {
+
 	return StatusMessage{
 		Data: collections.NewLookupMap([]byte("b")),
 	}
@@ -18,6 +19,7 @@ func GetState() StatusMessage {
 
 //go:export SetStatus
 func SetStatus() {
+
 	options := types.ContractInputOptions{IsRawBytes: true}
 	contractInput, _, inputErr := env.ContractInput(options)
 	if inputErr != nil {
@@ -40,6 +42,7 @@ func SetStatus() {
 
 //go:export GetStatus
 func GetStatus() {
+
 	accountId, errAccountId := env.GetPredecessorAccountID()
 	if errAccountId != nil {
 		env.PanicStr("Account ID error: " + errAccountId.Error())

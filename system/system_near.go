@@ -1,3 +1,6 @@
+//go:build !staticcheck
+// +build !staticcheck
+
 package system
 
 // This is the SystemNear class. It contains no internal structures or data.

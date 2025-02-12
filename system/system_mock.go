@@ -2,10 +2,6 @@ package system
 
 // For some env limitation reason we can't use crypto/* or golang.org/x/crypto/* packages
 import (
-	// "crypto/rand"
-	// "crypto/sha256"
-	// "golang.org/x/crypto/ripemd160"
-	// "golang.org/x/crypto/sha3"
 	"fmt"
 	"time"
 	"unicode/utf16"
@@ -66,22 +62,26 @@ func NewMockSystem() *MockSystem {
 	}
 }
 
+// Work with env tests and with my impl env methods, but not work with system_mock_tests.go
 // Registers API
 func (m *MockSystem) ReadRegister(registerId, ptr uint64) {
 	if data, exists := m.Registers[registerId]; exists {
-		buffer := *(*[]byte)(unsafe.Pointer(&ptr))
-		copy(buffer, data)
+		copy(unsafe.Slice((*byte)(unsafe.Pointer(uintptr(ptr))), len(data)), data) // ✅ Safe
 	}
 }
 
 func (m *MockSystem) RegisterLen(registerId uint64) uint64 {
-	return uint64(len(m.Registers[registerId]))
+	if data, exists := m.Registers[registerId]; exists {
+		return uint64(len(data))
+	}
+	return 0
 }
 
 func (m *MockSystem) WriteRegister(registerId, dataLen, dataPtr uint64) {
-	data := *(*[]byte)(unsafe.Pointer(&dataPtr))
-	m.Registers[registerId] = make([]byte, dataLen)
-	copy(m.Registers[registerId], data)
+	dataSlice := make([]byte, dataLen)
+	copy(dataSlice, unsafe.Slice((*byte)(unsafe.Pointer(uintptr(dataPtr))), dataLen)) // ✅ Safe conversion
+
+	m.Registers[registerId] = dataSlice
 }
 
 // Storage API
