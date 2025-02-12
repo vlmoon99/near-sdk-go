@@ -435,14 +435,6 @@ func (u Uint128) String() string {
 	}
 }
 
-// NearGas represents the Gas consumed during smart contract execution.
-//
-// Each function call consumes a certain amount of gas. Optimizing and improving the efficiency of your code
-// will reduce the amount of gas spent, resulting in faster transactions.
-type NearGas struct {
-	Inner uint64
-}
-
 func Uint64ToString(n uint64) string {
 	if n == 0 {
 		return "0"
@@ -461,4 +453,12 @@ func BoolToUnit(b bool) uint64 {
 		return 1
 	}
 	return 0
+}
+
+// NearGas represents the Gas consumed during smart contract execution.
+//
+// Each function call consumes a certain amount of gas. Optimizing and improving the efficiency of your code
+// will reduce the amount of gas spent, resulting in faster transactions.
+type NearGas struct {
+	Inner uint64
 }
