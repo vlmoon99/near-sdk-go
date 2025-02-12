@@ -348,62 +348,6 @@ func ContractInput(options types.ContractInputOptions) ([]byte, string, error) {
 
 // Context API
 
-// Miscellaneous API
-
-func ContractValueReturn(inputBytes []byte) {
-	nearBlockchainImports.ValueReturn(uint64(len(inputBytes)), uint64(uintptr(unsafe.Pointer(&inputBytes[0]))))
-}
-
-func PanicStr(input string) {
-	inputBytes := []byte(input)
-	inputLength := uint64(len(inputBytes))
-
-	if inputLength == 0 {
-		return
-	}
-
-	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
-
-	nearBlockchainImports.PanicUtf8(inputLength, inputPtr)
-}
-
-func AbortExecution() {
-	PanicStr("AbortExecution")
-}
-
-func LogString(input string) {
-	inputBytes := []byte(input)
-	inputLength := uint64(len(inputBytes))
-
-	if inputLength == 0 {
-		return
-	}
-
-	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
-
-	nearBlockchainImports.LogUtf8(inputLength, inputPtr)
-}
-
-func LogStringUtf8(inputBytes []byte) {
-
-	inputLength := uint64(len(inputBytes))
-
-	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
-
-	nearBlockchainImports.LogUtf8(inputLength, inputPtr)
-}
-
-func LogStringUtf16(inputBytes []byte) {
-
-	inputLength := uint64(len(inputBytes))
-
-	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
-
-	nearBlockchainImports.LogUtf16(inputLength, inputPtr)
-}
-
-// Miscellaneous API
-
 // Economics API
 
 func GetAccountBalance() (types.Uint128, error) {
@@ -522,6 +466,62 @@ func AltBn128PairingCheck(value []byte) bool {
 }
 
 // Math API
+
+// Miscellaneous API
+
+func ContractValueReturn(inputBytes []byte) {
+	nearBlockchainImports.ValueReturn(uint64(len(inputBytes)), uint64(uintptr(unsafe.Pointer(&inputBytes[0]))))
+}
+
+func PanicStr(input string) {
+	inputBytes := []byte(input)
+	inputLength := uint64(len(inputBytes))
+
+	if inputLength == 0 {
+		return
+	}
+
+	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
+
+	nearBlockchainImports.PanicUtf8(inputLength, inputPtr)
+}
+
+func AbortExecution() {
+	PanicStr("AbortExecution")
+}
+
+func LogString(input string) {
+	inputBytes := []byte(input)
+	inputLength := uint64(len(inputBytes))
+
+	if inputLength == 0 {
+		return
+	}
+
+	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
+
+	nearBlockchainImports.LogUtf8(inputLength, inputPtr)
+}
+
+func LogStringUtf8(inputBytes []byte) {
+
+	inputLength := uint64(len(inputBytes))
+
+	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
+
+	nearBlockchainImports.LogUtf8(inputLength, inputPtr)
+}
+
+func LogStringUtf16(inputBytes []byte) {
+
+	inputLength := uint64(len(inputBytes))
+
+	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
+
+	nearBlockchainImports.LogUtf16(inputLength, inputPtr)
+}
+
+// Miscellaneous API
 
 // Validator API
 

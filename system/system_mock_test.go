@@ -1,9 +1,12 @@
 package system
 
 import (
+	"bytes"
 	"testing"
 	"unsafe"
 )
+
+// Registers API
 
 func TestReadRegister(t *testing.T) {
 	mockSys := NewMockSystem()
@@ -62,6 +65,9 @@ func TestWriteAndReadRegister(t *testing.T) {
 	}
 }
 
+// Registers API
+
+// Storage API
 func TestStorageWrite(t *testing.T) {
 	mockSys := NewMockSystem()
 	key := "testKey"
@@ -173,3 +179,256 @@ func TestStorageHasKey(t *testing.T) {
 		t.Errorf("expected 0, got %d", result)
 	}
 }
+
+// Storage API
+
+// Context API
+
+func TestCurrentAccountId(t *testing.T) {
+	mockSys := NewMockSystem()
+	registerId := uint64(1)
+	mockSys.CurrentAccountId(registerId)
+
+	if data, exists := mockSys.Registers[registerId]; !exists || string(data) != mockSys.CurrentAccountIdSys {
+		t.Errorf("expected %s, got %s", mockSys.CurrentAccountIdSys, string(data))
+	}
+}
+
+func TestSignerAccountId(t *testing.T) {
+	mockSys := NewMockSystem()
+	registerId := uint64(1)
+	mockSys.SignerAccountId(registerId)
+
+	if data, exists := mockSys.Registers[registerId]; !exists || string(data) != mockSys.SignerAccountIdSys {
+		t.Errorf("expected %s, got %s", mockSys.SignerAccountIdSys, string(data))
+	}
+}
+
+func TestSignerAccountPk(t *testing.T) {
+	mockSys := NewMockSystem()
+	registerId := uint64(1)
+	mockSys.SignerAccountPk(registerId)
+
+	if data, exists := mockSys.Registers[registerId]; !exists || !bytes.Equal(data, mockSys.SignerAccountPkSys) {
+		t.Errorf("expected %s, got %s", string(mockSys.SignerAccountPkSys), string(data))
+	}
+}
+
+func TestPredecessorAccountId(t *testing.T) {
+	mockSys := NewMockSystem()
+	registerId := uint64(1)
+	mockSys.PredecessorAccountId(registerId)
+
+	if data, exists := mockSys.Registers[registerId]; !exists || string(data) != mockSys.PredecessorAccountIdSys {
+		t.Errorf("expected %s, got %s", mockSys.PredecessorAccountIdSys, string(data))
+	}
+}
+
+func TestInput(t *testing.T) {
+	mockSys := NewMockSystem()
+	registerId := uint64(1)
+	mockSys.Input(registerId)
+
+	if data, exists := mockSys.Registers[registerId]; !exists || !bytes.Equal(data, mockSys.ContractInput) {
+		t.Errorf("expected %s, got %s", string(mockSys.ContractInput), string(data))
+	}
+}
+
+func TestBlockIndex(t *testing.T) {
+	mockSys := NewMockSystem()
+	expected := mockSys.BlockIndexSys
+	result := mockSys.BlockIndex()
+
+	if expected != result {
+		t.Errorf("expected %d, got %d", expected, result)
+	}
+}
+
+func TestBlockTimestamp(t *testing.T) {
+	mockSys := NewMockSystem()
+	expected := mockSys.BlockTimestampSys
+	result := mockSys.BlockTimestamp()
+
+	if expected != result {
+		t.Errorf("expected %d, got %d", expected, result)
+	}
+}
+
+func TestEpochHeight(t *testing.T) {
+	mockSys := NewMockSystem()
+	expected := mockSys.EpochHeightSys
+	result := mockSys.EpochHeight()
+
+	if expected != result {
+		t.Errorf("expected %d, got %d", expected, result)
+	}
+}
+
+func TestStorageUsage(t *testing.T) {
+	mockSys := NewMockSystem()
+	expected := mockSys.StorageUsageSys
+	result := mockSys.StorageUsage()
+
+	if expected != result {
+		t.Errorf("expected %d, got %d", expected, result)
+	}
+}
+
+// Context API
+
+// Economics API
+
+func TestAccountBalance(t *testing.T) {
+	mockSys := NewMockSystem()
+	var data [16]byte
+	mockSys.AccountBalance(uint64(uintptr(unsafe.Pointer(&data[0]))))
+
+	expected := mockSys.AccountBalanceSys.ToBE()
+	if string(data[:]) != string(expected) {
+		t.Errorf("expected %v, got %v", expected, data[:])
+	}
+}
+
+func TestAccountLockedBalance(t *testing.T) {
+	mockSys := NewMockSystem()
+	var data [16]byte
+	mockSys.AccountLockedBalance(uint64(uintptr(unsafe.Pointer(&data[0]))))
+
+	expected := mockSys.AccountLockedBalanceSys.ToBE()
+	if string(data[:]) != string(expected) {
+		t.Errorf("expected %v, got %v", expected, data[:])
+	}
+}
+
+func TestAttachedDeposit(t *testing.T) {
+	mockSys := NewMockSystem()
+	var data [16]byte
+	mockSys.AttachedDeposit(uint64(uintptr(unsafe.Pointer(&data[0]))))
+
+	expected := mockSys.AttachedDepositSys.ToBE()
+	if string(data[:]) != string(expected) {
+		t.Errorf("expected %v, got %v", expected, data[:])
+	}
+}
+
+func TestPrepaidGas(t *testing.T) {
+	mockSys := NewMockSystem()
+	expected := mockSys.PrepaidGasSys
+	result := mockSys.PrepaidGas()
+
+	if expected != result {
+		t.Errorf("expected %d, got %d", expected, result)
+	}
+}
+
+func TestUsedGas(t *testing.T) {
+	mockSys := NewMockSystem()
+	expected := mockSys.UsedGasSys
+	result := mockSys.UsedGas()
+
+	if expected != result {
+		t.Errorf("expected %d, got %d", expected, result)
+	}
+}
+
+// Economics API
+
+// Math API
+
+func TestRandomSeed(t *testing.T) {
+	mockSys := NewMockSystem()
+	registerId := uint64(1)
+	mockSys.RandomSeed(registerId)
+
+	if _, exists := mockSys.Registers[registerId]; !exists {
+		t.Errorf("expected random seed to be written to register %d", registerId)
+	}
+}
+
+func TestSha256(t *testing.T) {
+	mockSys := NewMockSystem()
+	registerId := uint64(1)
+	data := []byte("test data")
+	dataPtr := uintptr(unsafe.Pointer(&data[0]))
+
+	mockSys.Sha256(uint64(len(data)), uint64(dataPtr), registerId)
+
+	expected := "hash"
+	if string(mockSys.Registers[registerId]) != expected {
+		t.Errorf("expected %s, got %s", expected, string(mockSys.Registers[registerId]))
+	}
+}
+
+func TestKeccak256(t *testing.T) {
+	mockSys := NewMockSystem()
+	registerId := uint64(1)
+	data := []byte("test data")
+	dataPtr := uintptr(unsafe.Pointer(&data[0]))
+
+	mockSys.Keccak256(uint64(len(data)), uint64(dataPtr), registerId)
+
+	expected := "hash"
+	if string(mockSys.Registers[registerId]) != expected {
+		t.Errorf("expected %s, got %s", expected, string(mockSys.Registers[registerId]))
+	}
+}
+
+// func TestKeccak512(t *testing.T) {
+// 	mockSys := NewMockSystem()
+// 	registerId := uint64(1)
+// 	data := []byte("test data")
+// 	dataPtr := uintptr(unsafe.Pointer(&data[0]))
+
+// 	mockSys.Keccak512(uint64(len(data)), uint64(dataPtr), registerId)
+
+// 	expected := "hash"
+// 	if string(mockSys.Registers[registerId]) != expected {
+// 		t.Errorf("expected %s, got %s", expected, string(mockSys.Registers[registerId]))
+// 	}
+// }
+
+// func TestRipemd160(t *testing.T) {
+// 	mockSys := NewMockSystem()
+// 	registerId := uint64(1)
+// 	data := []byte("test data")
+// 	dataPtr := uintptr(unsafe.Pointer(&data[0]))
+
+// 	mockSys.Ripemd160(uint64(len(data)), uint64(dataPtr), registerId)
+
+// 	expected := "hash"
+// 	if string(mockSys.Registers[registerId]) != expected {
+// 		t.Errorf("expected %s, got %s", expected, string(mockSys.Registers[registerId]))
+// 	}
+// }
+
+// func TestAltBn128G1Multiexp(t *testing.T) {
+// 	mockSys := NewMockSystem()
+// 	registerId := uint64(1)
+// 	data := []byte{1, 2, 3, 4, 5}
+// 	dataPtr := uintptr(unsafe.Pointer(&data[0]))
+
+// 	mockSys.AltBn128G1Multiexp(uint64(len(data)), uint64(dataPtr), registerId)
+
+// 	expected := "simpleMultiexp"
+
+// 	if string(mockSys.Registers[registerId]) != expected {
+// 		t.Errorf("expected 'simpleMultiexp', got %s", string(mockSys.Registers[registerId]))
+// 	}
+// }
+
+// func TestAltBn128G1SumSystem(t *testing.T) {
+// 	mockSys := NewMockSystem()
+// 	registerId := uint64(1)
+// 	data := []byte{1, 2, 3, 4, 5}
+// 	dataPtr := uintptr(unsafe.Pointer(&data[0]))
+
+// 	mockSys.AltBn128G1SumSystem(uint64(len(data)), uint64(dataPtr), registerId)
+
+// 	expected := "simpleSum"
+
+// 	if string(mockSys.Registers[registerId]) != expected {
+// 		t.Errorf("expected 'simpleSum', got %s", string(mockSys.Registers[registerId]))
+// 	}
+// }
+
+// Math API

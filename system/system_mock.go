@@ -3,7 +3,6 @@ package system
 // For some env limitation reason we can't use crypto/* or golang.org/x/crypto/* packages
 import (
 	"fmt"
-	"time"
 	"unicode/utf16"
 	"unsafe"
 
@@ -20,61 +19,59 @@ type MockPromise struct {
 }
 
 // Test Mock impl of the System interface
-// TODO : improve it + tests this system , make it very simmilar to the Near Blockchain behaviour
 type MockSystem struct {
-	Promises             []MockPromise
-	Registers            map[uint64][]byte
-	Storage              map[string][]byte
-	currentAccountId     string
-	signerAccountId      string
-	signerAccountPk      []byte
-	predecessorAccountId string
-	input                []byte
-	blockIndex           uint64
-	blockTimestamp       uint64
-	epochHeight          uint64
-	storageUsage         uint64
-	accountBalance       types.Uint128
-	accountLockedBalance types.Uint128
-	attachedDeposit      types.Uint128
-	prepaidGas           uint64
-	usedGas              uint64
+	Promises                []MockPromise
+	Registers               map[uint64][]byte
+	Storage                 map[string][]byte
+	CurrentAccountIdSys     string
+	SignerAccountIdSys      string
+	SignerAccountPkSys      []byte
+	PredecessorAccountIdSys string
+	ContractInput           []byte
+	BlockIndexSys           uint64
+	BlockTimestampSys       uint64
+	EpochHeightSys          uint64
+	StorageUsageSys         uint64
+	AccountBalanceSys       types.Uint128
+	AccountLockedBalanceSys types.Uint128
+	AttachedDepositSys      types.Uint128
+	PrepaidGasSys           uint64
+	UsedGasSys              uint64
 }
 
 func NewMockSystem() *MockSystem {
 	return &MockSystem{
-		Registers:            make(map[uint64][]byte),
-		Storage:              make(map[string][]byte),
-		currentAccountId:     "currentAccountId.near",
-		signerAccountId:      "signerAccountId.near",
-		signerAccountPk:      []byte("signerAccountPk"),
-		predecessorAccountId: "predecessorAccountId.near",
-		input:                []byte("Test Input"),
-		blockIndex:           1,
-		blockTimestamp:       uint64(time.Now().UnixNano()),
-		epochHeight:          1,
-		storageUsage:         0,
-		accountBalance:       types.Uint128{Hi: 0, Lo: 0},
-		accountLockedBalance: types.Uint128{Hi: 0, Lo: 0},
-		attachedDeposit:      types.Uint128{Hi: 0, Lo: 0},
-		prepaidGas:           5000,
-		usedGas:              2500,
+		Registers:               make(map[uint64][]byte),
+		Storage:                 make(map[string][]byte),
+		CurrentAccountIdSys:     "currentAccountId.near",
+		SignerAccountIdSys:      "signerAccountId.near",
+		SignerAccountPkSys:      []byte("signerAccountPk"),
+		PredecessorAccountIdSys: "predecessorAccountId.near",
+		ContractInput:           []byte("Test Input"),
+		BlockIndexSys:           1,
+		BlockTimestampSys:       uint64(1739394085901002712),
+		EpochHeightSys:          1,
+		StorageUsageSys:         0,
+		AccountBalanceSys:       types.Uint128{Hi: 0, Lo: 0},
+		AccountLockedBalanceSys: types.Uint128{Hi: 0, Lo: 0},
+		AttachedDepositSys:      types.Uint128{Hi: 0, Lo: 0},
+		PrepaidGasSys:           5000,
+		UsedGasSys:              2500,
 	}
 }
 
-// Work with env tests and with my impl env methods, but not work with system_mock_tests.go
 // Registers API
 
 func (m *MockSystem) WriteRegister(registerId, dataLen, dataPtr uint64) {
 	dataSlice := make([]byte, dataLen)
-	copy(dataSlice, unsafe.Slice((*byte)(unsafe.Pointer(uintptr(dataPtr))), dataLen)) // ✅ Safe conversion
+	copy(dataSlice, unsafe.Slice((*byte)(unsafe.Pointer(uintptr(dataPtr))), dataLen))
 
 	m.Registers[registerId] = dataSlice
 }
 
 func (m *MockSystem) ReadRegister(registerId, ptr uint64) {
 	if data, exists := m.Registers[registerId]; exists {
-		copy(unsafe.Slice((*byte)(unsafe.Pointer(uintptr(ptr))), len(data)), data) // ✅ Safe
+		copy(unsafe.Slice((*byte)(unsafe.Pointer(uintptr(ptr))), len(data)), data)
 	}
 }
 
@@ -84,6 +81,8 @@ func (m *MockSystem) RegisterLen(registerId uint64) uint64 {
 	}
 	return 0
 }
+
+// Registers API
 
 // Storage API
 func (m *MockSystem) StorageWrite(keyLen, keyPtr, valueLen, valuePtr, registerId uint64) uint64 {
@@ -132,122 +131,138 @@ func (m *MockSystem) StorageHasKey(keyLen, keyPtr uint64) uint64 {
 
 // Context API
 func (m *MockSystem) CurrentAccountId(registerId uint64) {
-	m.WriteRegister(registerId, uint64(len(m.currentAccountId)), uint64(uintptr(unsafe.Pointer(&m.currentAccountId))))
+	data := []byte(m.CurrentAccountIdSys)
+	m.WriteRegister(registerId, uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))))
 }
 
 func (m *MockSystem) SignerAccountId(registerId uint64) {
-	m.WriteRegister(registerId, uint64(len(m.signerAccountId)), uint64(uintptr(unsafe.Pointer(&m.signerAccountId))))
+	data := []byte(m.SignerAccountIdSys)
+	m.WriteRegister(registerId, uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))))
 }
 
 func (m *MockSystem) SignerAccountPk(registerId uint64) {
-	m.WriteRegister(registerId, uint64(len(m.signerAccountPk)), uint64(uintptr(unsafe.Pointer(&m.signerAccountPk))))
+	m.WriteRegister(registerId, uint64(len(m.SignerAccountPkSys)), uint64(uintptr(unsafe.Pointer(&m.SignerAccountPkSys[0]))))
 }
 
 func (m *MockSystem) PredecessorAccountId(registerId uint64) {
-	m.WriteRegister(registerId, uint64(len(m.predecessorAccountId)), uint64(uintptr(unsafe.Pointer(&m.predecessorAccountId))))
+	data := []byte(m.PredecessorAccountIdSys)
+	m.WriteRegister(registerId, uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))))
 }
 
 func (m *MockSystem) Input(registerId uint64) {
-	m.WriteRegister(registerId, uint64(len(m.input)), uint64(uintptr(unsafe.Pointer(&m.input))))
+	m.WriteRegister(registerId, uint64(len(m.ContractInput)), uint64(uintptr(unsafe.Pointer(&m.ContractInput[0]))))
 }
 
 func (m *MockSystem) BlockIndex() uint64 {
-	return m.blockIndex
+	return m.BlockIndexSys
 }
 
 func (m *MockSystem) BlockTimestamp() uint64 {
-	return m.blockTimestamp
+	return m.BlockTimestampSys
 }
 
 func (m *MockSystem) EpochHeight() uint64 {
-	return m.epochHeight
+	return m.EpochHeightSys
 }
 
 func (m *MockSystem) StorageUsage() uint64 {
-	return m.storageUsage
+	return m.StorageUsageSys
 }
+
+// Context API
 
 // Economics API
 func (m *MockSystem) AccountBalance(balancePtr uint64) {
 	balance := *(*[]byte)(unsafe.Pointer(&balancePtr))
-	balance = m.accountBalance.ToBE()
+	balance = m.AccountBalanceSys.ToBE()
 	fmt.Printf("balance: %v\n", balance)
 }
 
 func (m *MockSystem) AccountLockedBalance(balancePtr uint64) {
 	balance := *(*[]byte)(unsafe.Pointer(&balancePtr))
-	balance = m.accountBalance.ToBE()
+	balance = m.AccountLockedBalanceSys.ToBE()
 	fmt.Printf("balance: %v\n", balance)
 }
 
 func (m *MockSystem) AttachedDeposit(balancePtr uint64) {
 	balance := *(*[]byte)(unsafe.Pointer(&balancePtr))
-	balance = m.attachedDeposit.ToBE()
+	balance = m.AttachedDepositSys.ToBE()
 	fmt.Printf("balance: %v\n", balance)
 }
 
 func (m *MockSystem) PrepaidGas() uint64 {
-	return m.prepaidGas
+	return m.PrepaidGasSys
 }
 
 func (m *MockSystem) UsedGas() uint64 {
-	return m.usedGas
+	return m.UsedGasSys
 }
 
 // Math API
+
 func (m *MockSystem) RandomSeed(registerId uint64) {
-	// seed := make([]byte, 32)
-	// rand.Read(seed)
-	// m.WriteRegister(registerId, uint64(len(seed)), uint64(uintptr(unsafe.Pointer(&seed[0]))))
+	seed := []byte("randomSeed")
+	m.WriteRegister(registerId, uint64(len(seed)), uint64(uintptr(unsafe.Pointer(&seed[0]))))
 }
 
 func (m *MockSystem) Sha256(valueLen, valuePtr, registerId uint64) {
-	// data := *(*[]byte)(unsafe.Pointer(&valuePtr))
-	// hash := sha256.Sum256(data[:valueLen])
-	// m.WriteRegister(registerId, uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))))
+	data := *(*[]byte)(unsafe.Pointer(uintptr(valuePtr)))
+	hash := simpleHash(data[:valueLen], 32)
+	m.WriteRegister(registerId, uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))))
 }
 
 func (m *MockSystem) Keccak256(valueLen, valuePtr, registerId uint64) {
-	// data := *(*[]byte)(unsafe.Pointer(&valuePtr))
-	// hash := sha3.Sum256(data[:valueLen])
-	// m.WriteRegister(registerId, uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))))
+	data := *(*[]byte)(unsafe.Pointer(uintptr(valuePtr)))
+	hash := simpleHash(data[:valueLen], 32)
+	m.WriteRegister(registerId, uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))))
 }
 
 func (m *MockSystem) Keccak512(valueLen, valuePtr, registerId uint64) {
-	// data := *(*[]byte)(unsafe.Pointer(&valuePtr))
-	// hash := sha3.Sum512(data[:valueLen])
-	// m.WriteRegister(registerId, uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))))
+	data := *(*[]byte)(unsafe.Pointer(uintptr(valuePtr)))
+	hash := simpleHash(data[:valueLen], 64)
+	m.WriteRegister(registerId, uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))))
 }
 
 func (m *MockSystem) Ripemd160(valueLen, valuePtr, registerId uint64) {
-	// data := *(*[]byte)(unsafe.Pointer(&valuePtr))
-	// hasher := ripemd160.New()
-	// hasher.Write(data[:valueLen])
-	// hash := hasher.Sum(nil)
-	// m.WriteRegister(registerId, uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))))
+	data := *(*[]byte)(unsafe.Pointer(uintptr(valuePtr)))
+	hash := simpleHash(data[:valueLen], 20)
+	m.WriteRegister(registerId, uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))))
 }
 
 func (m *MockSystem) Ecrecover(hashLen, hashPtr, sigLen, sigPtr, v, malleabilityFlag, registerId uint64) uint64 {
-	// Implement ECDSA recover functionality if necessary.
 	return 0 // Placeholder return value
 }
 
 func (m *MockSystem) Ed25519Verify(sigLen, sigPtr, msgLen, msgPtr, pubKeyLen, pubKeyPtr uint64) uint64 {
-	// Implement ED25519 verify functionality if necessary.
 	return 0 // Placeholder return value
 }
 
 func (m *MockSystem) AltBn128G1Multiexp(valueLen, valuePtr, registerId uint64) {
-	// Implement AltBn128G1Multiexp functionality if necessary.
+	data := *(*[]byte)(unsafe.Pointer(uintptr(valuePtr)))
+	result := simpleMultiexp(data[:valueLen])
+	m.WriteRegister(registerId, uint64(len(result)), uint64(uintptr(unsafe.Pointer(&result[0]))))
 }
 
 func (m *MockSystem) AltBn128G1SumSystem(valueLen, valuePtr, registerId uint64) {
-	// Implement AltBn128G1Sum functionality if necessary.
+	data := *(*[]byte)(unsafe.Pointer(uintptr(valuePtr)))
+	result := simpleSum(data[:valueLen])
+	m.WriteRegister(registerId, uint64(len(result)), uint64(uintptr(unsafe.Pointer(&result[0]))))
 }
 
 func (m *MockSystem) AltBn128PairingCheckSystem(valueLen, valuePtr uint64) uint64 {
-	// Implement AltBn128PairingCheck functionality if necessary.
 	return 0 // Placeholder return value
+}
+
+func simpleSum(data []byte) []byte {
+	return []byte("simpleSum")
+}
+
+func simpleHash(data []byte, outputLen int) []byte {
+	return []byte("hash")
+}
+
+func simpleMultiexp(data []byte) []byte {
+	return []byte("simpleMultiexp")
 }
 
 // Math API

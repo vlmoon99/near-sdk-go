@@ -15,6 +15,13 @@ type System interface {
 	WriteRegister(registerId, dataLen, dataPtr uint64)
 	//Registers API
 
+	// Storage API
+	StorageWrite(keyLen, keyPtr, valueLen, valuePtr, registerId uint64) uint64
+	StorageRead(keyLen uint64, keyPtr uint64, registerId uint64) uint64
+	StorageRemove(keyLen, keyPtr, registerId uint64) uint64
+	StorageHasKey(keyLen, keyPtr uint64) uint64
+	// Storage API
+
 	//Context API
 	CurrentAccountId(registerId uint64)
 	SignerAccountId(registerId uint64)
@@ -61,13 +68,6 @@ type System interface {
 	// Abort(msgPtr, filenamePtr, line, col uint32)
 	// Panic()
 	// Miscellaneous API
-
-	// Storage API
-	StorageWrite(keyLen, keyPtr, valueLen, valuePtr, registerId uint64) uint64
-	StorageRead(keyLen uint64, keyPtr uint64, registerId uint64) uint64
-	StorageRemove(keyLen, keyPtr, registerId uint64) uint64
-	StorageHasKey(keyLen, keyPtr uint64) uint64
-	// Storage API
 
 	// Promises API
 	PromiseCreate(accountIdLen, accountIdPtr, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64) uint64
