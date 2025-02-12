@@ -2,6 +2,7 @@ package env
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"unsafe"
 
@@ -30,13 +31,14 @@ const (
 	ErrExpectedDataInRegister            = "(REGISTER_ERROR): expected data in register, but found none"
 	ErrInvalidAccountID                  = "(ACCOUNT_ERROR): invalid account ID"
 	ErrKeyNotFound                       = "(STORAGE_ERROR): key not found"
+	ErrValueNotFound                     = "(STORAGE_ERROR): value not found"
 	ErrFailedToParseInput                = "(INPUT_ERROR): failed to parse input"
 	ErrUnsupportedDataFormat             = "(FORMAT_ERROR): unsupported data format"
 	ErrGettingAccountBalance             = "(BALANCE_ERROR): error while getting account balance"
 	ErrGettingLockedAccountBalance       = "(BALANCE_ERROR): error while getting locked account balance"
 	ErrGettingAttachedDeposit            = "(DEPOSIT_ERROR): error while getting attached deposit"
 	ErrFailedToWriteValueInStorage       = "(STORAGE_ERROR): failed to write value in the storage by provided key"
-	ErrKeyIsEmpty                        = "(INPUT_ERROR): key is empty"
+	ErrKeyIsEmpty                        = "(STORAGE_ERROR): key is empty"
 	ErrFailedToReadKey                   = "(STORAGE_ERROR): failed to read the key"
 	ErrFailedToReadRegister              = "(REGISTER_ERROR): failed to read register"
 	ErrCantRemoveDataByKey               = "(STORAGE_ERROR): can't remove data by that key"
@@ -319,10 +321,13 @@ func GetUsedGas() types.NearGas {
 // Storage API
 
 func StorageWrite(key, value []byte) (bool, error) {
-	if len(key) == 0 || len(value) == 0 {
+	if len(key) == 0 {
 		return false, errors.New(ErrKeyNotFound)
 	}
 
+	if len(value) == 0 {
+		return false, errors.New(ErrValueNotFound + " " + string(value) + " " + fmt.Sprintf("%d", len(value)))
+	}
 	keyLen := uint64(len(key))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
 
