@@ -1,20 +1,13 @@
 package collections
 
 import (
-	"errors"
-
 	"github.com/vlmoon99/near-sdk-go/borsh"
 	"github.com/vlmoon99/near-sdk-go/env"
 )
 
-const (
-	ErrDeserialization = "(COLLECTIONS_LOOKUP_MAP_ERROR): deserialization error"
-	ErrSerialization   = "(COLLECTIONS_LOOKUP_MAP_ERROR): serialization error"
-)
-
 // The LookupMap type represents a map for storing and retrieving key-value pairs.
 type LookupMap struct {
-	KeyPrefix []byte
+	keyPrefix []byte
 }
 
 // Creates and returns a new LookupMap instance.
@@ -23,7 +16,7 @@ type LookupMap struct {
 //
 //	keyPrefix: The prefix to be used for the keys in the map.
 func NewLookupMap(keyPrefix []byte) *LookupMap {
-	return &LookupMap{KeyPrefix: keyPrefix}
+	return &LookupMap{keyPrefix: keyPrefix}
 }
 
 // Combines the key prefix and the raw key to create a storage key.
@@ -32,12 +25,12 @@ func NewLookupMap(keyPrefix []byte) *LookupMap {
 //
 //	rawKey: The raw key to be combined with the key prefix.
 func (m *LookupMap) rawKeyToStorageKey(rawKey []byte) []byte {
-	// combined := make([]byte, len(m.KeyPrefix)+len(rawKey))
+	combined := make([]byte, len(m.keyPrefix)+len(rawKey))
 
-	// copy(combined, m.KeyPrefix)
-	// copy(combined[len(m.KeyPrefix):], rawKey)
+	copy(combined, m.keyPrefix)
+	copy(combined[len(m.keyPrefix):], rawKey)
 
-	return rawKey
+	return combined
 }
 
 // Checks if a key exists in the map.
@@ -79,10 +72,11 @@ func (m *LookupMap) Get(key []byte) (interface{}, error) {
 	}
 
 	var value string
+
 	err = borsh.Deserialize(valueBytes, &value)
 
 	if err != nil {
-		return nil, errors.New(ErrDeserialization)
+		return nil, err
 	}
 
 	return value, nil
@@ -101,17 +95,12 @@ func (m *LookupMap) Get(key []byte) (interface{}, error) {
 func (m *LookupMap) Insert(key []byte, value interface{}) error {
 	storageKey := m.rawKeyToStorageKey(key)
 	valueBytes, err := borsh.Serialize(value)
-
-	if err != nil {
-		return errors.New(ErrSerialization)
-	}
-
-	_, err = env.StorageWrite(storageKey, valueBytes)
 	if err != nil {
 		return err
 	}
+	_, err = env.StorageWrite(storageKey, valueBytes)
 
-	return nil
+	return err
 }
 
 // Removes a key-value pair from the map.
