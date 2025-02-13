@@ -49,7 +49,7 @@ near contract deploy testiktinygo.testnet use-file ./main.wasm with-init-call In
 #### **Test Function Calls**
 1. **SetStatus**:
    ```bash
-   near contract call-function as-transaction testiktinygo.testnet SetStatus text-args TestikTinyGo111111 prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as testiktinygo.testnet network-config testnet sign-with-keychain send
+   near contract call-function as-transaction testiktinygo.testnet SetStatus text-args TestikTinyGo19999 prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as testiktinygo.testnet network-config testnet sign-with-keychain send
    ```
 
 2. **GetStatus**:
