@@ -2,6 +2,7 @@ package system
 
 // For some env limitation reason we can't use crypto/* or golang.org/x/crypto/* packages
 import (
+	"encoding/binary"
 	"fmt"
 	"unicode/utf16"
 	"unsafe"
@@ -13,7 +14,7 @@ type MockPromise struct {
 	AccountId    string
 	FunctionName string
 	Arguments    []byte
-	Amount       uint64
+	Amount       types.Uint128
 	Gas          uint64
 	PromiseIndex uint64
 }
@@ -206,136 +207,157 @@ func (m *MockSystem) RandomSeed(registerId uint64) {
 }
 
 func (m *MockSystem) Sha256(valueLen, valuePtr, registerId uint64) {
-	data := *(*[]byte)(unsafe.Pointer(uintptr(valuePtr)))
-	hash := simpleHash(data[:valueLen], 32)
+	hash := []byte("hash")
 	m.WriteRegister(registerId, uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))))
 }
 
 func (m *MockSystem) Keccak256(valueLen, valuePtr, registerId uint64) {
-	data := *(*[]byte)(unsafe.Pointer(uintptr(valuePtr)))
-	hash := simpleHash(data[:valueLen], 32)
+	hash := []byte("hash")
 	m.WriteRegister(registerId, uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))))
 }
 
 func (m *MockSystem) Keccak512(valueLen, valuePtr, registerId uint64) {
-	data := *(*[]byte)(unsafe.Pointer(uintptr(valuePtr)))
-	hash := simpleHash(data[:valueLen], 64)
+	hash := []byte("hash")
 	m.WriteRegister(registerId, uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))))
 }
 
 func (m *MockSystem) Ripemd160(valueLen, valuePtr, registerId uint64) {
-	data := *(*[]byte)(unsafe.Pointer(uintptr(valuePtr)))
-	hash := simpleHash(data[:valueLen], 20)
+	hash := []byte("hash")
 	m.WriteRegister(registerId, uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))))
 }
 
 func (m *MockSystem) Ecrecover(hashLen, hashPtr, sigLen, sigPtr, v, malleabilityFlag, registerId uint64) uint64 {
-	return 0 // Placeholder return value
+	return 1
 }
 
 func (m *MockSystem) Ed25519Verify(sigLen, sigPtr, msgLen, msgPtr, pubKeyLen, pubKeyPtr uint64) uint64 {
-	return 0 // Placeholder return value
+	return 1
 }
 
 func (m *MockSystem) AltBn128G1Multiexp(valueLen, valuePtr, registerId uint64) {
-	data := *(*[]byte)(unsafe.Pointer(uintptr(valuePtr)))
-	result := simpleMultiexp(data[:valueLen])
-	m.WriteRegister(registerId, uint64(len(result)), uint64(uintptr(unsafe.Pointer(&result[0]))))
+	simpleMultiexp := []byte("simpleMultiexp")
+	m.WriteRegister(registerId, uint64(len(simpleMultiexp)), uint64(uintptr(unsafe.Pointer(&simpleMultiexp[0]))))
 }
 
 func (m *MockSystem) AltBn128G1SumSystem(valueLen, valuePtr, registerId uint64) {
-	data := *(*[]byte)(unsafe.Pointer(uintptr(valuePtr)))
-	result := simpleSum(data[:valueLen])
-	m.WriteRegister(registerId, uint64(len(result)), uint64(uintptr(unsafe.Pointer(&result[0]))))
+	simpleSum := []byte("simpleSum")
+	m.WriteRegister(registerId, uint64(len(simpleSum)), uint64(uintptr(unsafe.Pointer(&simpleSum[0]))))
 }
 
 func (m *MockSystem) AltBn128PairingCheckSystem(valueLen, valuePtr uint64) uint64 {
-	return 0 // Placeholder return value
-}
-
-func simpleSum(data []byte) []byte {
-	return []byte("simpleSum")
-}
-
-func simpleHash(data []byte, outputLen int) []byte {
-	return []byte("hash")
-}
-
-func simpleMultiexp(data []byte) []byte {
-	return []byte("simpleMultiexp")
+	return 1
 }
 
 // Math API
 
+// Validator API
+
+func (m *MockSystem) ValidatorStake(accountIdLen, accountIdPtr, stakePtr uint64) {
+	accountId := make([]byte, accountIdLen)
+	copy(accountId, *(*[]byte)(unsafe.Pointer(uintptr(accountIdPtr))))
+
+	stakeAmount := uint64(0)
+	if string(accountId) == "validatorAccountId" {
+		stakeAmount = 100000
+	}
+
+	binary.LittleEndian.PutUint64((*(*[8]byte)(unsafe.Pointer(uintptr(stakePtr))))[:], stakeAmount)
+	fmt.Printf("stake: %v\n", stakeAmount)
+}
+
+func (m *MockSystem) ValidatorTotalStake(stakePtr uint64) {
+	totalStake := uint64(1000000)
+
+	binary.LittleEndian.PutUint64((*(*[8]byte)(unsafe.Pointer(uintptr(stakePtr))))[:], totalStake)
+	fmt.Printf("stake: %v\n", totalStake)
+}
+
+// Validator API
+
 // Miscellaneous API
+
 func (m *MockSystem) ValueReturn(valueLen, valuePtr uint64) {
-	value := *(*[]byte)(unsafe.Pointer(&valuePtr))
-	// Normally this would return the value from the smart contract
-	// Since this is a mock implementation, we can store it or just simulate the return
-	m.Registers[0] = value[:valueLen]
+	m.WriteRegister(0, valueLen, valuePtr)
 }
 
 func (m *MockSystem) PanicUtf8(len, ptr uint64) {
-	message := *(*string)(unsafe.Pointer(&ptr))
-	fmt.Printf("Panic: %s", message[:len])
+	value := make([]byte, len)
+	copy(value, *(*[]byte)(unsafe.Pointer(uintptr(ptr))))
+
+	fmt.Printf("Panic: %s", value[:len])
 }
 
 func (m *MockSystem) LogUtf8(len, ptr uint64) {
-	message := *(*string)(unsafe.Pointer(&ptr))
-	fmt.Printf("Log: %s", message[:len])
+	value := make([]byte, len)
+	copy(value, *(*[]byte)(unsafe.Pointer(uintptr(ptr))))
+	fmt.Printf("Log: %s", value[:len])
 }
 
 func (m *MockSystem) LogUtf16(len, ptr uint64) {
-	utf16Bytes := *(*[]uint16)(unsafe.Pointer(&ptr))
-	message := string(utf16.Decode(utf16Bytes[:len]))
+	utf16Bytes := make([]uint16, len/2)
+	for i := 0; i < int(len)/2; i++ {
+		utf16Bytes[i] = *(*uint16)(unsafe.Pointer(uintptr(ptr) + uintptr(i*2)))
+	}
+	message := string(utf16.Decode(utf16Bytes))
 	fmt.Printf("Log: %s", message)
 }
 
 // Miscellaneous API
 
-// Validator API
-func (m *MockSystem) ValidatorStake(accountIdLen, accountIdPtr, stakePtr uint64) {
-	accountId := *(*string)(unsafe.Pointer(&accountIdPtr))
-	stakeAmount := uint64(0)
+// Promises API
+func (m *MockSystem) PromiseCreate(accountIdLen, accountIdPtr, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64) uint64 {
+	accountId := "accountId"
+	functionName := "functionName"
+	arguments := []byte("arguments")
+	amount := types.Uint128{Lo: 0, Hi: 0}
 
-	// Simulate checking validator stake
-	if accountId[:accountIdLen] == "validatorAccountId" {
-		stakeAmount = 100000 // Example stake amount
+	promise := MockPromise{
+		AccountId:    accountId[:accountIdLen],
+		FunctionName: functionName[:functionNameLen],
+		Arguments:    arguments[:argumentsLen],
+		Amount:       amount,
+		Gas:          gas,
+		PromiseIndex: uint64(len(m.Promises)),
 	}
 
-	stake := *(*uint64)(unsafe.Pointer(&stakePtr))
-	stake = stakeAmount
+	m.Promises = append(m.Promises, promise)
 
-	fmt.Printf("stake: %v\n", stake)
+	return promise.PromiseIndex
 }
 
-func (m *MockSystem) ValidatorTotalStake(stakePtr uint64) {
-	totalStake := uint64(1000000) // Example total stake amount
-	stake := *(*uint64)(unsafe.Pointer(&stakePtr))
-	stake = totalStake
+func (m *MockSystem) PromiseThen(promiseIndex, accountIdLen, accountIdPtr, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64) uint64 {
+	accountId := "accountId"
+	functionName := "functionName"
+	arguments := []byte("arguments")
+	amount := types.Uint128{Lo: 0, Hi: 0}
 
-	fmt.Printf("stake: %v\n", stake)
-}
-
-// Promise API Actions
-func (m *MockSystem) PromiseResultsCount() uint64 {
-	return uint64(len(m.Promises))
-}
-
-func (m *MockSystem) PromiseResult(resultIdx uint64, registerId uint64) uint64 {
-	if resultIdx < uint64(len(m.Promises)) {
-		result := m.Promises[resultIdx].Arguments
-		m.WriteRegister(registerId, uint64(len(result)), uint64(uintptr(unsafe.Pointer(&result[0]))))
-		return 1 // Return a success indicator
+	promise := MockPromise{
+		AccountId:    accountId,
+		FunctionName: functionName,
+		Arguments:    arguments,
+		Amount:       amount,
+		Gas:          gas,
+		PromiseIndex: uint64(len(m.Promises)),
 	}
-	return 0 // Return a failure indicator
+
+	m.Promises = append(m.Promises, promise)
+
+	return promise.PromiseIndex
 }
 
-func (m *MockSystem) PromiseReturn(promiseId uint64) {
-	if promiseId < uint64(len(m.Promises)) {
-		m.Registers[0] = m.Promises[promiseId].Arguments
-	}
+func (m *MockSystem) PromiseAnd(promiseIdxPtr, promiseIdxCount uint64) uint64 {
+	return uint64(2)
 }
+
+func (m *MockSystem) PromiseBatchCreate(accountIdLen, accountIdPtr uint64) uint64 {
+	return 0
+}
+
+func (m *MockSystem) PromiseBatchThen(promiseIndex, accountIdLen, accountIdPtr uint64) uint64 {
+	return 1
+}
+
+// Promises API
 
 // Promise API Actions
 func (m *MockSystem) PromiseBatchActionAddKeyWithFullAccess(promiseIndex, publicKeyLen, publicKeyPtr, nonce uint64) {
@@ -413,7 +435,8 @@ func (m *MockSystem) PromiseBatchActionDeployContract(promiseIndex, codeLen, cod
 func (m *MockSystem) PromiseBatchActionFunctionCall(promiseIndex, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64) {
 	functionName := *(*string)(unsafe.Pointer(&functionNamePtr))
 	arguments := *(*[]byte)(unsafe.Pointer(&argumentsPtr))
-	amount := *(*uint64)(unsafe.Pointer(&amountPtr))
+	amountBytes := *(*[16]byte)(unsafe.Pointer(&amountPtr))
+	amount, _ := types.LoadUint128BE(amountBytes[:])
 
 	promise := &m.Promises[promiseIndex]
 	promise.FunctionName = functionName[:functionNameLen]
@@ -428,13 +451,16 @@ func (m *MockSystem) PromiseBatchActionFunctionCallWeight(promiseIndex, function
 }
 
 func (m *MockSystem) PromiseBatchActionTransfer(promiseIndex, amountPtr uint64) {
-	amount := *(*uint64)(unsafe.Pointer(&amountPtr))
+	amountBytes := *(*[16]byte)(unsafe.Pointer(&amountPtr))
+	amount, _ := types.LoadUint128BE(amountBytes[:])
+
 	promise := &m.Promises[promiseIndex]
 	promise.Amount = amount
 }
 
 func (m *MockSystem) PromiseBatchActionStake(promiseIndex, amountPtr, publicKeyLen, publicKeyPtr uint64) {
-	amount := *(*uint64)(unsafe.Pointer(&amountPtr))
+	amountBytes := *(*[16]byte)(unsafe.Pointer(&amountPtr))
+	amount, _ := types.LoadUint128BE(amountBytes[:])
 	publicKey := *(*string)(unsafe.Pointer(&publicKeyPtr))
 
 	promise := &m.Promises[promiseIndex]
@@ -442,80 +468,26 @@ func (m *MockSystem) PromiseBatchActionStake(promiseIndex, amountPtr, publicKeyL
 	promise.Arguments = append(promise.Arguments, publicKey[:publicKeyLen]...)
 }
 
-// Promises API
-func (m *MockSystem) PromiseCreate(accountIdLen, accountIdPtr, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64) uint64 {
-	accountId := *(*string)(unsafe.Pointer(&accountIdPtr))
-	functionName := *(*string)(unsafe.Pointer(&functionNamePtr))
-	arguments := *(*[]byte)(unsafe.Pointer(&argumentsPtr))
-	amount := *(*uint64)(unsafe.Pointer(&amountPtr))
+// Promise API Actions
 
-	promise := MockPromise{
-		AccountId:    accountId[:accountIdLen],
-		FunctionName: functionName[:functionNameLen],
-		Arguments:    arguments[:argumentsLen],
-		Amount:       amount,
-		Gas:          gas,
-		PromiseIndex: uint64(len(m.Promises)),
-	}
-
-	m.Promises = append(m.Promises, promise)
-
-	return promise.PromiseIndex
-}
-
-func (m *MockSystem) PromiseThen(promiseIndex, accountIdLen, accountIdPtr, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64) uint64 {
-	accountId := *(*string)(unsafe.Pointer(&accountIdPtr))
-	functionName := *(*string)(unsafe.Pointer(&functionNamePtr))
-	arguments := *(*[]byte)(unsafe.Pointer(&argumentsPtr))
-	amount := *(*uint64)(unsafe.Pointer(&amountPtr))
-
-	promise := MockPromise{
-		AccountId:    accountId[:accountIdLen],
-		FunctionName: functionName[:functionNameLen],
-		Arguments:    arguments[:argumentsLen],
-		Amount:       amount,
-		Gas:          gas,
-		PromiseIndex: promiseIndex,
-	}
-
-	m.Promises = append(m.Promises, promise)
-
-	return uint64(len(m.Promises)) - 1
-}
-
-func (m *MockSystem) PromiseAnd(promiseIdxPtr, promiseIdxCount uint64) uint64 {
-	promiseIndexes := *(*[]uint64)(unsafe.Pointer(&promiseIdxPtr))
-
-	for i := uint64(0); i < promiseIdxCount; i++ {
-		// Here we can handle the promises that need to be combined
-		fmt.Printf("promiseIndexes[i]: %v\n", promiseIndexes[i])
-	}
-
+// Promise API Results
+func (m *MockSystem) PromiseResultsCount() uint64 {
 	return uint64(len(m.Promises))
 }
 
-func (m *MockSystem) PromiseBatchCreate(accountIdLen, accountIdPtr uint64) uint64 {
-	accountId := *(*string)(unsafe.Pointer(&accountIdPtr))
-
-	promise := MockPromise{
-		AccountId:    accountId[:accountIdLen],
-		PromiseIndex: uint64(len(m.Promises)),
+func (m *MockSystem) PromiseResult(resultIdx uint64, registerId uint64) uint64 {
+	if resultIdx < uint64(len(m.Promises)) {
+		result := m.Promises[resultIdx].Arguments
+		m.WriteRegister(registerId, uint64(len(result)), uint64(uintptr(unsafe.Pointer(&result[0]))))
+		return 1 // Return a success indicator
 	}
-
-	m.Promises = append(m.Promises, promise)
-
-	return promise.PromiseIndex
+	return 0 // Return a failure indicator
 }
 
-func (m *MockSystem) PromiseBatchThen(promiseIndex, accountIdLen, accountIdPtr uint64) uint64 {
-	accountId := *(*string)(unsafe.Pointer(&accountIdPtr))
-
-	promise := MockPromise{
-		AccountId:    accountId[:accountIdLen],
-		PromiseIndex: promiseIndex,
+func (m *MockSystem) PromiseReturn(promiseId uint64) {
+	if promiseId < uint64(len(m.Promises)) {
+		m.Registers[0] = m.Promises[promiseId].Arguments
 	}
-
-	m.Promises = append(m.Promises, promise)
-
-	return uint64(len(m.Promises)) - 1
 }
+
+// Promise API Results

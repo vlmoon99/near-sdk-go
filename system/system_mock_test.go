@@ -3,7 +3,10 @@ package system
 import (
 	"bytes"
 	"testing"
+	"unicode/utf16"
 	"unsafe"
+
+	"github.com/vlmoon99/near-sdk-go/types"
 )
 
 // Registers API
@@ -373,62 +376,297 @@ func TestKeccak256(t *testing.T) {
 	}
 }
 
-// func TestKeccak512(t *testing.T) {
-// 	mockSys := NewMockSystem()
-// 	registerId := uint64(1)
-// 	data := []byte("test data")
-// 	dataPtr := uintptr(unsafe.Pointer(&data[0]))
+func TestKeccak512(t *testing.T) {
+	mockSys := NewMockSystem()
+	registerId := uint64(1)
+	data := []byte("test data")
+	dataPtr := uintptr(unsafe.Pointer(&data[0]))
 
-// 	mockSys.Keccak512(uint64(len(data)), uint64(dataPtr), registerId)
+	mockSys.Keccak512(uint64(len(data)), uint64(dataPtr), registerId)
 
-// 	expected := "hash"
-// 	if string(mockSys.Registers[registerId]) != expected {
-// 		t.Errorf("expected %s, got %s", expected, string(mockSys.Registers[registerId]))
-// 	}
-// }
+	expected := "hash"
+	if string(mockSys.Registers[registerId]) != expected {
+		t.Errorf("expected %s, got %s", expected, string(mockSys.Registers[registerId]))
+	}
+}
 
-// func TestRipemd160(t *testing.T) {
-// 	mockSys := NewMockSystem()
-// 	registerId := uint64(1)
-// 	data := []byte("test data")
-// 	dataPtr := uintptr(unsafe.Pointer(&data[0]))
+func TestRipemd160(t *testing.T) {
+	mockSys := NewMockSystem()
+	registerId := uint64(1)
+	data := []byte("test data")
+	dataPtr := uintptr(unsafe.Pointer(&data[0]))
 
-// 	mockSys.Ripemd160(uint64(len(data)), uint64(dataPtr), registerId)
+	mockSys.Ripemd160(uint64(len(data)), uint64(dataPtr), registerId)
 
-// 	expected := "hash"
-// 	if string(mockSys.Registers[registerId]) != expected {
-// 		t.Errorf("expected %s, got %s", expected, string(mockSys.Registers[registerId]))
-// 	}
-// }
+	expected := "hash"
+	if string(mockSys.Registers[registerId]) != expected {
+		t.Errorf("expected %s, got %s", expected, string(mockSys.Registers[registerId]))
+	}
+}
 
-// func TestAltBn128G1Multiexp(t *testing.T) {
-// 	mockSys := NewMockSystem()
-// 	registerId := uint64(1)
-// 	data := []byte{1, 2, 3, 4, 5}
-// 	dataPtr := uintptr(unsafe.Pointer(&data[0]))
+func TestAltBn128G1Multiexp(t *testing.T) {
+	mockSys := NewMockSystem()
+	registerId := uint64(1)
+	data := []byte{1, 2, 3, 4, 5}
+	dataPtr := uintptr(unsafe.Pointer(&data[0]))
 
-// 	mockSys.AltBn128G1Multiexp(uint64(len(data)), uint64(dataPtr), registerId)
+	mockSys.AltBn128G1Multiexp(uint64(len(data)), uint64(dataPtr), registerId)
 
-// 	expected := "simpleMultiexp"
+	expected := "simpleMultiexp"
 
-// 	if string(mockSys.Registers[registerId]) != expected {
-// 		t.Errorf("expected 'simpleMultiexp', got %s", string(mockSys.Registers[registerId]))
-// 	}
-// }
+	if string(mockSys.Registers[registerId]) != expected {
+		t.Errorf("expected 'simpleMultiexp', got %s", string(mockSys.Registers[registerId]))
+	}
+}
 
-// func TestAltBn128G1SumSystem(t *testing.T) {
-// 	mockSys := NewMockSystem()
-// 	registerId := uint64(1)
-// 	data := []byte{1, 2, 3, 4, 5}
-// 	dataPtr := uintptr(unsafe.Pointer(&data[0]))
+func TestAltBn128G1SumSystem(t *testing.T) {
+	mockSys := NewMockSystem()
+	registerId := uint64(1)
+	data := []byte{1, 2, 3, 4, 5}
+	dataPtr := uintptr(unsafe.Pointer(&data[0]))
 
-// 	mockSys.AltBn128G1SumSystem(uint64(len(data)), uint64(dataPtr), registerId)
+	mockSys.AltBn128G1SumSystem(uint64(len(data)), uint64(dataPtr), registerId)
 
-// 	expected := "simpleSum"
+	expected := "simpleSum"
 
-// 	if string(mockSys.Registers[registerId]) != expected {
-// 		t.Errorf("expected 'simpleSum', got %s", string(mockSys.Registers[registerId]))
-// 	}
-// }
+	if string(mockSys.Registers[registerId]) != expected {
+		t.Errorf("expected 'simpleSum', got %s", string(mockSys.Registers[registerId]))
+	}
+}
 
 // Math API
+
+// Validator API
+
+func TestValidatorStake(t *testing.T) {
+	mockSys := NewMockSystem()
+	accountId := "validatorAccountId"
+	accountIdLen := uint64(len(accountId))
+	accountIdPtr := uintptr(unsafe.Pointer(&accountId))
+
+	var stakeData uint64
+	stakePtr := uintptr(unsafe.Pointer(&stakeData))
+
+	mockSys.ValidatorStake(accountIdLen, uint64(accountIdPtr), uint64(stakePtr))
+
+	expectedStake := uint64(100000)
+	if stakeData != expectedStake {
+		t.Errorf("expected stake %d, got %d", expectedStake, stakeData)
+	}
+}
+
+func TestValidatorTotalStake(t *testing.T) {
+	mockSys := NewMockSystem()
+	var stakeData uint64
+	stakePtr := uintptr(unsafe.Pointer(&stakeData))
+
+	mockSys.ValidatorTotalStake(uint64(stakePtr))
+
+	expectedStake := uint64(1000000)
+	if stakeData != expectedStake {
+		t.Errorf("expected total stake %d, got %d", expectedStake, stakeData)
+	}
+}
+
+// Validator API
+
+// Miscellaneous API
+
+func TestValueReturn(t *testing.T) {
+	mockSys := NewMockSystem()
+	data := []byte("test data")
+	var buffer = make([]byte, len(data))
+	copy(buffer, data)
+
+	ptr := uintptr(unsafe.Pointer(&buffer[0]))
+
+	mockSys.ValueReturn(uint64(len(data)), uint64(ptr))
+
+	if string(mockSys.Registers[0]) != string(data) {
+		t.Errorf("expected %s, got %s", string(data), string(mockSys.Registers[0]))
+	}
+}
+
+func TestPanicUtf8(t *testing.T) {
+	mockSys := NewMockSystem()
+	message := "panic message"
+	len := uint64(len(message))
+	ptr := uintptr(unsafe.Pointer(&message))
+	mockSys.PanicUtf8(len, uint64(ptr))
+}
+
+func TestLogUtf8(t *testing.T) {
+	mockSys := NewMockSystem()
+	message := "log message"
+	len := uint64(len(message))
+	ptr := uintptr(unsafe.Pointer(&message))
+	mockSys.LogUtf8(len, uint64(ptr))
+}
+
+func TestLogUtf16(t *testing.T) {
+	mockSys := NewMockSystem()
+	message := "log message"
+	utf16Bytes := utf16.Encode([]rune(message))
+	len := uint64(len(utf16Bytes) * 2)
+	ptr := uintptr(unsafe.Pointer(&utf16Bytes[0]))
+	mockSys.LogUtf16(len, uint64(ptr))
+}
+
+// Miscellaneous API
+
+// Promises API
+
+func TestPromiseCreate(t *testing.T) {
+	mockSys := NewMockSystem()
+	accountId := "accountId"
+	functionName := "functionName"
+	arguments := []byte("arguments")
+	amount := types.Uint128{Lo: 0, Hi: 0}
+	gas := uint64(5000)
+
+	accountIdPtr := uintptr(unsafe.Pointer(&accountId))
+	functionNamePtr := uintptr(unsafe.Pointer(&functionName))
+	argumentsPtr := uintptr(unsafe.Pointer(&arguments[0]))
+	amountPtr := uintptr(unsafe.Pointer(&amount))
+
+	promiseIndex := mockSys.PromiseCreate(uint64(len(accountId)), uint64(accountIdPtr),
+		uint64(len(functionName)), uint64(functionNamePtr),
+		uint64(len(arguments)), uint64(argumentsPtr),
+		uint64(amountPtr), gas)
+
+	expectedIndex := uint64(0)
+	if promiseIndex != expectedIndex {
+		t.Errorf("expected promise index %d, got %d", expectedIndex, promiseIndex)
+	}
+
+	if len(mockSys.Promises) != 1 {
+		t.Errorf("expected 1 promise, got %d", len(mockSys.Promises))
+	}
+
+	promise := mockSys.Promises[0]
+	if promise.AccountId != accountId {
+		t.Errorf("expected account id %s, got %s", accountId, promise.AccountId)
+	}
+	if promise.FunctionName != functionName {
+		t.Errorf("expected function name %s, got %s", functionName, promise.FunctionName)
+	}
+	if string(promise.Arguments) != string(arguments) {
+		t.Errorf("expected arguments %s, got %s", string(arguments), string(promise.Arguments))
+	}
+	if promise.Amount != amount {
+		t.Errorf("expected amount %d, got %d", amount, promise.Amount)
+	}
+	if promise.Gas != gas {
+		t.Errorf("expected gas %d, got %d", gas, promise.Gas)
+	}
+}
+
+func TestPromiseThen(t *testing.T) {
+	mockSys := NewMockSystem()
+
+	// Create the first promise
+	accountId := "accountId"
+	functionName := "functionName"
+	arguments := []byte("arguments")
+	amount := types.Uint128{Lo: 0, Hi: 0}
+	gas := uint64(5000)
+
+	accountIdPtr := uintptr(unsafe.Pointer(&accountId))
+	functionNamePtr := uintptr(unsafe.Pointer(&functionName))
+	argumentsPtr := uintptr(unsafe.Pointer(&arguments[0]))
+	amountPtr := uintptr(unsafe.Pointer(&amount))
+
+	// Create the first promise
+	mockSys.PromiseCreate(
+		uint64(len(accountId)), uint64(accountIdPtr),
+		uint64(len(functionName)), uint64(functionNamePtr),
+		uint64(len(arguments)), uint64(argumentsPtr),
+		uint64(amountPtr), gas,
+	)
+
+	promiseIdx := uint64(0)
+	promiseIndex := mockSys.PromiseThen(
+		promiseIdx,
+		uint64(len(accountId)), uint64(accountIdPtr),
+		uint64(len(functionName)), uint64(functionNamePtr),
+		uint64(len(arguments)), uint64(argumentsPtr),
+		uint64(amountPtr), gas,
+	)
+
+	expectedIndex := uint64(1)
+	if promiseIndex != expectedIndex {
+		t.Errorf("expected promise index %d, got %d", expectedIndex, promiseIndex)
+	}
+
+	if len(mockSys.Promises) != 2 {
+		t.Errorf("expected 2 promises, got %d", len(mockSys.Promises))
+	}
+
+	promise := mockSys.Promises[1]
+	if promise.AccountId != accountId {
+		t.Errorf("expected account id %s, got %s", accountId, promise.AccountId)
+	}
+	if promise.FunctionName != functionName {
+		t.Errorf("expected function name %s, got %s", functionName, promise.FunctionName)
+	}
+	if string(promise.Arguments) != string(arguments) {
+		t.Errorf("expected arguments %s, got %s", string(arguments), string(promise.Arguments))
+	}
+	if promise.Amount.Lo != amount.Lo {
+		t.Errorf("expected amount %d, got %d", amount.Lo, promise.Amount)
+	}
+	if promise.Gas != gas {
+		t.Errorf("expected gas %d, got %d", gas, promise.Gas)
+	}
+}
+
+func TestPromiseAnd(t *testing.T) {
+	mockSys := NewMockSystem()
+	promiseIndices := []uint64{0, 1}
+	promiseIdxPtr := uintptr(unsafe.Pointer(&promiseIndices[0]))
+
+	promiseIndex := mockSys.PromiseAnd(uint64(promiseIdxPtr), uint64(len(promiseIndices)))
+
+	expectedIndex := uint64(2)
+	if promiseIndex != expectedIndex {
+		t.Errorf("expected promise index %d, got %d", expectedIndex, promiseIndex)
+	}
+}
+
+func TestPromiseBatchCreate(t *testing.T) {
+	mockSys := NewMockSystem()
+	accountId := "accountId"
+	accountIdPtr := uintptr(unsafe.Pointer(&accountId))
+
+	promiseIndex := mockSys.PromiseBatchCreate(uint64(len(accountId)), uint64(accountIdPtr))
+
+	expectedIndex := uint64(0)
+	if promiseIndex != expectedIndex {
+		t.Errorf("expected promise index %d, got %d", expectedIndex, promiseIndex)
+	}
+}
+
+func TestPromiseBatchThen(t *testing.T) {
+	mockSys := NewMockSystem()
+	accountId := "accountId"
+	accountIdPtr := uintptr(unsafe.Pointer(&accountId))
+	promiseIdx := uint64(0)
+
+	promiseIndex := mockSys.PromiseBatchThen(promiseIdx, uint64(len(accountId)), uint64(accountIdPtr))
+
+	expectedIndex := uint64(1)
+	if promiseIndex != expectedIndex {
+		t.Errorf("expected promise index %d, got %d", expectedIndex, promiseIndex)
+	}
+}
+
+// Promises API
+
+//TODO : add more mock test's after solve problem with tinigy tests of env methods
+// Promises API Action
+
+// Promises API Action
+
+// Promise API Results
+
+// Promise API Results

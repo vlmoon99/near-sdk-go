@@ -467,6 +467,38 @@ func AltBn128PairingCheck(value []byte) bool {
 
 // Math API
 
+// Validator API
+
+func ValidatorStakeAmount(accountID []byte) (types.Uint128, error) {
+	if len(accountID) == 0 {
+		return types.Uint128{Hi: 0, Lo: 0}, errors.New(ErrAccountIDMustNotBeEmpty)
+	}
+
+	var stakeData [16]byte
+	nearBlockchainImports.ValidatorStake(uint64(len(accountID)), uint64(uintptr(unsafe.Pointer(&accountID[0]))), uint64(uintptr(unsafe.Pointer(&stakeData[0]))))
+
+	validatorStakeAmount, err := types.LoadUint128LE(stakeData[:])
+	if err != nil {
+		return types.Uint128{Hi: 0, Lo: 0}, errors.New(ErrGettingValidatorStakeAmount)
+	}
+
+	return validatorStakeAmount, nil
+}
+
+func ValidatorTotalStakeAmount() (types.Uint128, error) {
+	var stakeData [16]byte
+	nearBlockchainImports.ValidatorTotalStake(uint64(uintptr(unsafe.Pointer(&stakeData[0]))))
+
+	validatorTotalStakeAmount, err := types.LoadUint128LE(stakeData[:])
+	if err != nil {
+		return types.Uint128{Hi: 0, Lo: 0}, errors.New(ErrGettingValidatorTotalStakeAmount)
+	}
+
+	return validatorTotalStakeAmount, nil
+}
+
+// Validator API
+
 // Miscellaneous API
 
 func ContractValueReturn(inputBytes []byte) {
@@ -522,38 +554,6 @@ func LogStringUtf16(inputBytes []byte) {
 }
 
 // Miscellaneous API
-
-// Validator API
-
-func ValidatorStakeAmount(accountID []byte) (types.Uint128, error) {
-	if len(accountID) == 0 {
-		return types.Uint128{Hi: 0, Lo: 0}, errors.New(ErrAccountIDMustNotBeEmpty)
-	}
-
-	var stakeData [16]byte
-	nearBlockchainImports.ValidatorStake(uint64(len(accountID)), uint64(uintptr(unsafe.Pointer(&accountID[0]))), uint64(uintptr(unsafe.Pointer(&stakeData[0]))))
-
-	validatorStakeAmount, err := types.LoadUint128LE(stakeData[:])
-	if err != nil {
-		return types.Uint128{Hi: 0, Lo: 0}, errors.New(ErrGettingValidatorStakeAmount)
-	}
-
-	return validatorStakeAmount, nil
-}
-
-func ValidatorTotalStakeAmount() (types.Uint128, error) {
-	var stakeData [16]byte
-	nearBlockchainImports.ValidatorTotalStake(uint64(uintptr(unsafe.Pointer(&stakeData[0]))))
-
-	validatorTotalStakeAmount, err := types.LoadUint128LE(stakeData[:])
-	if err != nil {
-		return types.Uint128{Hi: 0, Lo: 0}, errors.New(ErrGettingValidatorTotalStakeAmount)
-	}
-
-	return validatorTotalStakeAmount, nil
-}
-
-// Validator API
 
 // Promises API
 
@@ -728,6 +728,7 @@ func PromiseYieldResume(data []byte, payload []byte) uint32 {
 // Promises API Action
 
 // Promise API Results
+
 func PromiseResultsCount(data []byte, payload []byte) uint64 {
 	return nearBlockchainImports.PromiseResultsCount()
 }
