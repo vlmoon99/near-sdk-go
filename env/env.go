@@ -2,7 +2,6 @@ package env
 
 import (
 	"errors"
-	"fmt"
 	"math"
 	"unsafe"
 
@@ -37,7 +36,7 @@ const (
 	ErrGettingAccountBalance             = "(BALANCE_ERROR): error while getting account balance"
 	ErrGettingLockedAccountBalance       = "(BALANCE_ERROR): error while getting locked account balance"
 	ErrGettingAttachedDeposit            = "(DEPOSIT_ERROR): error while getting attached deposit"
-	ErrFailedToWriteValueInStorage       = "(STORAGE_ERROR): failed to write value in the storage by provided key"
+	ErrFailedToWriteValueInStorage       = "(STORAGE_ERROR): failed to write value in the storage by provided key, result of operation is 0"
 	ErrKeyIsEmpty                        = "(STORAGE_ERROR): key is empty"
 	ErrFailedToReadKey                   = "(STORAGE_ERROR): failed to read the key"
 	ErrFailedToReadRegister              = "(REGISTER_ERROR): failed to read register"
@@ -56,12 +55,12 @@ func SetEnv(system system.System) {
 	nearBlockchainImports = system
 }
 
-// Registers
+// Registers API
 
 func tryMethodIntoRegister(method func(uint64)) ([]byte, error) {
 	method(AtomicOpRegister)
 
-	return readRegisterSafe(AtomicOpRegister)
+	return ReadRegisterSafe(AtomicOpRegister)
 }
 
 func methodIntoRegister(method func(uint64)) ([]byte, error) {
@@ -75,7 +74,7 @@ func methodIntoRegister(method func(uint64)) ([]byte, error) {
 	return data, nil
 }
 
-func readRegisterSafe(registerId uint64) ([]byte, error) {
+func ReadRegisterSafe(registerId uint64) ([]byte, error) {
 
 	length := nearBlockchainImports.RegisterLen(registerId)
 
@@ -95,7 +94,7 @@ func readRegisterSafe(registerId uint64) ([]byte, error) {
 	return buffer, nil
 }
 
-func writeRegisterSafe(registerId uint64, data []byte) {
+func WriteRegisterSafe(registerId uint64, data []byte) {
 	if len(data) == 0 {
 		return
 	}
@@ -105,7 +104,7 @@ func writeRegisterSafe(registerId uint64, data []byte) {
 	nearBlockchainImports.WriteRegister(registerId, uint64(len(data)), ptr)
 }
 
-// Registers
+// Registers API
 
 // Storage API
 
@@ -115,21 +114,57 @@ func StorageWrite(key, value []byte) (bool, error) {
 	}
 
 	if len(value) == 0 {
-		return false, errors.New(ErrValueNotFound + " " + string(value) + " " + fmt.Sprintf("%d", len(value)))
+		return false, errors.New(ErrValueNotFound)
 	}
+
 	keyLen := uint64(len(key))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
 
 	valueLen := uint64(len(value))
 	valuePtr := uint64(uintptr(unsafe.Pointer(&value[0])))
 
+	return storageWriteRecursive(keyLen, keyPtr, valueLen, valuePtr, 0) // Start recursion
+}
+
+// TODO : try to undersatnd why on the first SotrageWrite we have 0 and on the second one we have 1, each other writing in this key - works well
+func storageWriteRecursive(keyLen uint64, keyPtr uint64, valueLen uint64, valuePtr uint64, attempt int) (bool, error) {
 	result := nearBlockchainImports.StorageWrite(keyLen, keyPtr, valueLen, valuePtr, EvictedRegister)
-	if result == 0 {
-		return false, errors.New(ErrFailedToWriteValueInStorage)
+
+	if result == 1 { // Success
+		return true, nil
 	}
 
-	return true, nil
+	if result == 0 && attempt < 1 { // Retry once
+		return storageWriteRecursive(keyLen, keyPtr, valueLen, valuePtr, attempt+1)
+	}
+
+	// Failure after retry or initial failure
+	return false, errors.New(ErrFailedToWriteValueInStorage)
 }
+
+// func StorageWrite(key, value []byte) (bool, error) {
+// 	if len(key) == 0 {
+// 		return false, errors.New(ErrKeyNotFound)
+// 	}
+
+// 	if len(value) == 0 {
+// 		return false, errors.New(ErrValueNotFound + " " + string(value) + " " + fmt.Sprintf("%d", len(value)))
+// 	}
+
+// 	keyLen := uint64(len(key))
+// 	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
+
+// 	valueLen := uint64(len(value))
+// 	valuePtr := uint64(uintptr(unsafe.Pointer(&value[0])))
+
+// 	result := nearBlockchainImports.StorageWrite(keyLen, keyPtr, valueLen, valuePtr, EvictedRegister)
+
+// 	if result == 0 {
+// 		return false, errors.New(ErrFailedToWriteValueInStorage)
+// 	}
+
+// 	return true, nil
+// }
 
 func StorageRead(key []byte) ([]byte, error) {
 	if len(key) == 0 {
@@ -137,13 +172,13 @@ func StorageRead(key []byte) ([]byte, error) {
 	}
 	keyLen := uint64(len(key))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
-	result := nearBlockchainImports.StorageRead(keyLen, keyPtr, EvictedRegister)
+	result := nearBlockchainImports.StorageRead(keyLen, keyPtr, AtomicOpRegister)
 
 	if result == 0 {
 		return nil, errors.New(ErrFailedToReadKey)
 	}
 
-	value, err := readRegisterSafe(EvictedRegister)
+	value, err := ReadRegisterSafe(AtomicOpRegister)
 	if err != nil {
 		return nil, errors.New(ErrFailedToReadRegister)
 	}
@@ -168,7 +203,7 @@ func StorageRemove(key []byte) (bool, error) {
 }
 
 func StorageGetEvicted() ([]byte, error) {
-	value, err := readRegisterSafe(EvictedRegister)
+	value, err := ReadRegisterSafe(EvictedRegister)
 	if err != nil {
 		return nil, errors.New(ErrFailedToReadEvictedRegister)
 	}
@@ -192,12 +227,12 @@ func StateRead() ([]byte, error) {
 	keyLen := uint64(len(StateKey))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&StateKey[0])))
 
-	result := nearBlockchainImports.StorageRead(keyLen, keyPtr, 0)
+	result := nearBlockchainImports.StorageRead(keyLen, keyPtr, EvictedRegister)
 	if result == 0 {
 		return nil, errors.New(ErrStateNotFound)
 	}
 
-	data, err := readRegisterSafe(0)
+	data, err := ReadRegisterSafe(EvictedRegister)
 	if err != nil {
 		return nil, errors.New(ErrFailedToReadRegister)
 	}
@@ -213,7 +248,7 @@ func StateWrite(data []byte) error {
 	valueLen := uint64(len(data))
 	valuePtr := uint64(uintptr(unsafe.Pointer(&data[0])))
 
-	result := nearBlockchainImports.StorageWrite(keyLen, keyPtr, valueLen, valuePtr, 0)
+	result := nearBlockchainImports.StorageWrite(keyLen, keyPtr, valueLen, valuePtr, EvictedRegister)
 	if result == 0 {
 		return errors.New(ErrFailedToWriteStateToStorage)
 	}

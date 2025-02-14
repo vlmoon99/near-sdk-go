@@ -21,7 +21,7 @@ func TestSetEnv(t *testing.T) {
 	}
 }
 
-// Registers
+// Registers API
 
 func TestTryMethodIntoRegister(t *testing.T) {
 	mockSys := system.NewMockSystem()
@@ -31,7 +31,7 @@ func TestTryMethodIntoRegister(t *testing.T) {
 	mockSys.Registers[AtomicOpRegister] = data
 
 	method := func(registerId uint64) {
-		writeRegisterSafe(registerId, data)
+		WriteRegisterSafe(registerId, data)
 	}
 
 	result, err := tryMethodIntoRegister(method)
@@ -52,7 +52,7 @@ func TestMethodIntoRegister(t *testing.T) {
 	mockSys.Registers[AtomicOpRegister] = data
 
 	method := func(registerId uint64) {
-		writeRegisterSafe(registerId, data)
+		WriteRegisterSafe(registerId, data)
 	}
 
 	result, err := methodIntoRegister(method)
@@ -72,7 +72,7 @@ func TestReadRegisterSafe(t *testing.T) {
 	data := []byte("test data")
 	mockSys.Registers[AtomicOpRegister] = data
 
-	result, err := readRegisterSafe(AtomicOpRegister)
+	result, err := ReadRegisterSafe(AtomicOpRegister)
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
@@ -82,7 +82,7 @@ func TestReadRegisterSafe(t *testing.T) {
 	}
 
 	// Test with an empty register
-	result, err = readRegisterSafe(1)
+	result, err = ReadRegisterSafe(1)
 	if err == nil {
 		t.Errorf("expected error, got nil")
 	}
@@ -97,20 +97,20 @@ func TestWriteRegisterSafe(t *testing.T) {
 	SetEnv(mockSys)
 
 	data := []byte("test data")
-	writeRegisterSafe(1, data)
+	WriteRegisterSafe(1, data)
 
 	if string(mockSys.Registers[1]) != string(data) {
 		t.Errorf("expected '%s', got '%s'", data, mockSys.Registers[1])
 	}
 
 	// Test with empty data
-	writeRegisterSafe(2, []byte{})
+	WriteRegisterSafe(2, []byte{})
 	if _, exists := mockSys.Registers[2]; exists {
 		t.Errorf("expected register 2 to be empty")
 	}
 }
 
-// Registers
+// Registers API
 
 // Storage API
 func TestStorageWrite(t *testing.T) {
