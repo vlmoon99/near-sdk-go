@@ -142,30 +142,6 @@ func storageWriteRecursive(keyLen uint64, keyPtr uint64, valueLen uint64, valueP
 	return false, errors.New(ErrFailedToWriteValueInStorage)
 }
 
-// func StorageWrite(key, value []byte) (bool, error) {
-// 	if len(key) == 0 {
-// 		return false, errors.New(ErrKeyNotFound)
-// 	}
-
-// 	if len(value) == 0 {
-// 		return false, errors.New(ErrValueNotFound + " " + string(value) + " " + fmt.Sprintf("%d", len(value)))
-// 	}
-
-// 	keyLen := uint64(len(key))
-// 	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
-
-// 	valueLen := uint64(len(value))
-// 	valuePtr := uint64(uintptr(unsafe.Pointer(&value[0])))
-
-// 	result := nearBlockchainImports.StorageWrite(keyLen, keyPtr, valueLen, valuePtr, EvictedRegister)
-
-// 	if result == 0 {
-// 		return false, errors.New(ErrFailedToWriteValueInStorage)
-// 	}
-
-// 	return true, nil
-// }
-
 func StorageRead(key []byte) ([]byte, error) {
 	if len(key) == 0 {
 		return nil, errors.New(ErrKeyIsEmpty)
@@ -220,6 +196,7 @@ func StorageHasKey(key []byte) (bool, error) {
 	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
 
 	result := nearBlockchainImports.StorageHasKey(keyLen, keyPtr)
+
 	return result == 1, nil
 }
 
