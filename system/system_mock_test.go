@@ -286,7 +286,7 @@ func TestAccountBalance(t *testing.T) {
 	var data [16]byte
 	mockSys.AccountBalance(uint64(uintptr(unsafe.Pointer(&data[0]))))
 
-	expected := mockSys.AccountBalanceSys.ToBE()
+	expected := mockSys.AccountBalanceSys.ToLE()
 	if string(data[:]) != string(expected) {
 		t.Errorf("expected %v, got %v", expected, data[:])
 	}
@@ -297,7 +297,7 @@ func TestAccountLockedBalance(t *testing.T) {
 	var data [16]byte
 	mockSys.AccountLockedBalance(uint64(uintptr(unsafe.Pointer(&data[0]))))
 
-	expected := mockSys.AccountLockedBalanceSys.ToBE()
+	expected := mockSys.AccountLockedBalanceSys.ToLE()
 	if string(data[:]) != string(expected) {
 		t.Errorf("expected %v, got %v", expected, data[:])
 	}
@@ -308,7 +308,7 @@ func TestAttachedDeposit(t *testing.T) {
 	var data [16]byte
 	mockSys.AttachedDeposit(uint64(uintptr(unsafe.Pointer(&data[0]))))
 
-	expected := mockSys.AttachedDepositSys.ToBE()
+	expected := mockSys.AttachedDepositSys.ToLE()
 	if string(data[:]) != string(expected) {
 		t.Errorf("expected %v, got %v", expected, data[:])
 	}

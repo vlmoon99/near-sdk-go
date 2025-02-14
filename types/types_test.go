@@ -124,7 +124,7 @@ func TestUint128_ToBE(t *testing.T) {
 	expected := []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02}
 	actual := u.ToBE()
 	if !bytesEqual(actual, expected) {
-		t.Errorf("ToBE() = %v, want %v", actual, expected)
+		t.Errorf("ToLE() = %v, want %v", actual, expected)
 	}
 }
 

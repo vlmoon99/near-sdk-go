@@ -175,19 +175,19 @@ func (m *MockSystem) StorageUsage() uint64 {
 // Economics API
 func (m *MockSystem) AccountBalance(balancePtr uint64) {
 	balance := *(*[]byte)(unsafe.Pointer(&balancePtr))
-	balance = m.AccountBalanceSys.ToBE()
+	balance = m.AccountBalanceSys.ToLE()
 	fmt.Printf("balance: %v\n", balance)
 }
 
 func (m *MockSystem) AccountLockedBalance(balancePtr uint64) {
 	balance := *(*[]byte)(unsafe.Pointer(&balancePtr))
-	balance = m.AccountLockedBalanceSys.ToBE()
+	balance = m.AccountLockedBalanceSys.ToLE()
 	fmt.Printf("balance: %v\n", balance)
 }
 
 func (m *MockSystem) AttachedDeposit(balancePtr uint64) {
 	balance := *(*[]byte)(unsafe.Pointer(&balancePtr))
-	balance = m.AttachedDepositSys.ToBE()
+	balance = m.AttachedDepositSys.ToLE()
 	fmt.Printf("balance: %v\n", balance)
 }
 

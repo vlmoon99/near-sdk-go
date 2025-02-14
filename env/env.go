@@ -572,7 +572,7 @@ func PromiseCreate(accountId []byte, functionName []byte, arguments []byte, amou
 		uint64(len(arguments)),
 		uint64(uintptr(unsafe.Pointer(&arguments[0]))),
 
-		uint64(uintptr(unsafe.Pointer(&amount.ToBE()[0]))),
+		uint64(uintptr(unsafe.Pointer(&amount.ToLE()[0]))),
 		gas,
 	)
 }
@@ -593,7 +593,7 @@ func PromiseThen(promiseIdx uint64, accountId []byte, functionName []byte, argum
 		uint64(len(arguments)),
 		uint64(uintptr(unsafe.Pointer(&arguments[0]))),
 
-		uint64(uintptr(unsafe.Pointer(&amount.ToBE()[0]))),
+		uint64(uintptr(unsafe.Pointer(&amount.ToLE()[0]))),
 		gas,
 	)
 }
@@ -633,7 +633,7 @@ func PromiseBatchActionFunctionCall(promiseIdx uint64, functionName []byte, argu
 		uint64(len(arguments)),
 		uint64(uintptr(unsafe.Pointer(&arguments[0]))),
 
-		uint64(uintptr(unsafe.Pointer(&amount.ToBE()[0]))),
+		uint64(uintptr(unsafe.Pointer(&amount.ToLE()[0]))),
 		gas,
 	)
 }
@@ -649,20 +649,20 @@ func PromiseBatchActionFunctionCallWeight(promiseIdx uint64, functionName []byte
 		uint64(len(arguments)),
 		uint64(uintptr(unsafe.Pointer(&arguments[0]))),
 
-		uint64(uintptr(unsafe.Pointer(&amount.ToBE()[0]))),
+		uint64(uintptr(unsafe.Pointer(&amount.ToLE()[0]))),
 		gas,
 		weight,
 	)
 }
 
 func PromiseBatchActionTransfer(promiseIdx uint64, amount types.Uint128) {
-	nearBlockchainImports.PromiseBatchActionTransfer(promiseIdx, uint64(uintptr(unsafe.Pointer(&amount.ToBE()[0]))))
+	nearBlockchainImports.PromiseBatchActionTransfer(promiseIdx, uint64(uintptr(unsafe.Pointer(&amount.ToLE()[0]))))
 }
 
 func PromiseBatchActionStake(promiseIdx uint64, amount types.Uint128, publicKey []byte) {
 	nearBlockchainImports.PromiseBatchActionStake(
 		promiseIdx,
-		uint64(uintptr(unsafe.Pointer(&amount.ToBE()[0]))),
+		uint64(uintptr(unsafe.Pointer(&amount.ToLE()[0]))),
 
 		uint64(len(publicKey)),
 		uint64(uintptr(unsafe.Pointer(&publicKey[0]))),
@@ -688,7 +688,7 @@ func PromiseBatchActionAddKeyWithFunctionCall(promiseIdx uint64, publicKey []byt
 		uint64(uintptr(unsafe.Pointer(&publicKey[0]))),
 
 		nonce,
-		uint64(uintptr(unsafe.Pointer(&amount.ToBE()[0]))),
+		uint64(uintptr(unsafe.Pointer(&amount.ToLE()[0]))),
 
 		uint64(len(receiverId)),
 		uint64(uintptr(unsafe.Pointer(&receiverId[0]))),

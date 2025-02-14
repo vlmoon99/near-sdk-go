@@ -42,7 +42,7 @@ async fn call_integration_test_function(
 async fn main() -> anyhow::Result<()> {
     let worker = near_workspaces::sandbox().await?;
     let contract = deploy_contract(&worker).await?;
-    let standard_deposit = NearToken::from_near(1);
+    let standard_deposit = NearToken::from_near(3);
     let standard_gas = NearGas::from_tgas(300);
 
     call_integration_test_function(
@@ -493,6 +493,115 @@ async fn main() -> anyhow::Result<()> {
     .await?;
 
     // Promises API
+
+    // Promises API Action Tests
+    call_integration_test_function(
+        &contract,
+        "TestPromiseBatchActionCreateAccount",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestPromiseBatchActionDeployContract",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestPromiseBatchActionFunctionCall",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestPromiseBatchActionFunctionCallWeight",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestPromiseBatchActionTransfer",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestPromiseBatchActionStake",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestPromiseBatchActionAddKeyWithFullAccess",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestPromiseBatchActionAddKeyWithFunctionCall",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestPromiseBatchActionDeleteKey",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestPromiseBatchActionDeleteAccount",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestPromiseYieldCreate",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestPromiseYieldResume",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
 
     Ok(())
 }

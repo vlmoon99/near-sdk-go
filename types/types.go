@@ -89,7 +89,7 @@ func (u Uint128) HexLE() string {
 }
 
 func (u Uint128) HexBE() string {
-	return hex.EncodeToString(u.ToBE())
+	return hex.EncodeToString(u.ToLE())
 }
 
 func U64ToBE(value uint64) []byte {
