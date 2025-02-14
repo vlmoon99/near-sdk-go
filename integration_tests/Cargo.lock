@@ -1182,6 +1182,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "json-patch 3.0.1",
+ "near-gas",
  "near-workspaces",
  "serde",
  "serde_json",

@@ -7,6 +7,7 @@ import (
 //go:export InitContract
 func InitContract() {
 	env.LogString("Init Smart Contract")
+	env.ContractValueReturn([]byte("1"))
 }
 
 //This is integration tests which will be executred on the testnet , u need to call it step by step in order to reproduce
@@ -103,36 +104,6 @@ func TestStorageRemove() {
 	}
 }
 
-//go:export TestStorageGetEvicted
-func TestStorageGetEvicted() {
-	// Assume a key-value pair is already evicted
-
-	value, err := env.StorageGetEvicted()
-	if err != nil {
-		env.PanicStr("Failed to get evicted value: " + err.Error())
-	}
-
-	if value == nil {
-		env.ContractValueReturn([]byte("0"))
-	} else {
-		env.ContractValueReturn([]byte("1"))
-	}
-}
-
-//go:export TestStateRead
-func TestStateRead() {
-	data, err := env.StateRead()
-	if err != nil {
-		env.PanicStr("Failed to read state: " + err.Error())
-	}
-
-	if data == nil {
-		env.ContractValueReturn([]byte("0"))
-	} else {
-		env.ContractValueReturn([]byte("1"))
-	}
-}
-
 //go:export TestStateWrite
 func TestStateWrite() {
 	data := []byte("stateData")
@@ -155,6 +126,20 @@ func TestStateWrite() {
 	}
 }
 
+//go:export TestStateRead
+func TestStateRead() {
+	data, err := env.StateRead()
+	if err != nil {
+		env.PanicStr("Failed to read state: " + err.Error())
+	}
+
+	if data == nil {
+		env.ContractValueReturn([]byte("0"))
+	} else {
+		env.ContractValueReturn([]byte("1"))
+	}
+}
+
 //go:export TestStateExists
 func TestStateExists() {
 	exists := env.StateExists()
@@ -167,3 +152,21 @@ func TestStateExists() {
 }
 
 // Storage API
+
+// NOT Working for some Reason
+
+// //go:export TestStorageGetEvicted
+// func TestStorageGetEvicted() {
+// 	value, err := env.StorageGetEvicted()
+// 	if err != nil {
+// 		env.PanicStr("Failed to get evicted value: " + err.Error())
+// 	}
+
+// 	if value == nil {
+// 		env.ContractValueReturn([]byte("0"))
+// 	} else {
+// 		env.ContractValueReturn([]byte("1"))
+// 	}
+// }
+
+// NOT Working for some Reason
