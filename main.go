@@ -373,6 +373,7 @@ func TestRipemd160Hash() {
 	env.ContractValueReturn([]byte("1"))
 }
 
+//TODO : add test cases
 // //go:export TestEcrecoverPubKey
 // func TestEcrecoverPubKey() {
 // 	hash := []byte{0x1c, 0x29, 0x37, 0xbf, 0x5e, 0x3b, 0x5b, 0xd7, 0x0a, 0x47, 0x29, 0x28, 0x62, 0x10, 0x33, 0x6d, 0x7d, 0x6b, 0x5b, 0x6c, 0x61, 0x17, 0x2a, 0xe2, 0x69, 0x1a, 0x51, 0x37, 0x3e, 0x7d, 0x1c, 0xf9}
@@ -399,8 +400,8 @@ func TestRipemd160Hash() {
 
 // //go:export TestAltBn128G1MultiExp
 // func TestAltBn128G1MultiExp() {
-// 	data := []byte("test data")
-// 	result, err := env.AltBn128G1MultiExp(data)
+// 	data := types.Uint128{Hi: 2, Lo: 1}
+// 	result, err := env.AltBn128G1MultiExp(data.ToLE())
 // 	if err != nil {
 // 		env.PanicStr("Failed to perform AltBn128G1MultiExp: " + err.Error())
 // 	}
@@ -410,8 +411,8 @@ func TestRipemd160Hash() {
 
 // //go:export TestAltBn128G1Sum
 // func TestAltBn128G1Sum() {
-// 	data := []byte("test data")
-// 	result, err := env.AltBn128G1Sum(data)
+// 	data := types.Uint128{Hi: 2, Lo: 1}
+// 	result, err := env.AltBn128G1Sum(data.ToLE())
 // 	if err != nil {
 // 		env.PanicStr("Failed to perform AltBn128G1Sum: " + err.Error())
 // 	}
@@ -421,10 +422,85 @@ func TestRipemd160Hash() {
 
 // //go:export TestAltBn128PairingCheck
 // func TestAltBn128PairingCheck() {
-// 	data := []byte("test data")
-// 	valid := env.AltBn128PairingCheck(data)
+// 	data := types.Uint128{Hi: 2, Lo: 1}
+// 	valid := env.AltBn128PairingCheck(data.ToLE())
 // 	env.LogString("AltBn128PairingCheck valid: " + fmt.Sprintf("%t", valid))
 // 	env.ContractValueReturn([]byte("1"))
 // }
 
 // Math API
+
+// Validator API
+
+//go:export TestValidatorStakeAmount
+func TestValidatorStakeAmount() {
+	accountID := []byte("testaccount")
+	stakeAmount, err := env.ValidatorStakeAmount(accountID)
+	if err != nil {
+		env.PanicStr("Failed to get validator stake amount: " + err.Error())
+	}
+	env.LogString(fmt.Sprintf("Validator stake amount: Hi: %d, Lo: %d", stakeAmount.Hi, stakeAmount.Lo))
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestValidatorTotalStakeAmount
+func TestValidatorTotalStakeAmount() {
+	totalStakeAmount, err := env.ValidatorTotalStakeAmount()
+	if err != nil {
+		env.PanicStr("Failed to get validator total stake amount: " + err.Error())
+	}
+	env.LogString(fmt.Sprintf("Validator total stake amount: Hi: %d, Lo: %d", totalStakeAmount.Hi, totalStakeAmount.Lo))
+	env.ContractValueReturn([]byte("1"))
+}
+
+// Validator API
+
+// Miscellaneous API
+
+//go:export TestContractValueReturn
+func TestContractValueReturn() {
+	inputBytes := []byte("test value")
+	env.ContractValueReturn(inputBytes)
+	env.LogString("Contract value returned: " + string(inputBytes))
+	env.ContractValueReturn([]byte("1"))
+}
+
+// It's unnesessary to test, but if u want unncoment and tests it
+//
+// //go:export TestPanicStr
+// func TestPanicStr() {
+// 	env.PanicStr("Test panic")
+// }
+
+// It's unnesessary to test, but if u want unncoment and tests it
+//
+// //go:export TestAbortExecution
+// func TestAbortExecution() {
+// 	env.AbortExecution()
+// }
+
+//go:export TestLogString
+func TestLogString() {
+	input := "test log"
+	env.LogString(input)
+	env.LogString("Logged string: " + input)
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestLogStringUtf8
+func TestLogStringUtf8() {
+	input := []byte("test log utf8")
+	env.LogStringUtf8(input)
+	env.LogString("Logged string UTF-8: " + string(input))
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestLogStringUtf16
+func TestLogStringUtf16() {
+	input := []byte("test log utf16")
+	env.LogStringUtf16(input)
+	env.LogString("Logged string UTF-16: " + string(input))
+	env.ContractValueReturn([]byte("1"))
+}
+
+// Miscellaneous API

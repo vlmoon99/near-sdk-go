@@ -280,7 +280,7 @@ async fn main() -> anyhow::Result<()> {
     .await?;
     // Economics API
 
-    // Math API 
+    // Math API
     call_integration_test_function(
         &contract,
         "TestGetRandomSeed",
@@ -365,8 +365,82 @@ async fn main() -> anyhow::Result<()> {
     //     standard_deposit,
     //     standard_gas,
     // ).await?;
-    
-    // Math API 
+
+    // Math API
+
+    // Validator API
+    call_integration_test_function(
+        &contract,
+        "TestValidatorStakeAmount",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestValidatorTotalStakeAmount",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+    // Validator API
+
+    // Miscellaneous API 
+
+    call_integration_test_function(
+        &contract,
+        "TestContractValueReturn",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    ).await?;
+
+    // It's unnesessary to test, but if u want unncoment and tests it, it will panic in tests
+    // call_integration_test_function(
+    //     &contract,
+    //     "TestPanicStr",
+    //     json!({}),
+    //     standard_deposit,
+    //     standard_gas,
+    // ).await?;
+
+    // It's unnesessary to test, but if u want unncoment and tests it, it will panic in tests
+    // call_integration_test_function(
+    //     &contract,
+    //     "TestAbortExecution",
+    //     json!({}),
+    //     standard_deposit,
+    //     standard_gas,
+    // ).await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestLogString",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    ).await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestLogStringUtf8",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    ).await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestLogStringUtf16",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    ).await?;
+
+    // Miscellaneous API 
 
     Ok(())
 }
