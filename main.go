@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/hex"
+
 	"github.com/vlmoon99/near-sdk-go/env"
+	"github.com/vlmoon99/near-sdk-go/types"
 )
 
 //go:export InitContract
@@ -151,8 +154,6 @@ func TestStateExists() {
 	}
 }
 
-// Storage API
-
 // NOT Working for some Reason
 
 // //go:export TestStorageGetEvicted
@@ -169,4 +170,96 @@ func TestStateExists() {
 // 	}
 // }
 
-// NOT Working for some Reason
+// Storage API
+
+// Context API
+
+//go:export TestGetCurrentAccountId
+func TestGetCurrentAccountId() {
+	accountId, err := env.GetCurrentAccountId()
+	if err != nil || accountId == "" {
+		env.PanicStr("Failed to get current account ID: " + err.Error())
+	}
+	env.LogString("Current account ID: " + accountId)
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestGetSignerAccountID
+func TestGetSignerAccountID() {
+	signerId, err := env.GetSignerAccountID()
+	if err != nil || signerId == "" {
+		env.PanicStr("Failed to get signer account ID: " + err.Error())
+	}
+	env.LogString("Signer account ID: " + signerId)
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestGetSignerAccountPK
+func TestGetSignerAccountPK() {
+	signerPK, err := env.GetSignerAccountPK()
+	if err != nil || signerPK == nil {
+		env.PanicStr("Failed to get signer account PK: " + err.Error())
+	}
+	env.LogString("Signer account PK: " + hex.EncodeToString(signerPK))
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestGetPredecessorAccountID
+func TestGetPredecessorAccountID() {
+	predecessorId, err := env.GetPredecessorAccountID()
+	if err != nil || predecessorId == "" {
+		env.PanicStr("Failed to get predecessor account ID: " + err.Error())
+	}
+	env.LogString("Predecessor account ID: " + predecessorId)
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestGetCurrentBlockHeight
+func TestGetCurrentBlockHeight() {
+	env.GetCurrentBlockHeight()
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestGetBlockTimeMs
+func TestGetBlockTimeMs() {
+	env.GetBlockTimeMs()
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestGetEpochHeight
+func TestGetEpochHeight() {
+	env.GetEpochHeight()
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestGetStorageUsage
+func TestGetStorageUsage() {
+	env.GetStorageUsage()
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestContractInputRawBytes
+func TestContractInputRawBytes() {
+	options := types.ContractInputOptions{IsRawBytes: true}
+	input, detectedType, err := env.ContractInput(options)
+	if err != nil {
+		env.PanicStr("Failed to get contract input: " + err.Error())
+	}
+	env.LogString("Contract input (raw bytes): " + string(input))
+	env.LogString("Detected input type: " + detectedType)
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestContractInputJSON
+func TestContractInputJSON() {
+	options := types.ContractInputOptions{IsRawBytes: false}
+	input, detectedType, err := env.ContractInput(options)
+	if err != nil {
+		env.PanicStr("Failed to get contract input: " + err.Error())
+	}
+	env.LogString("Contract input (JSON): " + string(input))
+	env.LogString("Detected input type: " + detectedType)
+	env.ContractValueReturn([]byte("1"))
+}
+
+// Context API

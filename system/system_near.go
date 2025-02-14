@@ -34,6 +34,58 @@ func (SystemNear) RegisterLen(registerId uint64) uint64
 //go:wasmimport env write_register
 func (SystemNear) WriteRegister(registerId, dataLen, dataPtr uint64)
 
+// StorageWrite writes a key-value pair into storage.
+// If a key-value pair with the same key already exists, it returns 1; otherwise, it returns 0.
+// Storage functions are typically used to upgrade or migrate the contract state.
+//
+// keyLen is the length of the key.
+//
+// keyPtr is a pointer to the key.
+//
+// valueLen is the length of the value.
+//
+// valuePtr is a pointer to the value.
+//
+// registerId is the ID of the register where the operation result is stored.
+//
+//go:wasmimport env storage_write
+func (SystemNear) StorageWrite(keyLen, keyPtr, valueLen, valuePtr, registerId uint64) uint64
+
+// StorageRead reads the value stored under the given key.
+// Storage functions are typically used to upgrade or migrate the contract state.
+//
+// keyLen is the length of the key.
+//
+// keyPtr is a pointer to the key.
+//
+// registerId is the ID of the register where the retrieved value is stored.
+//
+//go:wasmimport env storage_read
+func (SystemNear) StorageRead(keyLen, keyPtr, registerId uint64) uint64
+
+// StorageRemove removes the value stored under the given key.
+// If the key-value pair existed, it returns 1; otherwise, it returns 0.
+// Storage functions are typically used to upgrade or migrate the contract state.
+//
+// keyLen is the length of the key.
+//
+// keyPtr is a pointer to the key.
+//
+// registerId is the ID of the register where the operation result is stored.
+//
+//go:wasmimport env storage_remove
+func (SystemNear) StorageRemove(keyLen, keyPtr, registerId uint64) uint64
+
+// StorageHasKey checks if a key-value pair exists in the storage.
+// Storage functions are typically used to upgrade or migrate the contract state.
+//
+// keyLen is the length of the key.
+//
+// keyPtr is a pointer to the key.
+//
+//go:wasmimport env storage_has_key
+func (SystemNear) StorageHasKey(keyLen, keyPtr uint64) uint64
+
 // CurrentAccountId retrieves the ID of the account that owns the current contract.
 //
 // registerId is the ID of the register where the current account ID will be written.
@@ -333,58 +385,6 @@ func (SystemNear) LogUtf8(len, ptr uint64)
 //
 //go:wasmimport env log_utf16
 func (SystemNear) LogUtf16(len, ptr uint64)
-
-// StorageWrite writes a key-value pair into storage.
-// If a key-value pair with the same key already exists, it returns 1; otherwise, it returns 0.
-// Storage functions are typically used to upgrade or migrate the contract state.
-//
-// keyLen is the length of the key.
-//
-// keyPtr is a pointer to the key.
-//
-// valueLen is the length of the value.
-//
-// valuePtr is a pointer to the value.
-//
-// registerId is the ID of the register where the operation result is stored.
-//
-//go:wasmimport env storage_write
-func (SystemNear) StorageWrite(keyLen, keyPtr, valueLen, valuePtr, registerId uint64) uint64
-
-// StorageRead reads the value stored under the given key.
-// Storage functions are typically used to upgrade or migrate the contract state.
-//
-// keyLen is the length of the key.
-//
-// keyPtr is a pointer to the key.
-//
-// registerId is the ID of the register where the retrieved value is stored.
-//
-//go:wasmimport env storage_read
-func (SystemNear) StorageRead(keyLen, keyPtr, registerId uint64) uint64
-
-// StorageRemove removes the value stored under the given key.
-// If the key-value pair existed, it returns 1; otherwise, it returns 0.
-// Storage functions are typically used to upgrade or migrate the contract state.
-//
-// keyLen is the length of the key.
-//
-// keyPtr is a pointer to the key.
-//
-// registerId is the ID of the register where the operation result is stored.
-//
-//go:wasmimport env storage_remove
-func (SystemNear) StorageRemove(keyLen, keyPtr, registerId uint64) uint64
-
-// StorageHasKey checks if a key-value pair exists in the storage.
-// Storage functions are typically used to upgrade or migrate the contract state.
-//
-// keyLen is the length of the key.
-//
-// keyPtr is a pointer to the key.
-//
-//go:wasmimport env storage_has_key
-func (SystemNear) StorageHasKey(keyLen, keyPtr uint64) uint64
 
 // PromiseCreate creates a promise to execute a method on a specified account with the given arguments,
 // attaching the specified amount and gas.

@@ -75,7 +75,7 @@ func methodIntoRegister(method func(uint64)) ([]byte, error) {
 }
 
 func ReadRegisterSafe(registerId uint64) ([]byte, error) {
-	length := uint(nearBlockchainImports.RegisterLen(registerId))
+	length := nearBlockchainImports.RegisterLen(registerId)
 	//TODO : If len == 0 - ExecutionError("WebAssembly trap: An `unreachable` opcode was executed.") for some reason, if we convert value into string erroe gone
 	assertValidAccountId([]byte(string(length)))
 	if length == 0 {

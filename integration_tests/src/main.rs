@@ -52,6 +52,7 @@ async fn main() -> anyhow::Result<()> {
         standard_gas,
     ).await?;
     
+    // Registers API
     call_integration_test_function(
         &contract,
         "TestWriteReadRegisterSafe",
@@ -59,7 +60,10 @@ async fn main() -> anyhow::Result<()> {
         standard_deposit,
         standard_gas,
     ).await?;
-    
+    // Registers API
+
+    // Storage API
+
     call_integration_test_function(
         &contract,
         "TestStorageWrite",
@@ -117,6 +121,90 @@ async fn main() -> anyhow::Result<()> {
         standard_deposit,
         standard_gas,
     ).await?;
+    // Storage API
+
+
+    // Context API
+    call_integration_test_function(
+        &contract,
+        "TestGetCurrentAccountId",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    ).await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestGetSignerAccountID",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    ).await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestGetSignerAccountPK",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    ).await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestGetPredecessorAccountID",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    ).await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestGetCurrentBlockHeight",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    ).await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestGetBlockTimeMs",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    ).await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestGetEpochHeight",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    ).await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestGetStorageUsage",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    ).await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestContractInputRawBytes",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    ).await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestContractInputJSON",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    ).await?;
+    // Context API
 
     // // Not Working, throws unreachable    
     // call_integration_test_function(
