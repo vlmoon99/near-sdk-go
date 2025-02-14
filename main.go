@@ -459,9 +459,6 @@ func TestValidatorTotalStakeAmount() {
 
 //go:export TestContractValueReturn
 func TestContractValueReturn() {
-	inputBytes := []byte("test value")
-	env.ContractValueReturn(inputBytes)
-	env.LogString("Contract value returned: " + string(inputBytes))
 	env.ContractValueReturn([]byte("1"))
 }
 
@@ -504,3 +501,112 @@ func TestLogStringUtf16() {
 }
 
 // Miscellaneous API
+
+// Promises API
+
+//go:export TestPromiseCreate
+func TestPromiseCreate() {
+	accountId, err := env.GetCurrentAccountId()
+	if err != nil || accountId == "" {
+		env.PanicStr("Failed to get current account ID: " + err.Error())
+	}
+
+	arguments := []byte("")
+	accountID := []byte(accountId)
+	functionName := []byte("TestLogStringUtf16")
+	amount := types.Uint128{Hi: 0, Lo: 0}
+	gas := uint64(3000000000)
+
+	promiseIdx := env.PromiseCreate(accountID, functionName, arguments, amount, gas)
+
+	env.LogString("Promise created with index: " + fmt.Sprintf("%d", promiseIdx))
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestPromiseThen
+func TestPromiseThen() {
+	accountId, err := env.GetCurrentAccountId()
+	if err != nil || accountId == "" {
+		env.PanicStr("Failed to get current account ID: " + err.Error())
+	}
+	arguments1 := []byte("")
+	accountID1 := []byte(accountId)
+	functionName1 := []byte("TestLogStringUtf16")
+	amount1 := types.Uint128{Hi: 0, Lo: 0}
+	gas1 := uint64(3000000000)
+
+	promiseIdx := env.PromiseCreate(accountID1, functionName1, arguments1, amount1, gas1)
+
+	arguments2 := []byte("")
+	accountID2 := []byte(accountId)
+	functionName2 := []byte("TestLogStringUtf8")
+	amount2 := types.Uint128{Hi: 0, Lo: 0}
+	gas2 := uint64(3000000000)
+
+	chainedPromiseIdx := env.PromiseThen(promiseIdx, accountID2, functionName2, arguments2, amount2, gas2)
+	env.LogString("Chained promise created with index: " + fmt.Sprintf("%d", chainedPromiseIdx))
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestPromiseAnd
+func TestPromiseAnd() {
+	accountId, err := env.GetCurrentAccountId()
+	if err != nil || accountId == "" {
+		env.PanicStr("Failed to get current account ID: " + err.Error())
+	}
+	arguments1 := []byte("")
+	accountID1 := []byte(accountId)
+	functionName1 := []byte("TestLogString")
+	amount1 := types.Uint128{Hi: 0, Lo: 0}
+	gas1 := uint64(3000000000)
+
+	promiseIdx1 := env.PromiseCreate(accountID1, functionName1, arguments1, amount1, gas1)
+
+	arguments2 := []byte("")
+	accountID2 := []byte(accountId)
+	functionName2 := []byte("TestLogStringUtf8")
+	amount2 := types.Uint128{Hi: 0, Lo: 0}
+	gas2 := uint64(3000000000)
+
+	promiseIdx2 := env.PromiseCreate(accountID2, functionName2, arguments2, amount2, gas2)
+
+	promiseIndices := []uint64{promiseIdx1, promiseIdx2}
+	chainedPromiseIdx := env.PromiseAnd(promiseIndices)
+	env.LogString("Chained promise created with index: " + fmt.Sprintf("%d", chainedPromiseIdx))
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestPromiseBatchCreate
+func TestPromiseBatchCreate() {
+	accountId, err := env.GetCurrentAccountId()
+	if err != nil || accountId == "" {
+		env.PanicStr("Failed to get current account ID: " + err.Error())
+	}
+	accountID := []byte(accountId)
+
+	promiseIdx := env.PromiseBatchCreate(accountID)
+	env.LogString("Promise batch created with index: " + fmt.Sprintf("%d", promiseIdx))
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestPromiseBatchThen
+func TestPromiseBatchThen() {
+	accountId, err := env.GetCurrentAccountId()
+	if err != nil || accountId == "" {
+		env.PanicStr("Failed to get current account ID: " + err.Error())
+	}
+	arguments := []byte("")
+	accountID := []byte(accountId)
+	functionName := []byte("TestLogString")
+	amount := types.Uint128{Hi: 0, Lo: 0}
+	gas := uint64(3000000000)
+
+	promiseIdx := env.PromiseCreate(accountID, functionName, arguments, amount, gas)
+
+	accountID2 := []byte(accountId)
+	chainedPromiseIdx := env.PromiseBatchThen(promiseIdx, accountID2)
+	env.LogString("Chained promise batch created with index: " + fmt.Sprintf("%d", chainedPromiseIdx))
+	env.ContractValueReturn([]byte("1"))
+}
+
+// Promises API

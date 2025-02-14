@@ -388,7 +388,7 @@ async fn main() -> anyhow::Result<()> {
     .await?;
     // Validator API
 
-    // Miscellaneous API 
+    // Miscellaneous API
 
     call_integration_test_function(
         &contract,
@@ -396,7 +396,8 @@ async fn main() -> anyhow::Result<()> {
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
+    )
+    .await?;
 
     // It's unnesessary to test, but if u want unncoment and tests it, it will panic in tests
     // call_integration_test_function(
@@ -422,7 +423,8 @@ async fn main() -> anyhow::Result<()> {
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
+    )
+    .await?;
 
     call_integration_test_function(
         &contract,
@@ -430,7 +432,8 @@ async fn main() -> anyhow::Result<()> {
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
+    )
+    .await?;
 
     call_integration_test_function(
         &contract,
@@ -438,9 +441,58 @@ async fn main() -> anyhow::Result<()> {
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
+    )
+    .await?;
 
-    // Miscellaneous API 
+    // Miscellaneous API
+
+    // Promises API
+    call_integration_test_function(
+        &contract,
+        "TestPromiseCreate",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestPromiseThen",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestPromiseAnd",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestPromiseBatchCreate",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestPromiseBatchThen",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    // Promises API
 
     Ok(())
 }

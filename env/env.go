@@ -559,6 +559,9 @@ func LogStringUtf16(inputBytes []byte) {
 // Promises API
 
 func PromiseCreate(accountId []byte, functionName []byte, arguments []byte, amount types.Uint128, gas uint64) uint64 {
+	if len(arguments) == 0 {
+		arguments = []byte("{}")
+	}
 	return nearBlockchainImports.PromiseCreate(
 		uint64(len(accountId)),
 		uint64(uintptr(unsafe.Pointer(&accountId[0]))),
@@ -575,6 +578,10 @@ func PromiseCreate(accountId []byte, functionName []byte, arguments []byte, amou
 }
 
 func PromiseThen(promiseIdx uint64, accountId []byte, functionName []byte, arguments []byte, amount types.Uint128, gas uint64) uint64 {
+	if len(arguments) == 0 {
+		arguments = []byte("{}")
+	}
+
 	return nearBlockchainImports.PromiseThen(
 		promiseIdx,
 		uint64(len(accountId)),
@@ -616,6 +623,9 @@ func PromiseBatchActionDeployContract(promiseIdx uint64, bytes []byte) {
 }
 
 func PromiseBatchActionFunctionCall(promiseIdx uint64, functionName []byte, arguments []byte, amount types.Uint128, gas uint64) {
+	if len(arguments) == 0 {
+		arguments = []byte("{}")
+	}
 	nearBlockchainImports.PromiseBatchActionFunctionCall(promiseIdx,
 		uint64(len(functionName)),
 		uint64(uintptr(unsafe.Pointer(&functionName[0]))),
@@ -629,6 +639,9 @@ func PromiseBatchActionFunctionCall(promiseIdx uint64, functionName []byte, argu
 }
 
 func PromiseBatchActionFunctionCallWeight(promiseIdx uint64, functionName []byte, arguments []byte, amount types.Uint128, gas uint64, weight uint64) {
+	if len(arguments) == 0 {
+		arguments = []byte("{}")
+	}
 	nearBlockchainImports.PromiseBatchActionFunctionCallWeight(promiseIdx,
 		uint64(len(functionName)),
 		uint64(uintptr(unsafe.Pointer(&functionName[0]))),
@@ -704,6 +717,9 @@ func PromiseBatchActionDeleteAccount(promiseIdx uint64, beneficiaryId []byte) {
 }
 
 func PromiseYieldCreate(functionName []byte, arguments []byte, gas uint64, gasWeight uint64) uint64 {
+	if len(arguments) == 0 {
+		arguments = []byte("{}")
+	}
 	return nearBlockchainImports.PromiseYieldCreate(
 		uint64(len(functionName)),
 		uint64(uintptr(unsafe.Pointer(&functionName[0]))),
