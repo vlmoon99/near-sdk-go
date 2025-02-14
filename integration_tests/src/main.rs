@@ -1,5 +1,5 @@
-use near_workspaces::types::NearToken;
 use near_gas::NearGas;
+use near_workspaces::types::NearToken;
 use serde_json::json;
 
 async fn deploy_contract(
@@ -26,10 +26,11 @@ async fn call_integration_test_function(
         .transact()
         .await?;
 
-    let result = unsafe { outcome.json::<i8>().unwrap_unchecked() };
+    let result = unsafe { outcome.clone().json::<i8>().unwrap_unchecked() };
 
     if result == 1 {
         println!("{} result: Test succeeded", function_name);
+        println!("result: Functions Logs: {:#?}", outcome.logs());
     } else {
         println!("{} result: Test failed", function_name);
     }
@@ -50,8 +51,9 @@ async fn main() -> anyhow::Result<()> {
         json!({ "testInputKey": "testInputValue" }),
         standard_deposit,
         standard_gas,
-    ).await?;
-    
+    )
+    .await?;
+
     // Registers API
     call_integration_test_function(
         &contract,
@@ -59,7 +61,8 @@ async fn main() -> anyhow::Result<()> {
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
+    )
+    .await?;
     // Registers API
 
     // Storage API
@@ -70,32 +73,35 @@ async fn main() -> anyhow::Result<()> {
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
-    
+    )
+    .await?;
+
     call_integration_test_function(
         &contract,
         "TestStorageRead",
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
-    
+    )
+    .await?;
+
     call_integration_test_function(
         &contract,
         "TestStorageHasKey",
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
-    
+    )
+    .await?;
+
     call_integration_test_function(
         &contract,
         "TestStorageRemove",
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
-
+    )
+    .await?;
 
     call_integration_test_function(
         &contract,
@@ -103,7 +109,8 @@ async fn main() -> anyhow::Result<()> {
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
+    )
+    .await?;
 
     call_integration_test_function(
         &contract,
@@ -111,18 +118,28 @@ async fn main() -> anyhow::Result<()> {
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
-    
-    
+    )
+    .await?;
+
     call_integration_test_function(
         &contract,
         "TestStateExists",
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
-    // Storage API
+    )
+    .await?;
 
+    // // Not Working, throws unreachable
+    // call_integration_test_function(
+    //     &contract,
+    //     "TestStorageGetEvicted",
+    //     json!({}),
+    //     standard_deposit,
+    //     standard_gas,
+    // ).await?;
+
+    // Storage API
 
     // Context API
     call_integration_test_function(
@@ -131,7 +148,8 @@ async fn main() -> anyhow::Result<()> {
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
+    )
+    .await?;
 
     call_integration_test_function(
         &contract,
@@ -139,7 +157,8 @@ async fn main() -> anyhow::Result<()> {
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
+    )
+    .await?;
 
     call_integration_test_function(
         &contract,
@@ -147,7 +166,8 @@ async fn main() -> anyhow::Result<()> {
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
+    )
+    .await?;
 
     call_integration_test_function(
         &contract,
@@ -155,7 +175,8 @@ async fn main() -> anyhow::Result<()> {
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
+    )
+    .await?;
 
     call_integration_test_function(
         &contract,
@@ -163,7 +184,8 @@ async fn main() -> anyhow::Result<()> {
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
+    )
+    .await?;
 
     call_integration_test_function(
         &contract,
@@ -171,7 +193,8 @@ async fn main() -> anyhow::Result<()> {
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
+    )
+    .await?;
 
     call_integration_test_function(
         &contract,
@@ -179,7 +202,8 @@ async fn main() -> anyhow::Result<()> {
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
+    )
+    .await?;
 
     call_integration_test_function(
         &contract,
@@ -187,7 +211,8 @@ async fn main() -> anyhow::Result<()> {
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
+    )
+    .await?;
 
     call_integration_test_function(
         &contract,
@@ -195,7 +220,8 @@ async fn main() -> anyhow::Result<()> {
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
+    )
+    .await?;
 
     call_integration_test_function(
         &contract,
@@ -203,17 +229,144 @@ async fn main() -> anyhow::Result<()> {
         json!({}),
         standard_deposit,
         standard_gas,
-    ).await?;
+    )
+    .await?;
     // Context API
 
-    // // Not Working, throws unreachable    
+    // Economics API
+    call_integration_test_function(
+        &contract,
+        "TestGetAccountBalance",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestGetAccountLockedBalance",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestGetAttachedDeposit",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestGetPrepaidGas",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestGetUsedGas",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+    // Economics API
+
+    // Math API 
+    call_integration_test_function(
+        &contract,
+        "TestGetRandomSeed",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestSha256Hash",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestKeccak256Hash",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestKeccak512Hash",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
+    call_integration_test_function(
+        &contract,
+        "TestRipemd160Hash",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
+
     // call_integration_test_function(
     //     &contract,
-    //     "TestStorageGetEvicted",
+    //     "TestEcrecoverPubKey",
+    //     json!({}),
+    //     standard_deposit,
+    //     standard_gas,
+    // ).await?;
+
+    // call_integration_test_function(
+    //     &contract,
+    //     "TestEd25519VerifySig",
+    //     json!({}),
+    //     standard_deposit,
+    //     standard_gas,
+    // ).await?;
+
+    // call_integration_test_function(
+    //     &contract,
+    //     "TestAltBn128G1MultiExp",
+    //     json!({}),
+    //     standard_deposit,
+    //     standard_gas,
+    // ).await?;
+
+    // call_integration_test_function(
+    //     &contract,
+    //     "TestAltBn128G1Sum",
+    //     json!({}),
+    //     standard_deposit,
+    //     standard_gas,
+    // ).await?;
+
+    // call_integration_test_function(
+    //     &contract,
+    //     "TestAltBn128PairingCheck",
     //     json!({}),
     //     standard_deposit,
     //     standard_gas,
     // ).await?;
     
+    // Math API 
+
     Ok(())
 }

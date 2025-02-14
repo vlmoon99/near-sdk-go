@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/hex"
+	"fmt"
 
 	"github.com/vlmoon99/near-sdk-go/env"
 	"github.com/vlmoon99/near-sdk-go/types"
@@ -216,25 +217,29 @@ func TestGetPredecessorAccountID() {
 
 //go:export TestGetCurrentBlockHeight
 func TestGetCurrentBlockHeight() {
-	env.GetCurrentBlockHeight()
+	blockHeight := env.GetCurrentBlockHeight()
+	env.LogString("Current block height: " + fmt.Sprintf("%d", blockHeight))
 	env.ContractValueReturn([]byte("1"))
 }
 
 //go:export TestGetBlockTimeMs
 func TestGetBlockTimeMs() {
-	env.GetBlockTimeMs()
+	blockTimeMs := env.GetBlockTimeMs()
+	env.LogString("Block time in ms: " + fmt.Sprintf("%d", blockTimeMs))
 	env.ContractValueReturn([]byte("1"))
 }
 
 //go:export TestGetEpochHeight
 func TestGetEpochHeight() {
-	env.GetEpochHeight()
+	epochHeight := env.GetEpochHeight()
+	env.LogString("Epoch height: " + fmt.Sprintf("%d", epochHeight))
 	env.ContractValueReturn([]byte("1"))
 }
 
 //go:export TestGetStorageUsage
 func TestGetStorageUsage() {
-	env.GetStorageUsage()
+	storageUsage := env.GetStorageUsage()
+	env.LogString("Storage usage: " + fmt.Sprintf("%d", storageUsage))
 	env.ContractValueReturn([]byte("1"))
 }
 
@@ -263,3 +268,163 @@ func TestContractInputJSON() {
 }
 
 // Context API
+
+// Economics API
+
+//go:export TestGetAccountBalance
+func TestGetAccountBalance() {
+	accountBalance, err := env.GetAccountBalance()
+	if err != nil {
+		env.PanicStr("Failed to get account balance: " + err.Error())
+	}
+	env.LogString(fmt.Sprintf("Account balance: Hi: %d, Lo: %d", accountBalance.Hi, accountBalance.Lo))
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestGetAccountLockedBalance
+func TestGetAccountLockedBalance() {
+	lockedBalance, err := env.GetAccountLockedBalance()
+	if err != nil {
+		env.PanicStr("Failed to get account locked balance: " + err.Error())
+	}
+	env.LogString(fmt.Sprintf("Account locked balance: Hi: %d, Lo: %d", lockedBalance.Hi, lockedBalance.Lo))
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestGetAttachedDeposit
+func TestGetAttachedDeposit() {
+	attachedDeposit, err := env.GetAttachedDepoist()
+	if err != nil {
+		env.PanicStr("Failed to get attached deposit: " + err.Error())
+	}
+	env.LogString(fmt.Sprintf("Attached deposit: Hi: %d, Lo: %d", attachedDeposit.Hi, attachedDeposit.Lo))
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestGetPrepaidGas
+func TestGetPrepaidGas() {
+	prepaidGas := env.GetPrepaidGas()
+	env.LogString(fmt.Sprintf("Prepaid gas: %d", prepaidGas.Inner))
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestGetUsedGas
+func TestGetUsedGas() {
+	usedGas := env.GetUsedGas()
+	env.LogString(fmt.Sprintf("Used gas: %d", usedGas.Inner))
+	env.ContractValueReturn([]byte("1"))
+}
+
+// Economics API
+
+// Math API
+
+//go:export TestGetRandomSeed
+func TestGetRandomSeed() {
+	seed, err := env.GetRandomSeed()
+	if err != nil {
+		env.PanicStr("Failed to get random seed: " + err.Error())
+	}
+	env.LogString("Random seed: " + fmt.Sprintf("%x", seed))
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestSha256Hash
+func TestSha256Hash() {
+	data := []byte("test data")
+	hash, err := env.Sha256Hash(data)
+	if err != nil {
+		env.PanicStr("Failed to get SHA-256 hash: " + err.Error())
+	}
+	env.LogString("SHA-256 hash: " + fmt.Sprintf("%x", hash))
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestKeccak256Hash
+func TestKeccak256Hash() {
+	data := []byte("test data")
+	hash, err := env.Keccak256Hash(data)
+	if err != nil {
+		env.PanicStr("Failed to get Keccak-256 hash: " + err.Error())
+	}
+	env.LogString("Keccak-256 hash: " + fmt.Sprintf("%x", hash))
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestKeccak512Hash
+func TestKeccak512Hash() {
+	data := []byte("test data")
+	hash, err := env.Keccak512Hash(data)
+	if err != nil {
+		env.PanicStr("Failed to get Keccak-512 hash: " + err.Error())
+	}
+	env.LogString("Keccak-512 hash: " + fmt.Sprintf("%x", hash))
+	env.ContractValueReturn([]byte("1"))
+}
+
+//go:export TestRipemd160Hash
+func TestRipemd160Hash() {
+	data := []byte("test data")
+	hash, err := env.Ripemd160Hash(data)
+	if err != nil {
+		env.PanicStr("Failed to get RIPEMD-160 hash: " + err.Error())
+	}
+	env.LogString("RIPEMD-160 hash: " + fmt.Sprintf("%x", hash))
+	env.ContractValueReturn([]byte("1"))
+}
+
+// //go:export TestEcrecoverPubKey
+// func TestEcrecoverPubKey() {
+// 	hash := []byte{0x1c, 0x29, 0x37, 0xbf, 0x5e, 0x3b, 0x5b, 0xd7, 0x0a, 0x47, 0x29, 0x28, 0x62, 0x10, 0x33, 0x6d, 0x7d, 0x6b, 0x5b, 0x6c, 0x61, 0x17, 0x2a, 0xe2, 0x69, 0x1a, 0x51, 0x37, 0x3e, 0x7d, 0x1c, 0xf9}
+// 	signature := []byte{0x1f, 0x6e, 0x3a, 0x58, 0x91, 0x29, 0x55, 0x8a, 0xf6, 0x88, 0x5f, 0x51, 0xe8, 0x5b, 0x5d, 0x59, 0x42, 0x9b, 0x51, 0x2f, 0x19, 0x71, 0x5a, 0xa1, 0xd9, 0x6e, 0x5a, 0xd2, 0xbe, 0x59, 0xad, 0x56, 0x1f, 0x6e, 0x3a, 0x58, 0x91, 0x29, 0x55, 0x8a, 0xf6, 0x88, 0x5f, 0x51, 0xe8, 0x5b, 0x5d, 0x59, 0x42, 0x9b, 0x51, 0x2f, 0x19, 0x71, 0x5a, 0xa1, 0xd9, 0x6e, 0x5a, 0xd2, 0xbe, 0x59, 0xad, 0x56}
+// 	v := byte(0x1b)
+// 	malleabilityFlag := false
+// 	pubKey, err := env.EcrecoverPubKey(hash, signature, v, malleabilityFlag)
+// 	if err != nil {
+// 		env.PanicStr("Failed to recover public key: " + err.Error())
+// 	}
+// 	env.LogString("Recovered public key: " + fmt.Sprintf("%x", pubKey))
+// 	env.ContractValueReturn([]byte("1"))
+// }
+
+// //go:export TestEd25519VerifySig
+// func TestEd25519VerifySig() {
+// 	signature := [64]byte{0x1f, 0x6e, 0x3a, 0x58, 0x91, 0x29, 0x55, 0x8a, 0xf6, 0x88, 0x5f, 0x51, 0xe8, 0x5b, 0x5d, 0x59, 0x42, 0x9b, 0x51, 0x2f, 0x19, 0x71, 0x5a, 0xa1, 0xd9, 0x6e, 0x5a, 0xd2, 0xbe, 0x59, 0xad, 0x56, 0x1f, 0x6e, 0x3a, 0x58, 0x91, 0x29, 0x55, 0x8a, 0xf6, 0x88, 0x5f, 0x51, 0xe8, 0x5b, 0x5d, 0x59, 0x42, 0x9b, 0x51, 0x2f, 0x19, 0x71, 0x5a, 0xa1, 0xd9, 0x6e, 0x5a, 0xd2, 0xbe, 0x59, 0xad, 0x56}
+// 	message := []byte("test message")
+// 	publicKey := [32]byte{0x9b, 0x51, 0x2f, 0x19, 0x71, 0x5a, 0xa1, 0xd9, 0x6e, 0x5a, 0xd2, 0xbe, 0x59, 0xad, 0x56, 0x1f, 0x6e, 0x3a, 0x58, 0x91, 0x29, 0x55, 0x8a, 0xf6, 0x88, 0x5f, 0x51, 0xe8, 0x5b, 0x5d, 0x59, 0x42}
+// 	valid := env.Ed25519VerifySig(signature, message, publicKey)
+// 	env.LogString("Ed25519 signature valid: " + fmt.Sprintf("%t", valid))
+// 	env.ContractValueReturn([]byte("1"))
+// }
+
+// //go:export TestAltBn128G1MultiExp
+// func TestAltBn128G1MultiExp() {
+// 	data := []byte("test data")
+// 	result, err := env.AltBn128G1MultiExp(data)
+// 	if err != nil {
+// 		env.PanicStr("Failed to perform AltBn128G1MultiExp: " + err.Error())
+// 	}
+// 	env.LogString("AltBn128G1MultiExp result: " + fmt.Sprintf("%x", result))
+// 	env.ContractValueReturn([]byte("1"))
+// }
+
+// //go:export TestAltBn128G1Sum
+// func TestAltBn128G1Sum() {
+// 	data := []byte("test data")
+// 	result, err := env.AltBn128G1Sum(data)
+// 	if err != nil {
+// 		env.PanicStr("Failed to perform AltBn128G1Sum: " + err.Error())
+// 	}
+// 	env.LogString("AltBn128G1Sum result: " + fmt.Sprintf("%x", result))
+// 	env.ContractValueReturn([]byte("1"))
+// }
+
+// //go:export TestAltBn128PairingCheck
+// func TestAltBn128PairingCheck() {
+// 	data := []byte("test data")
+// 	valid := env.AltBn128PairingCheck(data)
+// 	env.LogString("AltBn128PairingCheck valid: " + fmt.Sprintf("%t", valid))
+// 	env.ContractValueReturn([]byte("1"))
+// }
+
+// Math API
