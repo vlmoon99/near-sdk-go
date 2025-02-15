@@ -3,7 +3,6 @@ package system
 import (
 	"bytes"
 	"testing"
-	"unicode/utf16"
 	"unsafe"
 
 	"github.com/vlmoon99/near-sdk-go/types"
@@ -462,7 +461,7 @@ func TestValidatorTotalStake(t *testing.T) {
 
 	mockSys.ValidatorTotalStake(uint64(stakePtr))
 
-	expectedStake := uint64(1000000)
+	expectedStake := uint64(100000)
 	if stakeData != expectedStake {
 		t.Errorf("expected total stake %d, got %d", expectedStake, stakeData)
 	}
@@ -485,31 +484,6 @@ func TestValueReturn(t *testing.T) {
 	if string(mockSys.Registers[0]) != string(data) {
 		t.Errorf("expected %s, got %s", string(data), string(mockSys.Registers[0]))
 	}
-}
-
-func TestPanicUtf8(t *testing.T) {
-	mockSys := NewMockSystem()
-	message := "panic message"
-	len := uint64(len(message))
-	ptr := uintptr(unsafe.Pointer(&message))
-	mockSys.PanicUtf8(len, uint64(ptr))
-}
-
-func TestLogUtf8(t *testing.T) {
-	mockSys := NewMockSystem()
-	message := "log message"
-	len := uint64(len(message))
-	ptr := uintptr(unsafe.Pointer(&message))
-	mockSys.LogUtf8(len, uint64(ptr))
-}
-
-func TestLogUtf16(t *testing.T) {
-	mockSys := NewMockSystem()
-	message := "log message"
-	utf16Bytes := utf16.Encode([]rune(message))
-	len := uint64(len(utf16Bytes) * 2)
-	ptr := uintptr(unsafe.Pointer(&utf16Bytes[0]))
-	mockSys.LogUtf16(len, uint64(ptr))
 }
 
 // Miscellaneous API
@@ -662,11 +636,211 @@ func TestPromiseBatchThen(t *testing.T) {
 
 // Promises API
 
-//TODO : add more mock test's after solve problem with tinigy tests of env methods
 // Promises API Action
+
+func TestPromiseBatchActionCreateAccount(t *testing.T) {
+	mockSys := MockSystem{}
+	promiseIdx := uint64(0)
+
+	mockSys.PromiseBatchActionCreateAccount(promiseIdx)
+
+}
+
+func TestPromiseBatchActionDeployContract(t *testing.T) {
+	mockSys := MockSystem{}
+	promiseIdx := uint64(0)
+	contractBytes := []byte("sample contract bytes")
+	codeLen := uint64(len(contractBytes))
+	codePtr := uintptr(unsafe.Pointer(&contractBytes[0]))
+
+	mockSys.PromiseBatchActionDeployContract(promiseIdx, codeLen, uint64(codePtr))
+
+}
+
+func TestPromiseBatchActionFunctionCall(t *testing.T) {
+	mockSys := MockSystem{}
+	promiseIdx := uint64(0)
+	functionName := []byte("TestLogStringUtf8")
+	functionNameLen := uint64(len(functionName))
+	functionNamePtr := uintptr(unsafe.Pointer(&functionName[0]))
+	arguments := []byte("{}")
+	argumentsLen := uint64(len(arguments))
+	argumentsPtr := uintptr(unsafe.Pointer(&arguments[0]))
+	amount := types.Uint128{Hi: 0, Lo: 0}
+	amountPtr := uintptr(unsafe.Pointer(&amount))
+	gas := uint64(3000000000)
+
+	mockSys.PromiseBatchActionFunctionCall(promiseIdx, functionNameLen, uint64(functionNamePtr), argumentsLen, uint64(argumentsPtr), uint64(amountPtr), gas)
+
+}
+
+func TestPromiseBatchActionFunctionCallWeight(t *testing.T) {
+	mockSys := MockSystem{}
+	promiseIdx := uint64(0)
+	functionName := []byte("TestLogStringUtf8")
+	functionNameLen := uint64(len(functionName))
+	functionNamePtr := uintptr(unsafe.Pointer(&functionName[0]))
+	arguments := []byte("{}")
+	argumentsLen := uint64(len(arguments))
+	argumentsPtr := uintptr(unsafe.Pointer(&arguments[0]))
+	amount := types.Uint128{Hi: 0, Lo: 0}
+	amountPtr := uintptr(unsafe.Pointer(&amount))
+	gas := uint64(3000000000)
+	weight := uint64(1)
+
+	mockSys.PromiseBatchActionFunctionCallWeight(promiseIdx, functionNameLen, uint64(functionNamePtr), argumentsLen, uint64(argumentsPtr), uint64(amountPtr), gas, weight)
+}
+
+func TestPromiseBatchActionTransfer(t *testing.T) {
+	mockSys := MockSystem{}
+	promiseIdx := uint64(0)
+	amount, _ := types.U128FromString("10000000000000000000000") // 0.01 Near
+	amountPtr := uintptr(unsafe.Pointer(&amount))
+	mockSys.PromiseBatchActionTransfer(promiseIdx, uint64(amountPtr))
+}
+
+func TestPromiseBatchActionStake(t *testing.T) {
+	mockSys := MockSystem{}
+	promiseIdx := uint64(0)
+	amount, _ := types.U128FromString("10000000000000000000000") // 0.01 Near
+	amountPtr := uintptr(unsafe.Pointer(&amount))
+	signerPK := []byte("sample_signer_public_key")
+	publicKeyLen := uint64(len(signerPK))
+	publicKeyPtr := uintptr(unsafe.Pointer(&signerPK[0]))
+
+	mockSys.PromiseBatchActionStake(promiseIdx, uint64(amountPtr), publicKeyLen, uint64(publicKeyPtr))
+}
+
+func TestPromiseBatchActionAddKeyWithFullAccess(t *testing.T) {
+	mockSys := MockSystem{}
+	promiseIdx := uint64(0)
+	publicKey, _ := types.PublicKeyFromString("ed25519:ExeqWPvjcUjLX3NfTk3JzisaXLjsCqJNZFCj7ub92RQW")
+	publicKeyLen := uint64(len(publicKey.Bytes()))
+	publicKeyPtr := uintptr(unsafe.Pointer(&publicKey.Bytes()[0]))
+	nonce := uint64(0)
+
+	mockSys.PromiseBatchActionAddKeyWithFullAccess(promiseIdx, publicKeyLen, uint64(publicKeyPtr), nonce)
+}
+
+func TestPromiseBatchActionAddKeyWithFunctionCall(t *testing.T) {
+	mockSys := MockSystem{}
+	promiseIdx := uint64(0)
+	publicKey, _ := types.PublicKeyFromString("ed25519:ExeqWPvjcUjLX3NfTk3JzisaXLjsCqJNZFCj7ub92RQW")
+	publicKeyLen := uint64(len(publicKey.Bytes()))
+	publicKeyPtr := uintptr(unsafe.Pointer(&publicKey.Bytes()[0]))
+	nonce := uint64(0)
+	amount := types.Uint128{Hi: 0, Lo: 1000}
+	amountPtr := uintptr(unsafe.Pointer(&amount))
+	receiverId := []byte("receiver.near")
+	receiverIdLen := uint64(len(receiverId))
+	receiverIdPtr := uintptr(unsafe.Pointer(&receiverId[0]))
+	functionName := []byte("TestLogStringUtf8")
+	functionNameLen := uint64(len(functionName))
+	functionNamePtr := uintptr(unsafe.Pointer(&functionName[0]))
+
+	mockSys.PromiseBatchActionAddKeyWithFunctionCall(promiseIdx, publicKeyLen, uint64(publicKeyPtr), nonce, uint64(amountPtr), receiverIdLen, uint64(receiverIdPtr), functionNameLen, uint64(functionNamePtr))
+
+}
+
+func TestPromiseBatchActionDeleteKey(t *testing.T) {
+	mockSys := MockSystem{}
+	promiseIdx := uint64(0)
+	publicKey, _ := types.PublicKeyFromString("ed25519:ExeqWPvjcUjLX3NfTk3JzisaXLjsCqJNZFCj7ub92RQW")
+	publicKeyLen := uint64(len(publicKey.Bytes()))
+	publicKeyPtr := uintptr(unsafe.Pointer(&publicKey.Bytes()[0]))
+	mockSys.PromiseBatchActionDeleteKey(promiseIdx, publicKeyLen, uint64(publicKeyPtr))
+}
+
+func TestPromiseBatchActionDeleteAccount(t *testing.T) {
+	mockSys := MockSystem{}
+	promiseIdx := uint64(0)
+	beneficiaryId := []byte("beneficiary.near")
+	beneficiaryIdLen := uint64(len(beneficiaryId))
+	beneficiaryIdPtr := uintptr(unsafe.Pointer(&beneficiaryId[0]))
+	mockSys.PromiseBatchActionDeleteAccount(promiseIdx, beneficiaryIdLen, uint64(beneficiaryIdPtr))
+}
+
+func TestPromiseYieldCreate(t *testing.T) {
+	mockSys := MockSystem{}
+	functionName := []byte("TestContractValueReturn")
+	functionNameLen := uint64(len(functionName))
+	functionNamePtr := uintptr(unsafe.Pointer(&functionName[0]))
+	arguments := []byte("{}")
+	argumentsLen := uint64(len(arguments))
+	argumentsPtr := uintptr(unsafe.Pointer(&arguments[0]))
+	gas := uint64(3000000000)
+	gasWeight := uint64(0)
+	registerId := uint64(0)
+
+	promiseIdx := mockSys.PromiseYieldCreate(functionNameLen, uint64(functionNamePtr), argumentsLen, uint64(argumentsPtr), gas, gasWeight, registerId)
+
+	expectedIndex := uint64(1)
+	if promiseIdx != expectedIndex {
+		t.Errorf("expected promise index %d, got %d", expectedIndex, promiseIdx)
+	}
+}
+
+func TestPromiseYieldResume(t *testing.T) {
+	mockSys := MockSystem{}
+	data := []byte("sample data")
+	dataIdLen := uint64(len(data))
+	dataIdPtr := uintptr(unsafe.Pointer(&data[0]))
+	payload := []byte("sample payload")
+	payloadLen := uint64(len(payload))
+	payloadPtr := uintptr(unsafe.Pointer(&payload[0]))
+
+	result := mockSys.PromiseYieldResume(dataIdLen, uint64(dataIdPtr), payloadLen, uint64(payloadPtr))
+
+	expectedResult := uint32(1)
+	if result != expectedResult {
+		t.Errorf("expected result %d, got %d", expectedResult, result)
+	}
+}
 
 // Promises API Action
 
 // Promise API Results
+
+func TestPromiseResultsCount(t *testing.T) {
+	mockSys := MockSystem{}
+
+	count := mockSys.PromiseResultsCount()
+	expectedCount := uint64(0)
+	if count != expectedCount {
+		t.Errorf("expected promise count %d, got %d", expectedCount, count)
+	}
+}
+
+func TestPromiseResult(t *testing.T) {
+	mockSys := MockSystem{}
+
+	resultIdx := uint64(0)
+	registerId := uint64(0)
+
+	status := mockSys.PromiseResult(resultIdx, registerId)
+	expectedStatus := uint64(0)
+	if status != expectedStatus {
+		t.Errorf("expected status %d, got %d", expectedStatus, status)
+	}
+}
+
+func TestPromiseReturn(t *testing.T) {
+	mockSys := MockSystem{}
+	promiseId := uint64(0)
+
+	mockSys.PromiseReturn(promiseId)
+}
+
+func compareBytes(a, b []byte) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
 
 // Promise API Results

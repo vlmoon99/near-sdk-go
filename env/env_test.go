@@ -81,7 +81,6 @@ func TestReadRegisterSafe(t *testing.T) {
 		t.Errorf("expected '%s', got '%s'", data, result)
 	}
 
-	// Test with an empty register
 	result, err = ReadRegisterSafe(1)
 	if err == nil {
 		t.Errorf("expected error, got nil")
@@ -103,7 +102,6 @@ func TestWriteRegisterSafe(t *testing.T) {
 		t.Errorf("expected '%s', got '%s'", data, mockSys.Registers[1])
 	}
 
-	// Test with empty data
 	WriteRegisterSafe(2, []byte{})
 	if _, exists := mockSys.Registers[2]; exists {
 		t.Errorf("expected register 2 to be empty")
@@ -183,7 +181,6 @@ func TestStorageHasKey(t *testing.T) {
 		t.Errorf("expected key to exist, but it does not")
 	}
 
-	// Check non-existing key
 	nonExistingKey := []byte("nonExistingKey")
 	hasKey, err = StorageHasKey(nonExistingKey)
 	if err != nil {
@@ -302,7 +299,6 @@ func TestContractInputRawBytes(t *testing.T) {
 }
 
 func TestContractInputJSON(t *testing.T) {
-	// Build JSON data
 	builder := json.NewBuilder()
 	jsonData := builder.AddString("key1", "value1").
 		AddInt("key2", 42).
@@ -313,17 +309,14 @@ func TestContractInputJSON(t *testing.T) {
 	mockSys.ContractInput = jsonData
 	mockSys.Input(1)
 
-	// Call ContractInput with IsRawBytes set to false
 	options := types.ContractInputOptions{IsRawBytes: false}
 	data, dataType, err := ContractInput(options)
 	if err != nil {
 		t.Fatalf("ContractInput failed: %v", err)
 	}
 
-	// Parse the JSON input and verify the values
 	parser := json.NewParser(data)
 
-	// Verify "key1"
 	value1, err := parser.GetString("key1")
 	if err != nil {
 		t.Fatalf("GetString failed: %v", err)
@@ -333,7 +326,6 @@ func TestContractInputJSON(t *testing.T) {
 		t.Fatalf("Expected value %s, got %s", expectedValue1, value1)
 	}
 
-	// Verify "key2"
 	value2, err := parser.GetInt("key2")
 	if err != nil {
 		t.Fatalf("GetInt failed: %v", err)
@@ -343,7 +335,6 @@ func TestContractInputJSON(t *testing.T) {
 		t.Fatalf("Expected value %d, got %d", expectedValue2, value2)
 	}
 
-	// Verify "key3"
 	value3, err := parser.GetBoolean("key3")
 	if err != nil {
 		t.Fatalf("GetBoolean failed: %v", err)
@@ -353,7 +344,6 @@ func TestContractInputJSON(t *testing.T) {
 		t.Fatalf("Expected value %v, got %v", expectedValue3, value3)
 	}
 
-	// Verify detected type
 	expectedType := "object"
 	if dataType != expectedType {
 		t.Fatalf("Expected data type %s, got %s", expectedType, dataType)
@@ -554,240 +544,307 @@ func TestAltBn128PairingCheck(t *testing.T) {
 // Math API
 
 // Validator API
-//This API tests faild with error :
-// [tinygo: panic at /usr/local/lib/tinygo/lib/musl/src/string/memcpy.c:23:44]
-// balance: [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-// balance: [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-// balance: [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-// panic: runtime error at 0x000000000021c070: caught signal SIGSEGV
-// FAIL    github.com/vlmoon99/near-sdk-go/env     3.569s
-// func TestValidatorStakeAmount(t *testing.T) {
-// 	accountID := []byte("validatorAccountId")
-// 	expectedStake := types.Uint128{Hi: 0, Lo: 100000}
 
-// 	stakeAmount, err := ValidatorStakeAmount(accountID)
-// 	if err != nil {
-// 		t.Fatalf("ValidatorStakeAmount failed: %v", err)
-// 	}
+func TestValidatorStakeAmount(t *testing.T) {
+	accountID := []byte("validatorAccountId")
+	expectedStake := types.Uint128{Hi: 0, Lo: 100000}
 
-// 	if stakeAmount != expectedStake {
-// 		t.Fatalf("expected stake %v, got %v", expectedStake, stakeAmount)
-// 	}
-// }
+	stakeAmount, err := ValidatorStakeAmount(accountID)
+	if err != nil {
+		t.Fatalf("ValidatorStakeAmount failed: %v", err)
+	}
 
-// func TestValidatorStakeAmount_EmptyAccountID(t *testing.T) {
-// 	accountID := []byte("")
+	if stakeAmount != expectedStake {
+		t.Fatalf("expected stake %v, got %v", expectedStake, stakeAmount)
+	}
+}
 
-// 	_, err := ValidatorStakeAmount(accountID)
-// 	if err == nil || err.Error() != ErrAccountIDMustNotBeEmpty {
-// 		t.Fatalf("expected error %v, got %v", ErrAccountIDMustNotBeEmpty, err)
-// 	}
-// }
+func TestValidatorStakeAmount_EmptyAccountID(t *testing.T) {
+	accountID := []byte("")
 
-// func TestValidatorTotalStakeAmount(t *testing.T) {
-// 	expectedTotalStake := types.Uint128{Hi: 0, Lo: 1000000}
+	_, err := ValidatorStakeAmount(accountID)
+	if err == nil || err.Error() != ErrAccountIDMustNotBeEmpty {
+		t.Fatalf("expected error %v, got %v", ErrAccountIDMustNotBeEmpty, err)
+	}
+}
 
-// 	totalStakeAmount, err := ValidatorTotalStakeAmount()
-// 	if err != nil {
-// 		t.Fatalf("ValidatorTotalStakeAmount failed: %v", err)
-// 	}
+func TestValidatorTotalStakeAmount(t *testing.T) {
+	expectedTotalStake := types.Uint128{Hi: 0, Lo: 100000}
 
-// 	if totalStakeAmount != expectedTotalStake {
-// 		t.Fatalf("expected total stake %v, got %v", expectedTotalStake, totalStakeAmount)
-// 	}
-// }
+	totalStakeAmount, err := ValidatorTotalStakeAmount()
+	if err != nil {
+		t.Fatalf("ValidatorTotalStakeAmount failed: %v", err)
+	}
+
+	if totalStakeAmount != expectedTotalStake {
+		t.Fatalf("expected total stake %v, got %v", expectedTotalStake, totalStakeAmount)
+	}
+}
 
 // Validator API
 
 // Miscellaneous API
 
-//TODO : fix this unit tetst
-//This API tests faild with error :
-// [tinygo: panic at /usr/local/lib/tinygo/lib/musl/src/string/memcpy.c:23:44]
-// balance: [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-// balance: [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-// balance: [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-// panic: runtime error at 0x000000000021c070: caught signal SIGSEGV
-// FAIL    github.com/vlmoon99/near-sdk-go/env     3.569s
-
-// func TestContractValueReturn(t *testing.T) {
-// 	input := []byte("test value")
-// 	mockSys, _ := nearBlockchainImports.(*system.MockSystem)
-// 	ContractValueReturn(input)
-// 	if string(mockSys.Registers[0]) != string(input) {
-// 		t.Fatalf("expected %s, got %s", string(input), string(mockSys.Registers[0]))
-// 	}
-// }
-
-// func TestPanicStr(t *testing.T) {
-// 	message := "panic message"
-// 	PanicStr(message)
-// }
-
-// func TestAbortExecution(t *testing.T) {
-// 	AbortExecution()
-
-// 	// Validate the expected output (this is just an example; actual validation may differ)
-// }
-
-// func TestLogString(t *testing.T) {
-// 	message := "log message"
-// 	LogString(message)
-
-// 	// Validate the expected output (this is just an example; actual validation may differ)
-// }
-
-// func TestLogStringUtf8(t *testing.T) {
-// 	message := []byte("log message")
-// 	LogStringUtf8(message)
-
-// 	// Validate the expected output (this is just an example; actual validation may differ)
-// }
-
-// func TestLogStringUtf16(t *testing.T) {
-// 	message := "log message"
-// 	utf16Bytes := utf16.Encode([]rune(message))
-// 	messageBytes := *(*[]byte)(unsafe.Pointer(&utf16Bytes))
-// 	LogStringUtf16(messageBytes)
-
-// 	// Validate the expected output (this is just an example; actual validation may differ)
-// }
+func TestContractValueReturn(t *testing.T) {
+	input := []byte("test value")
+	mockSys, _ := nearBlockchainImports.(*system.MockSystem)
+	ContractValueReturn(input)
+	if string(mockSys.Registers[0]) != string(input) {
+		t.Fatalf("expected %s, got %s", string(input), string(mockSys.Registers[0]))
+	}
+}
 
 // Miscellaneous API
 
 // Promises API
-//TODO : fix this unit tetst
-//This API tests faild with error :
-// [tinygo: panic at /usr/local/lib/tinygo/lib/musl/src/string/memcpy.c:23:44]
-// balance: [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-// balance: [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-// balance: [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-// panic: runtime error at 0x000000000021c070: caught signal SIGSEGV
-// FAIL    github.com/vlmoon99/near-sdk-go/env     3.569s
+func TestPromiseCreate(t *testing.T) {
+	accountId := []byte("accountId")
+	functionName := []byte("functionName")
+	arguments := []byte("arguments")
+	amount := types.Uint128{Lo: 0, Hi: 0}
+	gas := uint64(5000)
 
-// func TestPromiseCreate(t *testing.T) {
-// 	accountId := []byte("accountId")
-// 	functionName := []byte("functionName")
-// 	arguments := []byte("arguments")
-// 	amount := types.Uint128{Lo: 0, Hi: 0}
-// 	gas := uint64(5000)
+	promiseIndex := PromiseCreate(accountId, functionName, arguments, amount, gas)
 
-// 	promiseIndex := PromiseCreate(accountId, functionName, arguments, amount, gas)
+	expectedIndex := uint64(0)
+	if promiseIndex != expectedIndex {
+		t.Errorf("expected promise index %d, got %d", expectedIndex, promiseIndex)
+	}
 
-// 	expectedIndex := uint64(0)
-// 	if promiseIndex != expectedIndex {
-// 		t.Errorf("expected promise index %d, got %d", expectedIndex, promiseIndex)
-// 	}
+	mockSys, ok := nearBlockchainImports.(*system.MockSystem)
+	if !ok {
+		t.Fatalf("Failed to cast nearBlockchainImports to *system.MockSystem")
+	}
 
-// 	mockSys, ok := nearBlockchainImports.(*system.MockSystem)
-// 	if !ok {
-// 		t.Fatalf("Failed to cast nearBlockchainImports to *system.MockSystem")
-// 	}
+	if len(mockSys.Promises) != 1 {
+		t.Errorf("expected 1 promise, got %d", len(mockSys.Promises))
+	}
 
-// 	if len(mockSys.Promises) != 1 {
-// 		t.Errorf("expected 1 promise, got %d", len(mockSys.Promises))
-// 	}
+	promise := mockSys.Promises[0]
+	if string(promise.AccountId) != string(accountId) {
+		t.Errorf("expected account id %s, got %s", string(accountId), promise.AccountId)
+	}
+	if string(promise.FunctionName) != string(functionName) {
+		t.Errorf("expected function name %s, got %s", string(functionName), promise.FunctionName)
+	}
+	if string(promise.Arguments) != string(arguments) {
+		t.Errorf("expected arguments %s, got %s", string(arguments), string(promise.Arguments))
+	}
+	if promise.Amount.Lo != amount.Lo {
+		t.Errorf("expected amount %d, got %d", amount.Lo, promise.Amount)
+	}
+	if promise.Gas != gas {
+		t.Errorf("expected gas %d, got %d", gas, promise.Gas)
+	}
+}
 
-// 	promise := mockSys.Promises[0]
-// 	if string(promise.AccountId) != string(accountId) {
-// 		t.Errorf("expected account id %s, got %s", string(accountId), promise.AccountId)
-// 	}
-// 	if string(promise.FunctionName) != string(functionName) {
-// 		t.Errorf("expected function name %s, got %s", string(functionName), promise.FunctionName)
-// 	}
-// 	if string(promise.Arguments) != string(arguments) {
-// 		t.Errorf("expected arguments %s, got %s", string(arguments), string(promise.Arguments))
-// 	}
-// 	if promise.Amount.Lo != amount.Lo {
-// 		t.Errorf("expected amount %d, got %d", amount.Lo, promise.Amount)
-// 	}
-// 	if promise.Gas != gas {
-// 		t.Errorf("expected gas %d, got %d", gas, promise.Gas)
-// 	}
-// }
+func TestPromiseThen(t *testing.T) {
+	accountId := []byte("accountId")
+	functionName := []byte("functionName")
+	arguments := []byte("arguments")
+	amount := types.Uint128{Lo: 0, Hi: 0}
+	gas := uint64(5000)
 
-// func TestPromiseThen(t *testing.T) {
-// 	accountId := []byte("accountId")
-// 	functionName := []byte("functionName")
-// 	arguments := []byte("arguments")
-// 	amount := types.Uint128{Lo: 0, Hi: 0}
-// 	gas := uint64(5000)
+	// Create the first promise
+	PromiseCreate(accountId, functionName, arguments, amount, gas)
 
-// 	// Create the first promise
-// 	PromiseCreate(accountId, functionName, arguments, amount, gas)
+	promiseIdx := uint64(0)
+	promiseIndex := PromiseThen(promiseIdx, accountId, functionName, arguments, amount, gas)
 
-// 	promiseIdx := uint64(0)
-// 	promiseIndex := PromiseThen(promiseIdx, accountId, functionName, arguments, amount, gas)
+	expectedIndex := uint64(2)
+	if promiseIndex != expectedIndex {
+		t.Errorf("expected promise index %d, got %d", expectedIndex, promiseIndex)
+	}
 
-// 	expectedIndex := uint64(1)
-// 	if promiseIndex != expectedIndex {
-// 		t.Errorf("expected promise index %d, got %d", expectedIndex, promiseIndex)
-// 	}
+	mockSys, ok := nearBlockchainImports.(*system.MockSystem)
+	if !ok {
+		t.Fatalf("Failed to cast nearBlockchainImports to *system.MockSystem")
+	}
 
-// 	mockSys, ok := nearBlockchainImports.(*system.MockSystem)
-// 	if !ok {
-// 		t.Fatalf("Failed to cast nearBlockchainImports to *system.MockSystem")
-// 	}
+	if len(mockSys.Promises) != 3 {
+		t.Errorf("expected 3 promises, got %d", len(mockSys.Promises))
+	}
 
-// 	if len(mockSys.Promises) != 2 {
-// 		t.Errorf("expected 2 promises, got %d", len(mockSys.Promises))
-// 	}
+	promise := mockSys.Promises[1]
+	if string(promise.AccountId) != string(accountId) {
+		t.Errorf("expected account id %s, got %s", string(accountId), promise.AccountId)
+	}
+	if string(promise.FunctionName) != string(functionName) {
+		t.Errorf("expected function name %s, got %s", string(functionName), promise.FunctionName)
+	}
+	if string(promise.Arguments) != string(arguments) {
+		t.Errorf("expected arguments %s, got %s", string(arguments), string(promise.Arguments))
+	}
+	if promise.Amount.Lo != amount.Lo {
+		t.Errorf("expected amount %d, got %d", amount.Lo, promise.Amount)
+	}
+	if promise.Gas != gas {
+		t.Errorf("expected gas %d, got %d", gas, promise.Gas)
+	}
+}
 
-// 	promise := mockSys.Promises[1]
-// 	if string(promise.AccountId) != string(accountId) {
-// 		t.Errorf("expected account id %s, got %s", string(accountId), promise.AccountId)
-// 	}
-// 	if string(promise.FunctionName) != string(functionName) {
-// 		t.Errorf("expected function name %s, got %s", string(functionName), promise.FunctionName)
-// 	}
-// 	if string(promise.Arguments) != string(arguments) {
-// 		t.Errorf("expected arguments %s, got %s", string(arguments), string(promise.Arguments))
-// 	}
-// 	if promise.Amount.Lo != amount.Lo {
-// 		t.Errorf("expected amount %d, got %d", amount.Lo, promise.Amount)
-// 	}
-// 	if promise.Gas != gas {
-// 		t.Errorf("expected gas %d, got %d", gas, promise.Gas)
-// 	}
-// }
+func TestPromiseAnd(t *testing.T) {
+	promiseIndices := []uint64{0, 1}
+	promiseIndex := PromiseAnd(promiseIndices)
 
-// func TestPromiseAnd(t *testing.T) {
-// 	promiseIndices := []uint64{0, 1}
-// 	promiseIndex := PromiseAnd(promiseIndices)
+	expectedIndex := uint64(2)
+	if promiseIndex != expectedIndex {
+		t.Errorf("expected promise index %d, got %d", expectedIndex, promiseIndex)
+	}
+}
 
-// 	expectedIndex := uint64(2)
-// 	if promiseIndex != expectedIndex {
-// 		t.Errorf("expected promise index %d, got %d", expectedIndex, promiseIndex)
-// 	}
-// }
+func TestPromiseBatchCreate(t *testing.T) {
+	accountId := []byte("accountId")
+	promiseIndex := PromiseBatchCreate(accountId)
 
-// func TestPromiseBatchCreate(t *testing.T) {
-// 	accountId := []byte("accountId")
-// 	promiseIndex := PromiseBatchCreate(accountId)
+	expectedIndex := uint64(0)
+	if promiseIndex != expectedIndex {
+		t.Errorf("expected promise index %d, got %d", expectedIndex, promiseIndex)
+	}
+}
 
-// 	expectedIndex := uint64(0)
-// 	if promiseIndex != expectedIndex {
-// 		t.Errorf("expected promise index %d, got %d", expectedIndex, promiseIndex)
-// 	}
-// }
+func TestPromiseBatchThen(t *testing.T) {
+	accountId := []byte("accountId")
+	promiseIdx := uint64(0)
+	promiseIndex := PromiseBatchThen(promiseIdx, accountId)
 
-// func TestPromiseBatchThen(t *testing.T) {
-// 	accountId := []byte("accountId")
-// 	promiseIdx := uint64(0)
-// 	promiseIndex := PromiseBatchThen(promiseIdx, accountId)
-
-// 	expectedIndex := uint64(1)
-// 	if promiseIndex != expectedIndex {
-// 		t.Errorf("expected promise index %d, got %d", expectedIndex, promiseIndex)
-// 	}
-// }
+	expectedIndex := uint64(1)
+	if promiseIndex != expectedIndex {
+		t.Errorf("expected promise index %d, got %d", expectedIndex, promiseIndex)
+	}
+}
 
 // Promises API
 
 // Promises API Action
 
+func TestPromiseBatchActionCreateAccount(t *testing.T) {
+	promiseIdx := uint64(0)
+	PromiseBatchActionCreateAccount(promiseIdx)
+	// Verify actions
+}
+
+func TestPromiseBatchActionDeployContract(t *testing.T) {
+	promiseIdx := uint64(0)
+	contractBytes := []byte("sample contract bytes")
+	PromiseBatchActionDeployContract(promiseIdx, contractBytes)
+	// Verify actions
+}
+
+func TestPromiseBatchActionFunctionCall(t *testing.T) {
+	promiseIdx := uint64(0)
+	functionName := []byte("TestLogStringUtf8")
+	arguments := []byte("{}")
+	amount := types.Uint128{Hi: 0, Lo: 0}
+	gas := uint64(3000000000)
+	PromiseBatchActionFunctionCall(promiseIdx, functionName, arguments, amount, gas)
+	// Verify actions
+}
+
+func TestPromiseBatchActionFunctionCallWeight(t *testing.T) {
+	promiseIdx := uint64(0)
+	functionName := []byte("TestLogStringUtf8")
+	arguments := []byte("{}")
+	amount := types.Uint128{Hi: 0, Lo: 0}
+	gas := uint64(3000000000)
+	weight := uint64(1)
+	PromiseBatchActionFunctionCallWeight(promiseIdx, functionName, arguments, amount, gas, weight)
+	// Verify actions
+}
+
+func TestPromiseBatchActionTransfer(t *testing.T) {
+	promiseIdx := uint64(0)
+	amount := types.Uint128{Hi: 0, Lo: 1000}
+	PromiseBatchActionTransfer(promiseIdx, amount)
+	// Verify actions
+}
+
+func TestPromiseBatchActionStake(t *testing.T) {
+	promiseIdx := uint64(0)
+	amount := types.Uint128{Hi: 0, Lo: 1000}
+	publicKey := []byte("sample_public_key")
+	PromiseBatchActionStake(promiseIdx, amount, publicKey)
+	// Verify actions
+}
+
+func TestPromiseBatchActionAddKeyWithFullAccess(t *testing.T) {
+	promiseIdx := uint64(0)
+	publicKey := []byte("sample_public_key")
+	nonce := uint64(0)
+	PromiseBatchActionAddKeyWithFullAccess(promiseIdx, publicKey, nonce)
+	// Verify actions
+}
+
+func TestPromiseBatchActionAddKeyWithFunctionCall(t *testing.T) {
+	promiseIdx := uint64(0)
+	publicKey := []byte("sample_public_key")
+	nonce := uint64(0)
+	amount := types.Uint128{Hi: 0, Lo: 1000}
+	receiverId := []byte("receiver.near")
+	functionName := []byte("TestLogStringUtf8")
+	PromiseBatchActionAddKeyWithFunctionCall(promiseIdx, publicKey, nonce, amount, receiverId, functionName)
+	// Verify actions
+}
+
+func TestPromiseBatchActionDeleteKey(t *testing.T) {
+	promiseIdx := uint64(0)
+	publicKey := []byte("sample_public_key")
+	PromiseBatchActionDeleteKey(promiseIdx, publicKey)
+	// Verify actions
+}
+
+func TestPromiseBatchActionDeleteAccount(t *testing.T) {
+	promiseIdx := uint64(0)
+	beneficiaryId := []byte("beneficiary.near")
+	PromiseBatchActionDeleteAccount(promiseIdx, beneficiaryId)
+	// Verify actions
+}
+
+func TestPromiseYieldCreate(t *testing.T) {
+	functionName := []byte("TestContractValueReturn")
+	arguments := []byte("{}")
+	gas := uint64(3000000000)
+	gasWeight := uint64(0)
+	promiseIdx := PromiseYieldCreate(functionName, arguments, gas, gasWeight)
+	expectedIndex := uint64(1)
+	if promiseIdx != expectedIndex {
+		t.Errorf("expected promise index %d, got %d", expectedIndex, promiseIdx)
+	}
+}
+
+func TestPromiseYieldResume(t *testing.T) {
+	data := []byte("sample data")
+	payload := []byte("sample payload")
+	result := PromiseYieldResume(data, payload)
+	expectedResult := uint32(1)
+	if result != expectedResult {
+		t.Errorf("expected result %d, got %d", expectedResult, result)
+	}
+}
+
 // Promises API Action
 
 // Promise API Results
+func TestPromiseResultsCount(t *testing.T) {
+	count := PromiseResultsCount()
+	expectedCount := uint64(3)
+	if count != expectedCount {
+		t.Errorf("expected promise count %d, got %d", expectedCount, count)
+	}
+}
+
+func TestPromiseResult(t *testing.T) {
+	resultIdx := uint64(0)
+	_, err := PromiseResult(resultIdx)
+	if err != nil {
+		t.Fatalf("PromiseResult failed: %v", err)
+	}
+
+}
+
+func TestPromiseReturn(t *testing.T) {
+	promiseId := uint64(0)
+	PromiseReturn(promiseId)
+}
 
 // Promise API Results

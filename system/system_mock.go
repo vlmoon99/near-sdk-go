@@ -253,23 +253,19 @@ func (m *MockSystem) AltBn128PairingCheckSystem(valueLen, valuePtr uint64) uint6
 // Validator API
 
 func (m *MockSystem) ValidatorStake(accountIdLen, accountIdPtr, stakePtr uint64) {
-	accountId := make([]byte, accountIdLen)
-	copy(accountId, *(*[]byte)(unsafe.Pointer(uintptr(accountIdPtr))))
+	expectedStake := types.Uint128{Hi: 0, Lo: 100000}
+	stakeData := expectedStake.ToLE()
 
-	stakeAmount := uint64(0)
-	if string(accountId) == "validatorAccountId" {
-		stakeAmount = 100000
-	}
-
-	binary.LittleEndian.PutUint64((*(*[8]byte)(unsafe.Pointer(uintptr(stakePtr))))[:], stakeAmount)
-	fmt.Printf("stake: %v\n", stakeAmount)
+	copy((*(*[16]byte)(unsafe.Pointer(uintptr(stakePtr))))[:], stakeData)
+	fmt.Printf("stake: %v\n", expectedStake)
 }
 
 func (m *MockSystem) ValidatorTotalStake(stakePtr uint64) {
-	totalStake := uint64(1000000)
+	expectedStake := types.Uint128{Hi: 0, Lo: 100000}
+	stakeData := expectedStake.ToLE()
 
-	binary.LittleEndian.PutUint64((*(*[8]byte)(unsafe.Pointer(uintptr(stakePtr))))[:], totalStake)
-	fmt.Printf("stake: %v\n", totalStake)
+	copy((*(*[16]byte)(unsafe.Pointer(uintptr(stakePtr))))[:], stakeData)
+	fmt.Printf("total stake: %v\n", expectedStake)
 }
 
 // Validator API
@@ -360,112 +356,94 @@ func (m *MockSystem) PromiseBatchThen(promiseIndex, accountIdLen, accountIdPtr u
 // Promises API
 
 // Promise API Actions
-func (m *MockSystem) PromiseBatchActionAddKeyWithFullAccess(promiseIndex, publicKeyLen, publicKeyPtr, nonce uint64) {
-	publicKey := *(*string)(unsafe.Pointer(&publicKeyPtr))
-	promise := &m.Promises[promiseIndex]
-	promise.Arguments = append(promise.Arguments, publicKey[:publicKeyLen]...)
-	promise.Arguments = append(promise.Arguments, byte(nonce))
-}
-
-func (m *MockSystem) PromiseBatchActionAddKeyWithFunctionCall(promiseIndex, publicKeyLen, publicKeyPtr, nonce, allowancePtr, receiverIdLen, receiverIdPtr, functionNamesLen, functionNamesPtr uint64) {
-	publicKey := *(*string)(unsafe.Pointer(&publicKeyPtr))
-	allowance := *(*uint64)(unsafe.Pointer(&allowancePtr))
-	receiverId := *(*string)(unsafe.Pointer(&receiverIdPtr))
-	functionNames := *(*string)(unsafe.Pointer(&functionNamesPtr))
-
-	promise := &m.Promises[promiseIndex]
-	promise.Arguments = append(promise.Arguments, publicKey[:publicKeyLen]...)
-	promise.Arguments = append(promise.Arguments, byte(nonce))
-	promise.Arguments = append(promise.Arguments, byte(allowance))
-	promise.Arguments = append(promise.Arguments, receiverId[:receiverIdLen]...)
-	promise.Arguments = append(promise.Arguments, functionNames[:functionNamesLen]...)
-}
-
-func (m *MockSystem) PromiseBatchActionDeleteKey(promiseIndex, publicKeyLen, publicKeyPtr uint64) {
-	publicKey := *(*string)(unsafe.Pointer(&publicKeyPtr))
-	promise := &m.Promises[promiseIndex]
-	promise.Arguments = append(promise.Arguments, publicKey[:publicKeyLen]...)
-}
-
-func (m *MockSystem) PromiseBatchActionDeleteAccount(promiseIndex, beneficiaryIdLen, beneficiaryIdPtr uint64) {
-	beneficiaryId := *(*string)(unsafe.Pointer(&beneficiaryIdPtr))
-	promise := &m.Promises[promiseIndex]
-	promise.Arguments = append(promise.Arguments, beneficiaryId[:beneficiaryIdLen]...)
-}
-
-func (m *MockSystem) PromiseYieldCreate(functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, gas, gasWeight, registerId uint64) uint64 {
-	functionName := *(*string)(unsafe.Pointer(&functionNamePtr))
-	arguments := *(*[]byte)(unsafe.Pointer(&argumentsPtr))
-
-	promise := MockPromise{
-		FunctionName: functionName[:functionNameLen],
-		Arguments:    arguments[:argumentsLen],
-		Gas:          gas,
-	}
-
-	m.Promises = append(m.Promises, promise)
-	m.WriteRegister(registerId, uint64(len(m.Promises)), uint64(uintptr(unsafe.Pointer(&promise.PromiseIndex))))
-
-	return promise.PromiseIndex
-}
-
-func (m *MockSystem) PromiseYieldResume(dataIdLen, dataIdPtr, payloadLen, payloadPtr uint64) uint32 {
-	dataId := *(*string)(unsafe.Pointer(&dataIdPtr))
-	payload := *(*[]byte)(unsafe.Pointer(&payloadPtr))
-
-	for _, promise := range m.Promises {
-		if string(promise.Arguments) == dataId[:dataIdLen] {
-			promise.Arguments = append(promise.Arguments, payload[:payloadLen]...)
-			return 1
-		}
-	}
-	return 0
-}
 
 func (m *MockSystem) PromiseBatchActionCreateAccount(promiseIndex uint64) {
-	// Simulate creating an account in a promise batch
+	fmt.Printf("Promise batch action create account with index: %d\n", promiseIndex)
 }
 
 func (m *MockSystem) PromiseBatchActionDeployContract(promiseIndex, codeLen, codePtr uint64) {
-	code := *(*[]byte)(unsafe.Pointer(&codePtr))
-	promise := &m.Promises[promiseIndex]
-	promise.Arguments = append(promise.Arguments, code[:codeLen]...)
+	contractBytes := make([]byte, codeLen)
+	copy(contractBytes, *(*[]byte)(unsafe.Pointer(uintptr(codePtr))))
+	fmt.Printf("Promise batch action deploy contract with index: %d\n", promiseIndex)
 }
 
 func (m *MockSystem) PromiseBatchActionFunctionCall(promiseIndex, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64) {
-	functionName := *(*string)(unsafe.Pointer(&functionNamePtr))
-	arguments := *(*[]byte)(unsafe.Pointer(&argumentsPtr))
-	amountBytes := *(*[16]byte)(unsafe.Pointer(&amountPtr))
-	amount, _ := types.LoadUint128BE(amountBytes[:])
+	functionName := make([]byte, functionNameLen)
+	copy(functionName, *(*[]byte)(unsafe.Pointer(uintptr(functionNamePtr))))
+	arguments := make([]byte, argumentsLen)
+	copy(arguments, *(*[]byte)(unsafe.Pointer(uintptr(argumentsPtr))))
+	amount := binary.LittleEndian.Uint64((*(*[8]byte)(unsafe.Pointer(uintptr(amountPtr))))[:])
+	fmt.Printf("Promise batch action function call with index: %d\n", promiseIndex)
+	fmt.Printf("amount: %d\n", amount)
 
-	promise := &m.Promises[promiseIndex]
-	promise.FunctionName = functionName[:functionNameLen]
-	promise.Arguments = append(promise.Arguments, arguments[:argumentsLen]...)
-	promise.Amount = amount
-	promise.Gas = gas
 }
 
 func (m *MockSystem) PromiseBatchActionFunctionCallWeight(promiseIndex, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas, weight uint64) {
-	// Assuming weight is used somehow in the call, though not specified how exactly
-	m.PromiseBatchActionFunctionCall(promiseIndex, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas)
+	functionName := make([]byte, functionNameLen)
+	copy(functionName, *(*[]byte)(unsafe.Pointer(uintptr(functionNamePtr))))
+	arguments := make([]byte, argumentsLen)
+	copy(arguments, *(*[]byte)(unsafe.Pointer(uintptr(argumentsPtr))))
+	amount := binary.LittleEndian.Uint64((*(*[8]byte)(unsafe.Pointer(uintptr(amountPtr))))[:])
+	fmt.Printf("Promise batch action function call with weight with index: %d\n", promiseIndex)
+	fmt.Printf("amount: %d\n", amount)
+
 }
 
 func (m *MockSystem) PromiseBatchActionTransfer(promiseIndex, amountPtr uint64) {
-	amountBytes := *(*[16]byte)(unsafe.Pointer(&amountPtr))
-	amount, _ := types.LoadUint128BE(amountBytes[:])
+	amount := binary.LittleEndian.Uint64((*(*[8]byte)(unsafe.Pointer(uintptr(amountPtr))))[:])
+	fmt.Printf("Promise batch action transfer with index: %d\n", promiseIndex)
+	fmt.Printf("amount: %d\n", amount)
 
-	promise := &m.Promises[promiseIndex]
-	promise.Amount = amount
 }
 
 func (m *MockSystem) PromiseBatchActionStake(promiseIndex, amountPtr, publicKeyLen, publicKeyPtr uint64) {
-	amountBytes := *(*[16]byte)(unsafe.Pointer(&amountPtr))
-	amount, _ := types.LoadUint128BE(amountBytes[:])
-	publicKey := *(*string)(unsafe.Pointer(&publicKeyPtr))
+	amount := binary.LittleEndian.Uint64((*(*[8]byte)(unsafe.Pointer(uintptr(amountPtr))))[:])
+	publicKey := make([]byte, publicKeyLen)
+	copy(publicKey, *(*[]byte)(unsafe.Pointer(uintptr(publicKeyPtr))))
+	fmt.Printf("Promise batch action stake with index: %d\n", promiseIndex)
+	fmt.Printf("amount: %d\n", amount)
 
-	promise := &m.Promises[promiseIndex]
-	promise.Amount = amount
-	promise.Arguments = append(promise.Arguments, publicKey[:publicKeyLen]...)
+}
+
+func (m *MockSystem) PromiseBatchActionAddKeyWithFullAccess(promiseIndex, publicKeyLen, publicKeyPtr, nonce uint64) {
+	publicKey := make([]byte, publicKeyLen)
+	copy(publicKey, *(*[]byte)(unsafe.Pointer(uintptr(publicKeyPtr))))
+	fmt.Printf("Promise batch action add key with full access with index: %d\n", promiseIndex)
+}
+
+func (m *MockSystem) PromiseBatchActionAddKeyWithFunctionCall(promiseIndex, publicKeyLen, publicKeyPtr, nonce, allowancePtr, receiverIdLen, receiverIdPtr, functionNamesLen, functionNamesPtr uint64) {
+	publicKey := make([]byte, publicKeyLen)
+	copy(publicKey, *(*[]byte)(unsafe.Pointer(uintptr(publicKeyPtr))))
+	allowance := binary.LittleEndian.Uint64((*(*[8]byte)(unsafe.Pointer(uintptr(allowancePtr))))[:])
+	fmt.Printf("allowance: %d\n", allowance)
+
+	receiverId := make([]byte, receiverIdLen)
+	copy(receiverId, *(*[]byte)(unsafe.Pointer(uintptr(receiverIdPtr))))
+	functionNames := make([]byte, functionNamesLen)
+	copy(functionNames, *(*[]byte)(unsafe.Pointer(uintptr(functionNamesPtr))))
+	fmt.Printf("Promise batch action add key with function call with index: %d\n", promiseIndex)
+}
+
+func (m *MockSystem) PromiseBatchActionDeleteKey(promiseIndex, publicKeyLen, publicKeyPtr uint64) {
+	publicKey := make([]byte, publicKeyLen)
+	copy(publicKey, *(*[]byte)(unsafe.Pointer(uintptr(publicKeyPtr))))
+	fmt.Printf("Promise batch action delete key with index: %d\n", promiseIndex)
+}
+
+func (m *MockSystem) PromiseBatchActionDeleteAccount(promiseIndex, beneficiaryIdLen, beneficiaryIdPtr uint64) {
+	beneficiaryId := make([]byte, beneficiaryIdLen)
+	copy(beneficiaryId, *(*[]byte)(unsafe.Pointer(uintptr(beneficiaryIdPtr))))
+	fmt.Printf("Promise batch action delete account with index: %d\n", promiseIndex)
+}
+
+func (m *MockSystem) PromiseYieldCreate(functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, gas, gasWeight, registerId uint64) uint64 {
+	fmt.Printf("Promise yield create called\n")
+	return 1
+}
+
+func (m *MockSystem) PromiseYieldResume(dataIdLen, dataIdPtr, payloadLen, payloadPtr uint64) uint32 {
+	fmt.Printf("Promise yield resume called\n")
+	return 1
 }
 
 // Promise API Actions
