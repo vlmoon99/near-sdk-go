@@ -326,6 +326,7 @@ async fn main() -> anyhow::Result<()> {
     )
     .await?;
 
+    //TODO : tests unstable feature
     // call_integration_test_function(
     //     &contract,
     //     "TestEcrecoverPubKey",
@@ -334,37 +335,37 @@ async fn main() -> anyhow::Result<()> {
     //     standard_gas,
     // ).await?;
 
-    // call_integration_test_function(
-    //     &contract,
-    //     "TestEd25519VerifySig",
-    //     json!({}),
-    //     standard_deposit,
-    //     standard_gas,
-    // ).await?;
+    call_integration_test_function(
+        &contract,
+        "TestEd25519VerifySig",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    ).await?;
 
-    // call_integration_test_function(
-    //     &contract,
-    //     "TestAltBn128G1MultiExp",
-    //     json!({}),
-    //     standard_deposit,
-    //     standard_gas,
-    // ).await?;
+    call_integration_test_function(
+        &contract,
+        "TestAltBn128G1MultiExp",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    ).await?;
 
-    // call_integration_test_function(
-    //     &contract,
-    //     "TestAltBn128G1Sum",
-    //     json!({}),
-    //     standard_deposit,
-    //     standard_gas,
-    // ).await?;
+    call_integration_test_function(
+        &contract,
+        "TestAltBn128G1Sum",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    ).await?;
 
-    // call_integration_test_function(
-    //     &contract,
-    //     "TestAltBn128PairingCheck",
-    //     json!({}),
-    //     standard_deposit,
-    //     standard_gas,
-    // ).await?;
+    call_integration_test_function(
+        &contract,
+        "TestAltBn128PairingCheck",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    ).await?;
 
     // Math API
 

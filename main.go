@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 
@@ -373,7 +374,7 @@ func TestRipemd160Hash() {
 	env.ContractValueReturn([]byte("1"))
 }
 
-//TODO : add test cases
+//TODO : tests unstable feature
 // //go:export TestEcrecoverPubKey
 // func TestEcrecoverPubKey() {
 // 	hash := []byte{0x1c, 0x29, 0x37, 0xbf, 0x5e, 0x3b, 0x5b, 0xd7, 0x0a, 0x47, 0x29, 0x28, 0x62, 0x10, 0x33, 0x6d, 0x7d, 0x6b, 0x5b, 0x6c, 0x61, 0x17, 0x2a, 0xe2, 0x69, 0x1a, 0x51, 0x37, 0x3e, 0x7d, 0x1c, 0xf9}
@@ -388,45 +389,104 @@ func TestRipemd160Hash() {
 // 	env.ContractValueReturn([]byte("1"))
 // }
 
-// //go:export TestEd25519VerifySig
-// func TestEd25519VerifySig() {
-// 	signature := [64]byte{0x1f, 0x6e, 0x3a, 0x58, 0x91, 0x29, 0x55, 0x8a, 0xf6, 0x88, 0x5f, 0x51, 0xe8, 0x5b, 0x5d, 0x59, 0x42, 0x9b, 0x51, 0x2f, 0x19, 0x71, 0x5a, 0xa1, 0xd9, 0x6e, 0x5a, 0xd2, 0xbe, 0x59, 0xad, 0x56, 0x1f, 0x6e, 0x3a, 0x58, 0x91, 0x29, 0x55, 0x8a, 0xf6, 0x88, 0x5f, 0x51, 0xe8, 0x5b, 0x5d, 0x59, 0x42, 0x9b, 0x51, 0x2f, 0x19, 0x71, 0x5a, 0xa1, 0xd9, 0x6e, 0x5a, 0xd2, 0xbe, 0x59, 0xad, 0x56}
-// 	message := []byte("test message")
-// 	publicKey := [32]byte{0x9b, 0x51, 0x2f, 0x19, 0x71, 0x5a, 0xa1, 0xd9, 0x6e, 0x5a, 0xd2, 0xbe, 0x59, 0xad, 0x56, 0x1f, 0x6e, 0x3a, 0x58, 0x91, 0x29, 0x55, 0x8a, 0xf6, 0x88, 0x5f, 0x51, 0xe8, 0x5b, 0x5d, 0x59, 0x42}
-// 	valid := env.Ed25519VerifySig(signature, message, publicKey)
-// 	env.LogString("Ed25519 signature valid: " + fmt.Sprintf("%t", valid))
-// 	env.ContractValueReturn([]byte("1"))
-// }
+//go:export TestEd25519VerifySig
+func TestEd25519VerifySig() {
+	signature := [64]byte{145, 193, 203, 18, 114, 227, 14, 117, 33, 213, 121, 66, 130, 14, 25, 4, 36, 120, 46,
+		142, 226, 215, 7, 66, 122, 112, 97, 30, 249, 135, 61, 165, 221, 249, 252, 23, 105, 40,
+		56, 70, 31, 152, 236, 141, 154, 122, 207, 20, 75, 118, 79, 90, 168, 6, 221, 122, 213,
+		29, 126, 196, 216, 104, 191, 6}
+	message := []byte{107, 97, 106, 100, 108, 102, 107, 106, 97, 108, 107, 102, 106, 97, 107, 108, 102, 106,
+		100, 107, 108, 97, 100, 106, 102, 107, 108, 106, 97, 100, 115, 107,
+	}
+	publicKey := [32]byte{32, 122, 6, 120, 146, 130, 30, 37, 215, 112, 241, 251, 160, 196, 124, 17, 255, 75, 129,
+		62, 84, 22, 46, 206, 158, 184, 57, 224, 118, 35, 26, 182}
+	valid := env.Ed25519VerifySig(signature, message, publicKey)
+	env.LogString("Ed25519 signature valid: " + fmt.Sprintf("%t", valid))
+	env.ContractValueReturn([]byte("1"))
+}
 
-// //go:export TestAltBn128G1MultiExp
-// func TestAltBn128G1MultiExp() {
-// 	data := types.Uint128{Hi: 2, Lo: 1}
-// 	result, err := env.AltBn128G1MultiExp(data.ToLE())
-// 	if err != nil {
-// 		env.PanicStr("Failed to perform AltBn128G1MultiExp: " + err.Error())
-// 	}
-// 	env.LogString("AltBn128G1MultiExp result: " + fmt.Sprintf("%x", result))
-// 	env.ContractValueReturn([]byte("1"))
-// }
+//go:export TestAltBn128G1MultiExp
+func TestAltBn128G1MultiExp() {
+	signature := []byte{16, 238, 91, 161, 241, 22, 172, 158, 138, 252, 202, 212, 136, 37, 110, 231, 118, 220,
+		8, 45, 14, 153, 125, 217, 227, 87, 238, 238, 31, 138, 226, 8, 238, 185, 12, 155, 93,
+		126, 144, 248, 200, 177, 46, 245, 40, 162, 169, 80, 150, 211, 157, 13, 10, 36, 44, 232,
+		173, 32, 32, 115, 123, 2, 9, 47, 190, 148, 181, 91, 69, 6, 83, 40, 65, 222, 251, 70,
+		81, 73, 60, 142, 130, 217, 176, 20, 69, 75, 40, 167, 41, 180, 244, 5, 142, 215, 135,
+		35}
 
-// //go:export TestAltBn128G1Sum
-// func TestAltBn128G1Sum() {
-// 	data := types.Uint128{Hi: 2, Lo: 1}
-// 	result, err := env.AltBn128G1Sum(data.ToLE())
-// 	if err != nil {
-// 		env.PanicStr("Failed to perform AltBn128G1Sum: " + err.Error())
-// 	}
-// 	env.LogString("AltBn128G1Sum result: " + fmt.Sprintf("%x", result))
-// 	env.ContractValueReturn([]byte("1"))
-// }
+	expectedResult := []byte{150, 94, 159, 52, 239, 226, 181, 150, 77, 86, 90, 186, 102, 219, 243, 204, 36, 128,
+		164, 209, 106, 6, 62, 124, 235, 104, 223, 195, 30, 204, 42, 20, 13, 158, 14, 197,
+		133, 73, 43, 171, 28, 68, 82, 116, 244, 164, 36, 251, 244, 8, 234, 40, 118, 55,
+		216, 187, 242, 39, 213, 160, 192, 184, 28, 23}
 
-// //go:export TestAltBn128PairingCheck
-// func TestAltBn128PairingCheck() {
-// 	data := types.Uint128{Hi: 2, Lo: 1}
-// 	valid := env.AltBn128PairingCheck(data.ToLE())
-// 	env.LogString("AltBn128PairingCheck valid: " + fmt.Sprintf("%t", valid))
-// 	env.ContractValueReturn([]byte("1"))
-// }
+	result, err := env.AltBn128G1MultiExp(signature)
+	if err != nil {
+		env.PanicStr("Failed to perform AltBn128G1MultiExp: " + err.Error())
+	}
+
+	if bytes.Equal(expectedResult, result) {
+		env.LogString("The result matches the expected result.")
+		env.ContractValueReturn([]byte("1"))
+	} else {
+		env.LogString("The result does not match the expected result.")
+		env.ContractValueReturn([]byte("0"))
+	}
+}
+
+//go:export TestAltBn128G1Sum
+func TestAltBn128G1Sum() {
+	signature := []byte{0, 11, 49, 94, 29, 152, 111, 116, 138, 248, 2, 184, 8, 159, 80, 169, 45, 149, 48, 32,
+		49, 37, 6, 133, 105, 171, 194, 120, 44, 195, 17, 180, 35, 137, 154, 4, 192, 211, 244,
+		93, 200, 2, 44, 0, 64, 26, 108, 139, 147, 88, 235, 242, 23, 253, 52, 110, 236, 67, 99,
+		176, 2, 186, 198, 228, 25}
+
+	expectedResult := []byte{11, 49, 94, 29, 152, 111, 116, 138, 248, 2, 184, 8, 159, 80, 169, 45, 149, 48, 32,
+		49, 37, 6, 133, 105, 171, 194, 120, 44, 195, 17, 180, 35, 137, 154, 4, 192, 211,
+		244, 93, 200, 2, 44, 0, 64, 26, 108, 139, 147, 88, 235, 242, 23, 253, 52, 110, 236,
+		67, 99, 176, 2, 186, 198, 228, 25}
+
+	result, err := env.AltBn128G1Sum(signature)
+	if err != nil {
+		env.PanicStr("Failed to perform AltBn128G1Sum: " + err.Error())
+	}
+	if bytes.Equal(expectedResult, result) {
+		env.LogString("The result matches the expected result.")
+		env.ContractValueReturn([]byte("1"))
+	} else {
+		env.LogString("The result does not match the expected result.")
+		env.ContractValueReturn([]byte("0"))
+	}
+
+}
+
+//go:export TestAltBn128PairingCheck
+func TestAltBn128PairingCheck() {
+	signature := []byte{117, 10, 217, 99, 113, 78, 234, 67, 183, 90, 26, 58, 200, 86, 195, 123, 42, 184, 213,
+		88, 224, 248, 18, 200, 108, 6, 181, 6, 28, 17, 99, 7, 36, 134, 53, 115, 192, 180, 3,
+		113, 76, 227, 174, 147, 50, 174, 79, 74, 151, 195, 172, 10, 211, 210, 26, 92, 117, 246,
+		65, 237, 168, 104, 16, 4, 1, 26, 3, 219, 6, 13, 193, 115, 77, 230, 27, 13, 242, 214,
+		195, 9, 213, 99, 135, 12, 160, 202, 114, 135, 175, 42, 116, 172, 79, 234, 26, 41, 212,
+		111, 192, 129, 124, 112, 57, 107, 38, 244, 230, 222, 240, 36, 65, 238, 133, 188, 19,
+		43, 148, 59, 205, 40, 161, 179, 173, 228, 88, 169, 231, 29, 17, 67, 163, 51, 165, 187,
+		101, 44, 250, 24, 68, 101, 92, 128, 203, 190, 51, 85, 9, 43, 58, 136, 68, 180, 92, 110,
+		185, 168, 107, 129, 45, 30, 187, 22, 100, 17, 75, 93, 216, 125, 23, 212, 11, 186, 199,
+		204, 1, 140, 133, 11, 82, 44, 65, 222, 20, 26, 48, 26, 132, 220, 25, 213, 93, 25, 79,
+		176, 4, 149, 151, 243, 11, 131, 253, 233, 121, 38, 222, 15, 118, 117, 200, 214, 175,
+		233, 130, 181, 193, 167, 255, 153, 169, 240, 207, 235, 28, 31, 83, 74, 69, 179, 6, 150,
+		72, 67, 74, 166, 130, 83, 82, 115, 123, 111, 208, 221, 64, 43, 237, 213, 186, 235, 7,
+		56, 251, 179, 95, 233, 159, 23, 109, 173, 85, 103, 8, 165, 235, 226, 218, 79, 72, 120,
+		172, 251, 20, 83, 121, 201, 140, 98, 170, 246, 121, 218, 19, 115, 42, 135, 60, 239, 30,
+		32, 49, 170, 171, 204, 196, 197, 160, 158, 168, 47, 23, 110, 139, 123, 222, 222, 245,
+		98, 125, 208, 70, 39, 110, 186, 146, 254, 66, 185, 118, 3, 78, 32, 47, 179, 197, 93,
+		79, 240, 204, 78, 236, 133, 213, 173, 117, 94, 63, 154, 68, 89, 236, 138, 0, 247, 242,
+		212, 245, 33, 249, 0, 35, 246, 233, 0, 124, 86, 198, 162, 201, 54, 19, 26, 196, 75,
+		254, 71, 70, 238, 51, 2, 23, 185, 152, 139, 134, 65, 107, 129, 114, 244, 47, 251, 240,
+		80, 193, 23,
+	}
+	valid := env.AltBn128PairingCheck(signature)
+	env.LogString("AltBn128PairingCheck valid: " + fmt.Sprintf("%t", valid))
+	env.ContractValueReturn([]byte("1"))
+}
 
 // Math API
 
