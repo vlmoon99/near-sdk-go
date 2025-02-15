@@ -614,14 +614,14 @@ async fn main() -> anyhow::Result<()> {
     )
     .await?;
 
-    // call_integration_test_function(
-    //     &contract,
-    //     "TestPromiseResult",
-    //     json!({}),
-    //     standard_deposit,
-    //     standard_gas,
-    // )
-    // .await?;
+    call_integration_test_function(
+        &contract,
+        "TestPromiseResult",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
 
     call_integration_test_function(
         &contract,

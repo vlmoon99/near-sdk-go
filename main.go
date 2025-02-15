@@ -459,7 +459,17 @@ func TestValidatorTotalStakeAmount() {
 
 //go:export TestContractValueReturn
 func TestContractValueReturn() {
-	// time.Sleep(3 * time.Second)
+	promiseCount := env.PromiseResultsCount()
+	if promiseCount != 0 {
+		env.LogString("Promise Count is : " + fmt.Sprintf("%d", promiseCount))
+		result, err := env.PromiseResult(0)
+		if err != nil {
+			env.LogString("Promise result err : " + err.Error())
+		} else {
+			env.LogString("Promise result at index: " + string(result))
+		}
+	}
+
 	env.ContractValueReturn([]byte("1"))
 }
 
@@ -844,29 +854,35 @@ func TestPromiseResultsCount() {
 
 // TODO : Learn about this flow execution
 //
-////go:export TestPromiseResult
-// func TestPromiseResult() {
-// 	accountId, err := env.GetCurrentAccountId()
-// 	if err != nil || accountId == "" {
-// 		env.PanicStr("Failed to get current account ID: " + err.Error())
-// 	}
+//go:export TestPromiseResult
+func TestPromiseResult() {
+	accountId, err := env.GetCurrentAccountId()
+	if err != nil || accountId == "" {
+		env.PanicStr("Failed to get current account ID: " + err.Error())
+	}
 
-// 	arguments := []byte("")
-// 	accountID := []byte(accountId)
-// 	functionName := []byte("TestContractValueReturn")
-// 	amount := types.Uint128{Hi: 0, Lo: 0}
-// 	gas := uint64(3000000000)
+	prepaidGas := env.GetPrepaidGas()
+	env.LogString(fmt.Sprintf("Prepaid gas: %d", prepaidGas.Inner))
 
-// 	promiseIdx := env.PromiseCreate(accountID, functionName, arguments, amount, gas)
+	arguments1 := []byte("")
+	accountID1 := []byte(accountId)
+	functionName1 := []byte("TestContractValueReturn")
+	amount1 := types.Uint128{Hi: 0, Lo: 0}
+	gas1 := prepaidGas.Inner / 3
 
-// 	result, err := env.PromiseResult(promiseIdx)
-// 	if err != nil {
-// 		env.LogString("Promise result err : " + err.Error())
-// 	} else {
-// 		env.LogString("Promise result at index: " + fmt.Sprintf("%d", result))
-// 	}
-// 	env.ContractValueReturn([]byte("1"))
-// }
+	promiseIdx := env.PromiseCreate(accountID1, functionName1, arguments1, amount1, gas1)
+
+	arguments2 := []byte("")
+	accountID2 := []byte(accountId)
+	functionName2 := []byte("TestPromiseResultsCount")
+	amount2 := types.Uint128{Hi: 0, Lo: 0}
+	gas2 := prepaidGas.Inner / 3
+
+	chainedPromiseIdx := env.PromiseThen(promiseIdx, accountID2, functionName2, arguments2, amount2, gas2)
+	env.LogString("Chained promise created with index: " + fmt.Sprintf("%d", chainedPromiseIdx))
+
+	env.ContractValueReturn([]byte("1"))
+}
 
 // TODO : Learn about this flow execution
 //
@@ -876,19 +892,30 @@ func TestPromiseReturn() {
 	if err != nil || accountId == "" {
 		env.PanicStr("Failed to get current account ID: " + err.Error())
 	}
-	arguments := []byte("")
-	accountID := []byte(accountId)
-	functionName := []byte("TestContractValueReturn")
-	amount := types.Uint128{Hi: 0, Lo: 0}
-	gas := uint64(3000000000)
+	prepaidGas := env.GetPrepaidGas()
+	env.LogString(fmt.Sprintf("Prepaid gas: %d", prepaidGas.Inner))
 
-	// Create a promise
-	promiseIdx := env.PromiseCreate(accountID, functionName, arguments, amount, gas)
+	arguments1 := []byte("")
+	accountID1 := []byte(accountId)
+	functionName1 := []byte("TestContractValueReturn")
+	amount1 := types.Uint128{Hi: 0, Lo: 0}
+	gas1 := prepaidGas.Inner / 3
+
+	promiseIdx := env.PromiseCreate(accountID1, functionName1, arguments1, amount1, gas1)
+
+	arguments2 := []byte("")
+	accountID2 := []byte(accountId)
+	functionName2 := []byte("TestPromiseResultsCount")
+	amount2 := types.Uint128{Hi: 0, Lo: 0}
+	gas2 := prepaidGas.Inner / 3
+
+	chainedPromiseIdx := env.PromiseThen(promiseIdx, accountID2, functionName2, arguments2, amount2, gas2)
+	env.LogString("Chained promise created with index: " + fmt.Sprintf("%d", chainedPromiseIdx))
 
 	// Return the promise result
-	env.PromiseReturn(promiseIdx)
+	env.PromiseReturn(chainedPromiseIdx)
 
-	env.LogString("Promise returned with ID: " + fmt.Sprintf("%d", promiseIdx))
+	env.LogString("Promise returned with ID: " + fmt.Sprintf("%d", chainedPromiseIdx))
 	env.ContractValueReturn([]byte("1"))
 }
 
