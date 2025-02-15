@@ -468,7 +468,6 @@ type NearGas struct {
 
 // PublickKey
 
-// CurveType represents the type of elliptic curve used by the public key.
 type CurveType byte
 
 const (
@@ -476,7 +475,6 @@ const (
 	SECP256K1
 )
 
-// String returns the string representation of the CurveType.
 func (c CurveType) String() string {
 	switch c {
 	case ED25519:
@@ -488,7 +486,6 @@ func (c CurveType) String() string {
 	}
 }
 
-// DataLen returns the length of the data associated with the CurveType.
 func (c CurveType) DataLen() int {
 	switch c {
 	case ED25519:
@@ -500,7 +497,6 @@ func (c CurveType) DataLen() int {
 	}
 }
 
-// ParseCurveType converts a string to a CurveType.
 func ParseCurveType(s string) (CurveType, error) {
 	switch strings.ToLower(s) {
 	case "ed25519":
@@ -512,13 +508,11 @@ func ParseCurveType(s string) (CurveType, error) {
 	}
 }
 
-// PublicKey represents a public key with a specific curve type.
 type PublicKey struct {
 	Curve CurveType
 	Data  []byte
 }
 
-// NewPublicKey creates a new PublicKey from curve type and data.
 func NewPublicKey(curve CurveType, data []byte) (*PublicKey, error) {
 	if len(data) != curve.DataLen() {
 		return nil, errors.New("invalid data length for curve")
@@ -526,7 +520,6 @@ func NewPublicKey(curve CurveType, data []byte) (*PublicKey, error) {
 	return &PublicKey{Curve: curve, Data: data}, nil
 }
 
-// FromString parses a public key from a string.
 func PublicKeyFromString(s string) (*PublicKey, error) {
 	parts := strings.Split(s, ":")
 	if len(parts) != 2 {
@@ -538,7 +531,6 @@ func PublicKeyFromString(s string) (*PublicKey, error) {
 		return nil, err
 	}
 
-	// Decode the Base58-encoded part of the public key
 	data, err := base58.Decode(parts[1])
 	if err != nil {
 		return nil, errors.New("failed to decode Base58")
@@ -547,7 +539,6 @@ func PublicKeyFromString(s string) (*PublicKey, error) {
 	return NewPublicKey(curve, data)
 }
 
-// ToHexString converts the public key to a hex string.
 func (pk *PublicKey) ToHexString() string {
 	return pk.Curve.String() + ":" + hex.EncodeToString(pk.Data)
 }

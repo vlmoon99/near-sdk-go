@@ -1,9 +1,12 @@
 package types
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strconv"
 	"testing"
+
+	"github.com/mr-tron/base58"
 )
 
 func TestUint64ToString(t *testing.T) {
@@ -877,3 +880,150 @@ func TestUint128_Xor(t *testing.T) {
 }
 
 // Uint128 Math tests
+
+//PublicKey type tests
+
+func TestParseCurveType(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected CurveType
+		err      bool
+	}{
+		{input: "ed25519", expected: ED25519, err: false},
+		{input: "secp256k1", expected: SECP256K1, err: false},
+		{input: "unknown", expected: 0, err: true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.input, func(t *testing.T) {
+			actual, err := ParseCurveType(tc.input)
+			if (err != nil) != tc.err {
+				t.Errorf("ParseCurveType(%s) error = %v, wantErr %v", tc.input, err, tc.err)
+				return
+			}
+			if actual != tc.expected {
+				t.Errorf("ParseCurveType(%s) = %v; want %v", tc.input, actual, tc.expected)
+			}
+		})
+	}
+}
+
+func TestNewPublicKey(t *testing.T) {
+	testCases := []struct {
+		curve    CurveType
+		data     []byte
+		expected *PublicKey
+		err      bool
+	}{
+		{curve: ED25519, data: make([]byte, 32), expected: &PublicKey{Curve: ED25519, Data: make([]byte, 32)}, err: false},
+		{curve: SECP256K1, data: make([]byte, 64), expected: &PublicKey{Curve: SECP256K1, Data: make([]byte, 64)}, err: false},
+		{curve: ED25519, data: make([]byte, 31), expected: nil, err: true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.curve.String(), func(t *testing.T) {
+			actual, err := NewPublicKey(tc.curve, tc.data)
+			if (err != nil) != tc.err {
+				t.Errorf("NewPublicKey(%v, %v) error = %v, wantErr %v", tc.curve, tc.data, err, tc.err)
+				return
+			}
+			if actual != nil && !comparePublicKey(actual, tc.expected) {
+				t.Errorf("NewPublicKey(%v, %v) = %v; want %v", tc.curve, tc.data, actual, tc.expected)
+			}
+		})
+	}
+}
+
+func TestPublicKeyFromString(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected *PublicKey
+		err      bool
+	}{
+		{input: "ed25519:ExeqWPvjcUjLX3NfTk3JzisaXLjsCqJNZFCj7ub92RQW", expected: &PublicKey{Curve: ED25519, Data: decodeBase58("ExeqWPvjcUjLX3NfTk3JzisaXLjsCqJNZFCj7ub92RQW")}, err: false},
+		{input: "secp256k1:qMoRgcoXai4mBPsdbHi1wfyxF9TdbPCF4qSDQTRP3TfescSRoUdSx6nmeQoN3aiwGzwMyGXAb1gUjBTv5AY8DXj", expected: &PublicKey{Curve: SECP256K1, Data: decodeBase58("qMoRgcoXai4mBPsdbHi1wfyxF9TdbPCF4qSDQTRP3TfescSRoUdSx6nmeQoN3aiwGzwMyGXAb1gUjBTv5AY8DXj")}, err: false},
+		{input: "unknown:1234", expected: nil, err: true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.input, func(t *testing.T) {
+			actual, err := PublicKeyFromString(tc.input)
+			if (err != nil) != tc.err {
+				t.Errorf("PublicKeyFromString(%s) error = %v, wantErr %v", tc.input, err, tc.err)
+				return
+			}
+			if actual != nil && !comparePublicKey(actual, tc.expected) {
+				t.Errorf("PublicKeyFromString(%s) = %v; want %v", tc.input, actual, tc.expected)
+			}
+		})
+	}
+}
+
+func TestPublicKeyToHexString(t *testing.T) {
+	testCases := []struct {
+		input    *PublicKey
+		expected string
+	}{
+		{input: &PublicKey{Curve: ED25519, Data: decodeBase58("ExeqWPvjcUjLX3NfTk3JzisaXLjsCqJNZFCj7ub92RQW")}, expected: "ed25519:" + encodeHex(decodeBase58("ExeqWPvjcUjLX3NfTk3JzisaXLjsCqJNZFCj7ub92RQW"))},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.expected, func(t *testing.T) {
+			actual := tc.input.ToHexString()
+			if actual != tc.expected {
+				t.Errorf("ToHexString() = %s; want %s", actual, tc.expected)
+			}
+		})
+	}
+}
+
+func TestPublicKeyToBase58String(t *testing.T) {
+	testCases := []struct {
+		input    *PublicKey
+		expected string
+	}{
+		{input: &PublicKey{Curve: ED25519, Data: decodeBase58("ExeqWPvjcUjLX3NfTk3JzisaXLjsCqJNZFCj7ub92RQW")}, expected: "ed25519:ExeqWPvjcUjLX3NfTk3JzisaXLjsCqJNZFCj7ub92RQW"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.expected, func(t *testing.T) {
+			actual := tc.input.ToBase58String()
+			if actual != tc.expected {
+				t.Errorf("ToBase58String() = %s; want %s", actual, tc.expected)
+			}
+		})
+	}
+}
+
+func comparePublicKey(a, b *PublicKey) bool {
+	if a.Curve != b.Curve {
+		return false
+	}
+	if !compareBytes(a.Data, b.Data) {
+		return false
+	}
+	return true
+}
+
+func compareBytes(a, b []byte) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func decodeBase58(s string) []byte {
+	decoded, _ := base58.Decode(s)
+	return decoded
+}
+
+func encodeHex(data []byte) string {
+	return hex.EncodeToString(data)
+}
+
+//PublicKey type tests
