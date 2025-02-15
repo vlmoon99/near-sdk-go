@@ -49,6 +49,7 @@ const (
 	ErrAccountIDMustNotBeEmpty           = "(ACCOUNT_ERROR): account ID must not be empty"
 	ErrGettingValidatorStakeAmount       = "(STAKE_ERROR): error while getting validator stake amount"
 	ErrGettingValidatorTotalStakeAmount  = "(STAKE_ERROR): error while getting validator total stake amount"
+	ErrPromiseResult                     = "(PROMISE_ERROR): no promise results available"
 )
 
 func SetEnv(system system.System) {
@@ -746,12 +747,23 @@ func PromiseYieldResume(data []byte, payload []byte) uint32 {
 
 // Promise API Results
 
-func PromiseResultsCount(data []byte, payload []byte) uint64 {
+func PromiseResultsCount() uint64 {
 	return nearBlockchainImports.PromiseResultsCount()
 }
 
-func PromiseResult(resultIdx uint64) uint64 {
-	return nearBlockchainImports.PromiseResult(resultIdx, AtomicOpRegister)
+func PromiseResult(resultIdx uint64) ([]byte, error) {
+	if PromiseResultsCount() == 0 {
+		return nil, errors.New(ErrPromiseResult)
+	}
+
+	nearBlockchainImports.PromiseResult(resultIdx, AtomicOpRegister)
+
+	value, err := ReadRegisterSafe(AtomicOpRegister)
+	if err != nil {
+		return nil, errors.New(ErrFailedToReadRegister)
+	}
+
+	return value, nil
 }
 
 func PromiseReturn(promiseId uint64) {
