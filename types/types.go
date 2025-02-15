@@ -6,6 +6,9 @@ import (
 	"errors"
 	"math/bits"
 	"strconv"
+	"strings"
+
+	"github.com/mr-tron/base58"
 )
 
 const (
@@ -462,3 +465,101 @@ func BoolToUnit(b bool) uint64 {
 type NearGas struct {
 	Inner uint64
 }
+
+// PublickKey
+
+// CurveType represents the type of elliptic curve used by the public key.
+type CurveType byte
+
+const (
+	ED25519 CurveType = iota
+	SECP256K1
+)
+
+// String returns the string representation of the CurveType.
+func (c CurveType) String() string {
+	switch c {
+	case ED25519:
+		return "ed25519"
+	case SECP256K1:
+		return "secp256k1"
+	default:
+		return "unknown"
+	}
+}
+
+// DataLen returns the length of the data associated with the CurveType.
+func (c CurveType) DataLen() int {
+	switch c {
+	case ED25519:
+		return 32
+	case SECP256K1:
+		return 64
+	default:
+		return 0
+	}
+}
+
+// ParseCurveType converts a string to a CurveType.
+func ParseCurveType(s string) (CurveType, error) {
+	switch strings.ToLower(s) {
+	case "ed25519":
+		return ED25519, nil
+	case "secp256k1":
+		return SECP256K1, nil
+	default:
+		return 0, errors.New("unknown curve type")
+	}
+}
+
+// PublicKey represents a public key with a specific curve type.
+type PublicKey struct {
+	Curve CurveType
+	Data  []byte
+}
+
+// NewPublicKey creates a new PublicKey from curve type and data.
+func NewPublicKey(curve CurveType, data []byte) (*PublicKey, error) {
+	if len(data) != curve.DataLen() {
+		return nil, errors.New("invalid data length for curve")
+	}
+	return &PublicKey{Curve: curve, Data: data}, nil
+}
+
+// FromString parses a public key from a string.
+func PublicKeyFromString(s string) (*PublicKey, error) {
+	parts := strings.Split(s, ":")
+	if len(parts) != 2 {
+		return nil, errors.New("invalid public key format")
+	}
+
+	curve, err := ParseCurveType(parts[0])
+	if err != nil {
+		return nil, err
+	}
+
+	// Decode the Base58-encoded part of the public key
+	data, err := base58.Decode(parts[1])
+	if err != nil {
+		return nil, errors.New("failed to decode Base58")
+	}
+
+	return NewPublicKey(curve, data)
+}
+
+// ToHexString converts the public key to a hex string.
+func (pk *PublicKey) ToHexString() string {
+	return pk.Curve.String() + ":" + hex.EncodeToString(pk.Data)
+}
+func (pk *PublicKey) ToBase58String() string {
+	return pk.Curve.String() + ":" + base58.Encode(pk.Data)
+}
+
+func (pk *PublicKey) Bytes() []byte {
+	curveByte := byte(pk.Curve)
+	result := []byte{curveByte}
+	result = append(result, pk.Data...)
+	return result
+}
+
+// PublickKey

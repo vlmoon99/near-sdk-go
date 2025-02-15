@@ -466,7 +466,7 @@ func TestContractValueReturn() {
 		if err != nil {
 			env.LogString("Promise result err : " + err.Error())
 		} else {
-			env.LogString("Promise result at index: " + string(result))
+			env.LogString("Promise result at index: " + fmt.Sprintf("%x", result))
 		}
 	}
 
@@ -734,61 +734,59 @@ func TestPromiseBatchActionStake() {
 	env.ContractValueReturn([]byte("1"))
 }
 
-//TODO : add crypto for createing ed25519 keys
-// //go:export TestPromiseBatchActionAddKeyWithFullAccess
-// func TestPromiseBatchActionAddKeyWithFullAccess() {
-// 	accountId, err := env.GetCurrentAccountId()
-// 	if err != nil || accountId == "" {
-// 		env.PanicStr("Failed to get current account ID: " + err.Error())
-// 	}
-// 	accountID := []byte(accountId)
+//go:export TestPromiseBatchActionAddKeyWithFullAccess
+func TestPromiseBatchActionAddKeyWithFullAccess() {
+	accountId, err := env.GetCurrentAccountId()
+	if err != nil || accountId == "" {
+		env.PanicStr("Failed to get current account ID: " + err.Error())
+	}
+	accountID := []byte(accountId)
+	promiseIdx := env.PromiseBatchCreate(accountID)
+	publicKey, _ := types.PublicKeyFromString("ed25519:ExeqWPvjcUjLX3NfTk3JzisaXLjsCqJNZFCj7ub92RQW")
+	env.LogString("publicKey publicKey.Curve: " + fmt.Sprintf("%d", publicKey.Curve) + " " + "publicKey.String(): " + publicKey.ToBase58String())
+	nonce := uint64(0)
+	env.PromiseBatchActionAddKeyWithFullAccess(promiseIdx, publicKey.Bytes(), nonce)
+	env.LogString("Promise batch action add key with full access with index: " + fmt.Sprintf("%d", promiseIdx))
+	env.ContractValueReturn([]byte("1"))
+}
 
-// 	promiseIdx := env.PromiseBatchCreate(accountID)
-// 	publicKey := []byte("sample_public_key")
-// 	nonce := uint64(0)
+//go:export TestPromiseBatchActionAddKeyWithFunctionCall
+func TestPromiseBatchActionAddKeyWithFunctionCall() {
+	accountId, err := env.GetCurrentAccountId()
+	if err != nil || accountId == "" {
+		env.PanicStr("Failed to get current account ID: " + err.Error())
+	}
+	accountID := []byte(accountId)
 
-// 	env.PromiseBatchActionAddKeyWithFullAccess(promiseIdx, publicKey, nonce)
-// 	env.LogString("Promise batch action add key with full access with index: " + fmt.Sprintf("%d", promiseIdx))
-// 	env.ContractValueReturn([]byte("1"))
-// }
+	promiseIdx := env.PromiseBatchCreate(accountID)
+	publicKey, _ := types.PublicKeyFromString("ed25519:BeWDy6pKWCiTkHewFcNunbg883abSqVCW42tpUpCrCVU")
+	env.LogString("publicKey publicKey.Curve: " + fmt.Sprintf("%d", publicKey.Curve) + " " + "publicKey.String(): " + publicKey.ToBase58String())
+	nonce := uint64(0)
+	amount := types.Uint128{Hi: 0, Lo: 1000}
+	receiverId := []byte("receiver.near")
+	functionName := []byte("TestLogStringUtf8")
 
-//TODO : add crypto for createing ed25519 keys
-// //go:export TestPromiseBatchActionAddKeyWithFunctionCall
-// func TestPromiseBatchActionAddKeyWithFunctionCall() {
-// 	accountId, err := env.GetCurrentAccountId()
-// 	if err != nil || accountId == "" {
-// 		env.PanicStr("Failed to get current account ID: " + err.Error())
-// 	}
-// 	accountID := []byte(accountId)
+	env.PromiseBatchActionAddKeyWithFunctionCall(promiseIdx, publicKey.Bytes(), nonce, amount, receiverId, functionName)
+	env.LogString("Promise batch action add key with function call with index: " + fmt.Sprintf("%d", promiseIdx))
+	env.ContractValueReturn([]byte("1"))
+}
 
-// 	promiseIdx := env.PromiseBatchCreate(accountID)
-// 	publicKey := []byte("sample_public_key")
-// 	nonce := uint64(0)
-// 	amount := types.Uint128{Hi: 0, Lo: 1000}
-// 	receiverId := []byte("receiver.near")
-// 	functionName := []byte("TestLogStringUtf8")
+//go:export TestPromiseBatchActionDeleteKey
+func TestPromiseBatchActionDeleteKey() {
+	accountId, err := env.GetCurrentAccountId()
+	if err != nil || accountId == "" {
+		env.PanicStr("Failed to get current account ID: " + err.Error())
+	}
+	accountID := []byte(accountId)
 
-// 	env.PromiseBatchActionAddKeyWithFunctionCall(promiseIdx, publicKey, nonce, amount, receiverId, functionName)
-// 	env.LogString("Promise batch action add key with function call with index: " + fmt.Sprintf("%d", promiseIdx))
-// 	env.ContractValueReturn([]byte("1"))
-// }
+	promiseIdx := env.PromiseBatchCreate(accountID)
+	publicKey, _ := types.PublicKeyFromString("ed25519:BeWDy6pKWCiTkHewFcNunbg883abSqVCW42tpUpCrCVU")
+	env.LogString("publicKey publicKey.Curve: " + fmt.Sprintf("%d", publicKey.Curve) + " " + "publicKey.String(): " + publicKey.ToBase58String())
 
-//TODO : add crypto for createing ed25519 keys
-// //go:export TestPromiseBatchActionDeleteKey
-// func TestPromiseBatchActionDeleteKey() {
-// 	accountId, err := env.GetCurrentAccountId()
-// 	if err != nil || accountId == "" {
-// 		env.PanicStr("Failed to get current account ID: " + err.Error())
-// 	}
-// 	accountID := []byte(accountId)
-
-// 	promiseIdx := env.PromiseBatchCreate(accountID)
-// 	publicKey := []byte("sample_public_key")
-
-// 	env.PromiseBatchActionDeleteKey(promiseIdx, publicKey)
-// 	env.LogString("Promise batch action delete key with index: " + fmt.Sprintf("%d", promiseIdx))
-// 	env.ContractValueReturn([]byte("1"))
-// }
+	env.PromiseBatchActionDeleteKey(promiseIdx, publicKey.Bytes())
+	env.LogString("Promise batch action delete key with index: " + fmt.Sprintf("%d", promiseIdx))
+	env.ContractValueReturn([]byte("1"))
+}
 
 //go:export TestPromiseBatchActionDeleteAccount
 func TestPromiseBatchActionDeleteAccount() {
@@ -805,41 +803,29 @@ func TestPromiseBatchActionDeleteAccount() {
 	env.ContractValueReturn([]byte("1"))
 }
 
-//TODO : read near sdk rs about it
-// //go:export TestPromiseYieldCreate
-// func TestPromiseYieldCreate() {
-// 	// accountId, err := env.GetCurrentAccountId()
-// 	// if err != nil || accountId == "" {
-// 	// 	env.PanicStr("Failed to get current account ID: " + err.Error())
-// 	// }
-// 	// arguments1 := []byte("")
-// 	// accountID1 := []byte(accountId)
-// 	// functionName1 := []byte("TestLogString")
-// 	// amount1 := types.Uint128{Hi: 0, Lo: 0}
-// 	// gas1 := uint64(3000000000)
+//go:export TestPromiseYieldCreateYieldResume
+func TestPromiseYieldCreateYieldResume() {
+	prepaidGas := env.GetPrepaidGas()
+	env.LogString(fmt.Sprintf("Prepaid gas: %d", prepaidGas.Inner))
 
-// 	// env.PromiseCreate(accountID1, functionName1, arguments1, amount1, gas1)
+	functionName := []byte("TestContractValueReturn")
+	arguments := []byte("{}")
+	gasWeight := uint64(0)
 
-// 	functionName := []byte("TestLogStringUtf8")
-// 	arguments := []byte("{}")
-// 	gas := uint64(3000000000)
-// 	gasWeight := uint64(1)
+	promiseIdx := env.PromiseYieldCreate(functionName, arguments, prepaidGas.Inner/3, gasWeight)
+	env.LogString("Promise yield create with index: " + fmt.Sprintf("%d", promiseIdx))
+	data, err := env.ReadRegisterSafe(env.DataIdRegister)
+	if err != nil {
+		env.LogString("Error : " + err.Error())
+	}
+	env.LogString("hex.EncodeToString(data) : " + hex.EncodeToString(data))
+	env.LogString("raw(data) : " + fmt.Sprintf("%x", data))
+	result := env.PromiseYieldResume(data, arguments)
 
-// 	promiseIdx := env.PromiseYieldCreate(functionName, arguments, gas, gasWeight)
-// 	env.LogString("Promise yield create with index: " + fmt.Sprintf("%d", promiseIdx))
-// 	env.ContractValueReturn([]byte("1"))
-// }
+	env.LogString("result : " + fmt.Sprintf("%d", result))
 
-//TODO : read near sdk rs about it
-// //go:export TestPromiseYieldResume
-// func TestPromiseYieldResume() {
-// 	data := []byte("sample data")
-// 	payload := []byte("sample payload")
-
-// 	result := env.PromiseYieldResume(data, payload)
-// 	env.LogString("Promise yield resume result: " + fmt.Sprintf("%d", result))
-// 	env.ContractValueReturn([]byte("1"))
-// }
+	env.ContractValueReturn([]byte("1"))
+}
 
 // Promises API Action
 
@@ -852,8 +838,6 @@ func TestPromiseResultsCount() {
 	env.ContractValueReturn([]byte("1"))
 }
 
-// TODO : Learn about this flow execution
-//
 //go:export TestPromiseResult
 func TestPromiseResult() {
 	accountId, err := env.GetCurrentAccountId()
@@ -884,8 +868,6 @@ func TestPromiseResult() {
 	env.ContractValueReturn([]byte("1"))
 }
 
-// TODO : Learn about this flow execution
-//
 //go:export TestPromiseReturn
 func TestPromiseReturn() {
 	accountId, err := env.GetCurrentAccountId()
@@ -912,7 +894,6 @@ func TestPromiseReturn() {
 	chainedPromiseIdx := env.PromiseThen(promiseIdx, accountID2, functionName2, arguments2, amount2, gas2)
 	env.LogString("Chained promise created with index: " + fmt.Sprintf("%d", chainedPromiseIdx))
 
-	// Return the promise result
 	env.PromiseReturn(chainedPromiseIdx)
 
 	env.LogString("Promise returned with ID: " + fmt.Sprintf("%d", chainedPromiseIdx))

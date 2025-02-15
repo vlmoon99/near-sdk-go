@@ -549,32 +549,32 @@ async fn main() -> anyhow::Result<()> {
     )
     .await?;
 
-    // call_integration_test_function(
-    //     &contract,
-    //     "TestPromiseBatchActionAddKeyWithFullAccess",
-    //     json!({}),
-    //     standard_deposit,
-    //     standard_gas,
-    // )
-    // .await?;
+    call_integration_test_function(
+        &contract,
+        "TestPromiseBatchActionAddKeyWithFullAccess",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
 
-    // call_integration_test_function(
-    //     &contract,
-    //     "TestPromiseBatchActionAddKeyWithFunctionCall",
-    //     json!({}),
-    //     standard_deposit,
-    //     standard_gas,
-    // )
-    // .await?;
+    call_integration_test_function(
+        &contract,
+        "TestPromiseBatchActionAddKeyWithFunctionCall",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
 
-    // call_integration_test_function(
-    //     &contract,
-    //     "TestPromiseBatchActionDeleteKey",
-    //     json!({}),
-    //     standard_deposit,
-    //     standard_gas,
-    // )
-    // .await?;
+    call_integration_test_function(
+        &contract,
+        "TestPromiseBatchActionDeleteKey",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
 
     call_integration_test_function(
         &contract,
@@ -585,24 +585,15 @@ async fn main() -> anyhow::Result<()> {
     )
     .await?;
 
-    // call_integration_test_function(
-    //     &contract,
-    //     "TestPromiseYieldCreate",
-    //     json!({}),
-    //     standard_deposit,
-    //     standard_gas,
-    // )
-    // .await?;
+    call_integration_test_function(
+        &contract,
+        "TestPromiseYieldCreateYieldResume",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    )
+    .await?;
 
-    // call_integration_test_function(
-    //     &contract,
-    //     "TestPromiseYieldResume",
-    //     json!({}),
-    //     standard_deposit,
-    //     standard_gas,
-    // )
-    // .await?;
-    // Promises API Action
 
     // Promise API Results
     call_integration_test_function(
