@@ -557,19 +557,15 @@ func TestContractValueReturn() {
 	env.ContractValueReturn([]byte("1"))
 }
 
-// It's unnesessary to test, but if u want unncoment and tests it
-//
-// //go:export TestPanicStr
-// func TestPanicStr() {
-// 	env.PanicStr("Test panic")
-// }
+//go:export TestPanicStr
+func TestPanicStr() {
+	env.PanicStr("Test panic")
+}
 
-// It's unnesessary to test, but if u want unncoment and tests it
-//
-// //go:export TestAbortExecution
-// func TestAbortExecution() {
-// 	env.AbortExecution()
-// }
+//go:export TestAbortExecution
+func TestAbortExecution() {
+	env.AbortExecution()
+}
 
 //go:export TestLogString
 func TestLogString() {
