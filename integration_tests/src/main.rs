@@ -5,7 +5,7 @@ use serde_json::json;
 async fn deploy_contract(
     worker: &near_workspaces::Worker<near_workspaces::network::Sandbox>,
 ) -> anyhow::Result<near_workspaces::Contract> {
-    const NFT_WASM_FILEPATH: &str = "../main.wasm";
+    const NFT_WASM_FILEPATH: &str = "../examples/integration_tests/main.wasm";
     let wasm = std::fs::read(NFT_WASM_FILEPATH)?;
     let contract = worker.dev_deploy(&wasm).await?;
     Ok(contract)
