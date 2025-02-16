@@ -326,14 +326,13 @@ async fn main() -> anyhow::Result<()> {
     )
     .await?;
 
-    //TODO : tests unstable feature
-    // call_integration_test_function(
-    //     &contract,
-    //     "TestEcrecoverPubKey",
-    //     json!({}),
-    //     standard_deposit,
-    //     standard_gas,
-    // ).await?;
+    call_integration_test_function(
+        &contract,
+        "TestEcrecoverPubKey",
+        json!({}),
+        standard_deposit,
+        standard_gas,
+    ).await?;
 
     call_integration_test_function(
         &contract,

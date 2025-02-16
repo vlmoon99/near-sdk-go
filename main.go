@@ -374,20 +374,44 @@ func TestRipemd160Hash() {
 	env.ContractValueReturn([]byte("1"))
 }
 
-//TODO : tests unstable feature
-// //go:export TestEcrecoverPubKey
-// func TestEcrecoverPubKey() {
-// 	hash := []byte{0x1c, 0x29, 0x37, 0xbf, 0x5e, 0x3b, 0x5b, 0xd7, 0x0a, 0x47, 0x29, 0x28, 0x62, 0x10, 0x33, 0x6d, 0x7d, 0x6b, 0x5b, 0x6c, 0x61, 0x17, 0x2a, 0xe2, 0x69, 0x1a, 0x51, 0x37, 0x3e, 0x7d, 0x1c, 0xf9}
-// 	signature := []byte{0x1f, 0x6e, 0x3a, 0x58, 0x91, 0x29, 0x55, 0x8a, 0xf6, 0x88, 0x5f, 0x51, 0xe8, 0x5b, 0x5d, 0x59, 0x42, 0x9b, 0x51, 0x2f, 0x19, 0x71, 0x5a, 0xa1, 0xd9, 0x6e, 0x5a, 0xd2, 0xbe, 0x59, 0xad, 0x56, 0x1f, 0x6e, 0x3a, 0x58, 0x91, 0x29, 0x55, 0x8a, 0xf6, 0x88, 0x5f, 0x51, 0xe8, 0x5b, 0x5d, 0x59, 0x42, 0x9b, 0x51, 0x2f, 0x19, 0x71, 0x5a, 0xa1, 0xd9, 0x6e, 0x5a, 0xd2, 0xbe, 0x59, 0xad, 0x56}
-// 	v := byte(0x1b)
-// 	malleabilityFlag := false
-// 	pubKey, err := env.EcrecoverPubKey(hash, signature, v, malleabilityFlag)
-// 	if err != nil {
-// 		env.PanicStr("Failed to recover public key: " + err.Error())
-// 	}
-// 	env.LogString("Recovered public key: " + fmt.Sprintf("%x", pubKey))
-// 	env.ContractValueReturn([]byte("1"))
-// }
+type EcrecoverTest struct {
+	M   [32]byte
+	V   uint8
+	Sig [64]byte
+	Mc  bool
+	Res [64]byte
+}
+
+// TODO : tests unstable feature
+//
+//go:export TestEcrecoverPubKey
+func TestEcrecoverPubKey() {
+	data := EcrecoverTest{}
+
+	m, _ := hex.DecodeString("ce0677bb30baa8cf067c88db9811f4333d131bf8bcf12fe7065d211dce971008")
+	copy(data.M[:], m)
+
+	data.V = 1
+
+	sig, _ := hex.DecodeString("90f27b8b488db00b00606796d2987f6a5f59ae62ea05effe84fef5b8b0e549984a691139ad57a3f0b906637673aa2f63d1f55cb1a69199d4009eea23ceaddc93")
+	copy(data.Sig[:], sig)
+
+	data.Mc = true
+
+	res, _ := hex.DecodeString("e32df42865e97135acfb65f3bae71bdc86f4d49150ad6a440b6f15878109880a0a2b2667f7e725ceea70c673093bf67663e0312623c8e091b13cf2c0f11ef652")
+	copy(data.Res[:], res)
+
+	pubKey, err := env.EcrecoverPubKey(data.M[:], data.Sig[:], data.V, data.Mc)
+	if err != nil {
+		env.PanicStr("Failed to recover public key: " + err.Error())
+	}
+	env.LogString("Recovered public key: " + fmt.Sprintf("%x", pubKey))
+	if hex.EncodeToString(pubKey) == "e32df42865e97135acfb65f3bae71bdc86f4d49150ad6a440b6f15878109880a0a2b2667f7e725ceea70c673093bf67663e0312623c8e091b13cf2c0f11ef652" {
+		env.ContractValueReturn([]byte("1"))
+	} else {
+		env.ContractValueReturn([]byte("0"))
+	}
+}
 
 //go:export TestEd25519VerifySig
 func TestEd25519VerifySig() {
