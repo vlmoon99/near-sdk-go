@@ -1,3 +1,8 @@
+// This package provides implementations of low-level blockchain functions.
+// Under the hood, it uses the system package, which provides raw environment imports from the Near Blockchain environment.
+// Here, we wrap these functions and provide simpler methods for using low-level environment functions for smart contract development.
+// For examples, please go to examples/integration_tests/main.go to see how these functions are called.
+// All these functions are tested in integration_tests/src/main.rs. It's the best way to understand how they work in real examples.
 package env
 
 import (

@@ -1,3 +1,4 @@
+// This package provides basic types for blockchain environment manipulation, such as Uint128, PublicKey, NearGas, and other helpful types for smart contract development.
 package types
 
 import (
