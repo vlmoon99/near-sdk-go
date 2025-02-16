@@ -52,18 +52,39 @@ const (
 	ErrPromiseResult                     = "(PROMISE_ERROR): no promise results available"
 )
 
+// SetEnv sets the environment to be used for Near Blockchain imports.
+// It can be a mocked environment for unit tests or the default Near Blockchain imports for production.
+//
+// Parameters:
+// - system: The system environment to be set.
 func SetEnv(system system.System) {
 	nearBlockchainImports = system
 }
 
 // Registers API
 
+// tryMethodIntoRegister tries to execute the given method and reads the data from the register.
+//
+// Parameters:
+// - method: The method to be executed.
+//
+// Returns:
+// - []byte: The data read from the register.
+// - error: An error if the method execution or data reading fails.
 func tryMethodIntoRegister(method func(uint64)) ([]byte, error) {
 	method(AtomicOpRegister)
 
 	return ReadRegisterSafe(AtomicOpRegister)
 }
 
+// methodIntoRegister executes the given method and ensures the data is read from the register.
+//
+// Parameters:
+// - method: The method to be executed.
+//
+// Returns:
+// - []byte: The data read from the register.
+// - error: An error if the method execution or data reading fails.
 func methodIntoRegister(method func(uint64)) ([]byte, error) {
 	data, err := tryMethodIntoRegister(method)
 	if err != nil {
@@ -75,9 +96,16 @@ func methodIntoRegister(method func(uint64)) ([]byte, error) {
 	return data, nil
 }
 
+// ReadRegisterSafe reads the data from the specified register safely.
+//
+// Parameters:
+// - registerId: The ID of the register to read from.
+//
+// Returns:
+// - []byte: The data read from the register, or an error if the register reading fails.
 func ReadRegisterSafe(registerId uint64) ([]byte, error) {
 	length := nearBlockchainImports.RegisterLen(registerId)
-	//TODO : If len == 0 - ExecutionError("WebAssembly trap: An `unreachable` opcode was executed.") for some reason, if we convert value into string erroe gone
+	//TODO: If len == 0 - ExecutionError("WebAssembly trap: An `unreachable` opcode was executed.") for some reason, if we convert value into string, error gone
 	assertValidAccountId([]byte(string(length)))
 	if length == 0 {
 		return []byte{}, errors.New(ErrExpectedDataInRegister)
@@ -88,6 +116,11 @@ func ReadRegisterSafe(registerId uint64) ([]byte, error) {
 	return buffer, nil
 }
 
+// WriteRegisterSafe writes the given data to the specified register safely.
+//
+// Parameters:
+// - registerId: The ID of the register to write to.
+// - data: The data to be written to the register.
 func WriteRegisterSafe(registerId uint64, data []byte) {
 	if len(data) == 0 {
 		return
@@ -102,6 +135,15 @@ func WriteRegisterSafe(registerId uint64, data []byte) {
 
 // Storage API
 
+// StorageWrite writes the given value to the specified key in storage.
+//
+// Parameters:
+// - key: The key to write the value to.
+// - value: The value to write.
+//
+// Returns:
+// - bool: True if the value was successfully written, false otherwise.
+// - error: An error if the key or value is empty or if the write operation fails.
 func StorageWrite(key, value []byte) (bool, error) {
 	if len(key) == 0 {
 		return false, errors.New(ErrKeyNotFound)
@@ -120,7 +162,18 @@ func StorageWrite(key, value []byte) (bool, error) {
 	return storageWriteRecursive(keyLen, keyPtr, valueLen, valuePtr, 0)
 }
 
-// TODO : try to undersatnd why on the first SotrageWrite we have 0 and on the second one we have 1, each other writing in this key - works well
+// storageWriteRecursive attempts to write the value to the specified key in storage recursively.
+//
+// Parameters:
+// - keyLen: The length of the key.
+// - keyPtr: The pointer to the key.
+// - valueLen: The length of the value.
+// - valuePtr: The pointer to the value.
+// - attempt: The current attempt number.
+//
+// Returns:
+// - bool: True if the value was successfully written, false otherwise.
+// - error: An error if the write operation fails after the allowed attempts.
 func storageWriteRecursive(keyLen uint64, keyPtr uint64, valueLen uint64, valuePtr uint64, attempt int) (bool, error) {
 	result := nearBlockchainImports.StorageWrite(keyLen, keyPtr, valueLen, valuePtr, EvictedRegister)
 
@@ -135,6 +188,13 @@ func storageWriteRecursive(keyLen uint64, keyPtr uint64, valueLen uint64, valueP
 	return false, errors.New(ErrFailedToWriteValueInStorage)
 }
 
+// StorageRead reads the value associated with the given key from storage.
+//
+// Parameters:
+// - key: The key to read the value for.
+//
+// Returns:
+// - []byte: The value associated with the key, or an error if the read operation fails.
 func StorageRead(key []byte) ([]byte, error) {
 	if len(key) == 0 {
 		return nil, errors.New(ErrKeyIsEmpty)
@@ -155,6 +215,14 @@ func StorageRead(key []byte) ([]byte, error) {
 	return value, nil
 }
 
+// StorageRemove removes the value associated with the given key from storage.
+//
+// Parameters:
+// - key: The key to remove.
+//
+// Returns:
+// - bool: True if the value was successfully removed, false otherwise.
+// - error: An error if the key is empty or if the remove operation fails.
 func StorageRemove(key []byte) (bool, error) {
 	if len(key) == 0 {
 		return false, errors.New(ErrKeyIsEmpty)
@@ -171,6 +239,10 @@ func StorageRemove(key []byte) (bool, error) {
 	return true, nil
 }
 
+// StorageGetEvicted reads the value from the evicted register.
+//
+// Returns:
+// - []byte: The value read from the evicted register, or an error if the read operation fails.
 func StorageGetEvicted() ([]byte, error) {
 	value, err := ReadRegisterSafe(EvictedRegister)
 	if err != nil {
@@ -180,6 +252,14 @@ func StorageGetEvicted() ([]byte, error) {
 	return value, nil
 }
 
+// StorageHasKey checks if the given key exists in storage.
+//
+// Parameters:
+// - key: The key to check for existence.
+//
+// Returns:
+// - bool: True if the key exists, false otherwise.
+// - error: An error if the key is empty.
 func StorageHasKey(key []byte) (bool, error) {
 	if len(key) == 0 {
 		return false, errors.New(ErrKeyIsEmpty)
@@ -193,6 +273,13 @@ func StorageHasKey(key []byte) (bool, error) {
 	return result == 1, nil
 }
 
+// StateWrite writes the given data to the state.
+//
+// Parameters:
+// - data: The data to write.
+//
+// Returns:
+// - error: An error if the write operation fails.
 func StateWrite(data []byte) error {
 
 	keyLen := uint64(len(StateKey))
@@ -206,6 +293,10 @@ func StateWrite(data []byte) error {
 	return err
 }
 
+// StateRead reads the data from the state.
+//
+// Returns:
+// - []byte: The data read from the state, or an error if the read operation fails.
 func StateRead() ([]byte, error) {
 	keyLen := uint64(len(StateKey))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&StateKey[0])))
@@ -223,6 +314,10 @@ func StateRead() ([]byte, error) {
 	return data, nil
 }
 
+// StateExists checks if the state exists.
+//
+// Returns:
+// - bool: True if the state exists, false otherwise.
 func StateExists() bool {
 	keyLen := uint64(len(StateKey))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&StateKey[0])))
@@ -235,6 +330,14 @@ func StateExists() bool {
 
 // Context API
 
+// assertValidAccountId checks if the provided account ID is valid.
+//
+// Parameters:
+// - data: The account ID data to validate.
+//
+// Returns:
+// - string: The valid account ID as a string.
+// - error: An error if the account ID is invalid.
 func assertValidAccountId(data []byte) (string, error) {
 	if len(data) == 0 {
 		return "", errors.New(ErrInvalidAccountID)
@@ -242,6 +345,11 @@ func assertValidAccountId(data []byte) (string, error) {
 	return string(data), nil
 }
 
+// GetCurrentAccountId retrieves the current account ID.
+//
+// Returns:
+// - string: The current account ID.
+// - error: An error if the retrieval fails.
 func GetCurrentAccountId() (string, error) {
 	data, err := methodIntoRegister(func(registerID uint64) { nearBlockchainImports.CurrentAccountId(registerID) })
 	if err != nil {
@@ -252,6 +360,11 @@ func GetCurrentAccountId() (string, error) {
 	return assertValidAccountId(data)
 }
 
+// GetSignerAccountID retrieves the signer account ID.
+//
+// Returns:
+// - string: The signer account ID.
+// - error: An error if the retrieval fails.
 func GetSignerAccountID() (string, error) {
 	data, err := methodIntoRegister(func(registerID uint64) { nearBlockchainImports.SignerAccountId(registerID) })
 	if err != nil {
@@ -262,6 +375,11 @@ func GetSignerAccountID() (string, error) {
 	return assertValidAccountId(data)
 }
 
+// GetSignerAccountPK retrieves the public key of the signer account.
+//
+// Returns:
+// - []byte: The public key of the signer account.
+// - error: An error if the retrieval fails.
 func GetSignerAccountPK() ([]byte, error) {
 	data, err := methodIntoRegister(func(registerID uint64) { nearBlockchainImports.SignerAccountPk(registerID) })
 	if err != nil {
@@ -272,6 +390,11 @@ func GetSignerAccountPK() ([]byte, error) {
 	return data, nil
 }
 
+// GetPredecessorAccountID retrieves the predecessor account ID.
+//
+// Returns:
+// - string: The predecessor account ID.
+// - error: An error if the retrieval fails.
 func GetPredecessorAccountID() (string, error) {
 	data, err := methodIntoRegister(func(registerID uint64) { nearBlockchainImports.PredecessorAccountId(registerID) })
 	if err != nil {
@@ -282,22 +405,48 @@ func GetPredecessorAccountID() (string, error) {
 	return assertValidAccountId(data)
 }
 
+// GetCurrentBlockHeight retrieves the current block height.
+//
+// Returns:
+// - uint64: The current block height.
 func GetCurrentBlockHeight() uint64 {
 	return nearBlockchainImports.BlockTimestamp()
 }
 
+// GetBlockTimeMs retrieves the block time in milliseconds.
+//
+// Returns:
+// - uint64: The block time in milliseconds.
 func GetBlockTimeMs() uint64 {
 	return nearBlockchainImports.BlockTimestamp() / 1_000_000
 }
 
+// GetEpochHeight retrieves the current epoch height.
+//
+// Returns:
+// - uint64: The current epoch height.
 func GetEpochHeight() uint64 {
 	return nearBlockchainImports.EpochHeight()
 }
 
+// GetStorageUsage retrieves the storage usage.
+//
+// Returns:
+// - uint64: The storage usage.
 func GetStorageUsage() uint64 {
 	return nearBlockchainImports.StorageUsage()
 }
 
+// detectInputType detects the type of input data based on the provided key path.
+//
+// Parameters:
+// - decodedData: The decoded data to analyze.
+// - keyPath: The key path to locate the specific data element.
+//
+// Returns:
+// - []byte: The detected value.
+// - string: The type of the detected value.
+// - error: An error if the detection fails.
 func detectInputType(decodedData []byte, keyPath ...string) ([]byte, string, error) {
 	value, dataType, _, err := jsonparser.Get(decodedData, keyPath...)
 
@@ -326,6 +475,15 @@ func detectInputType(decodedData []byte, keyPath ...string) ([]byte, string, err
 	}
 }
 
+// ContractInput retrieves the input data for the contract.
+//
+// Parameters:
+// - options: Options specifying how to handle the input data.
+//
+// Returns:
+// - []byte: The input data.
+// - string: The type of the input data.
+// - error: An error if the retrieval or processing fails.
 func ContractInput(options types.ContractInputOptions) ([]byte, string, error) {
 	data, err := methodIntoRegister(func(registerID uint64) {
 		nearBlockchainImports.Input(registerID)
@@ -352,6 +510,11 @@ func ContractInput(options types.ContractInputOptions) ([]byte, string, error) {
 
 // Economics API
 
+// GetAccountBalance retrieves the current account balance.
+//
+// Returns:
+// - types.Uint128: The current account balance.
+// - error: An error if the retrieval fails.
 func GetAccountBalance() (types.Uint128, error) {
 	var data [16]byte
 	nearBlockchainImports.AccountBalance(uint64(uintptr(unsafe.Pointer(&data[0]))))
@@ -362,6 +525,11 @@ func GetAccountBalance() (types.Uint128, error) {
 	return accountBalance, nil
 }
 
+// GetAccountLockedBalance retrieves the locked balance of the account.
+//
+// Returns:
+// - types.Uint128: The locked balance of the account.
+// - error: An error if the retrieval fails.
 func GetAccountLockedBalance() (types.Uint128, error) {
 	var data [16]byte
 	nearBlockchainImports.AccountLockedBalance(uint64(uintptr(unsafe.Pointer(&data[0]))))
@@ -372,6 +540,11 @@ func GetAccountLockedBalance() (types.Uint128, error) {
 	return accountBalance, nil
 }
 
+// GetAttachedDepoist retrieves the attached deposit.
+//
+// Returns:
+// - types.Uint128: The attached deposit.
+// - error: An error if the retrieval fails.
 func GetAttachedDepoist() (types.Uint128, error) {
 	var data [16]byte
 	nearBlockchainImports.AttachedDeposit(uint64(uintptr(unsafe.Pointer(&data[0]))))
@@ -382,10 +555,18 @@ func GetAttachedDepoist() (types.Uint128, error) {
 	return attachedDeposit, nil
 }
 
+// GetPrepaidGas retrieves the prepaid gas.
+//
+// Returns:
+// - types.NearGas: The prepaid gas.
 func GetPrepaidGas() types.NearGas {
 	return types.NearGas{Inner: nearBlockchainImports.PrepaidGas()}
 }
 
+// GetUsedGas retrieves the used gas.
+//
+// Returns:
+// - types.NearGas: The used gas.
 func GetUsedGas() types.NearGas {
 	return types.NearGas{Inner: nearBlockchainImports.UsedGas()}
 }
@@ -394,36 +575,84 @@ func GetUsedGas() types.NearGas {
 
 // Math API
 
+// GetRandomSeed retrieves a random seed from the blockchain.
+//
+// Returns:
+// - []byte: The random seed.
+// - error: An error if the retrieval fails.
 func GetRandomSeed() ([]byte, error) {
 	return methodIntoRegister(func(registerID uint64) {
 		nearBlockchainImports.RandomSeed(registerID)
 	})
 }
 
+// Sha256Hash computes the SHA-256 hash of the given data.
+//
+// Parameters:
+// - data: The data to hash.
+//
+// Returns:
+// - []byte: The SHA-256 hash of the data.
+// - error: An error if the hashing fails.
 func Sha256Hash(data []byte) ([]byte, error) {
 	return methodIntoRegister(func(registerID uint64) {
 		nearBlockchainImports.Sha256(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), registerID)
 	})
 }
 
+// Keccak256Hash computes the Keccak-256 hash of the given data.
+//
+// Parameters:
+// - data: The data to hash.
+//
+// Returns:
+// - []byte: The Keccak-256 hash of the data.
+// - error: An error if the hashing fails.
 func Keccak256Hash(data []byte) ([]byte, error) {
 	return methodIntoRegister(func(registerID uint64) {
 		nearBlockchainImports.Keccak256(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), registerID)
 	})
 }
 
+// Keccak512Hash computes the Keccak-512 hash of the given data.
+//
+// Parameters:
+// - data: The data to hash.
+//
+// Returns:
+// - []byte: The Keccak-512 hash of the data.
+// - error: An error if the hashing fails.
 func Keccak512Hash(data []byte) ([]byte, error) {
 	return methodIntoRegister(func(registerID uint64) {
 		nearBlockchainImports.Keccak512(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), registerID)
 	})
 }
 
+// Ripemd160Hash computes the RIPEMD-160 hash of the given data.
+//
+// Parameters:
+// - data: The data to hash.
+//
+// Returns:
+// - []byte: The RIPEMD-160 hash of the data.
+// - error: An error if the hashing fails.
 func Ripemd160Hash(data []byte) ([]byte, error) {
 	return methodIntoRegister(func(registerID uint64) {
 		nearBlockchainImports.Ripemd160(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), registerID)
 	})
 }
 
+// EcrecoverPubKey recovers the public key from the given hash and signature using the ECDSA algorithm.
+//
+// Parameters:
+// - hash: The hash of the data.
+// - signature: The signature of the data.
+// - v: The recovery id (v).
+// - malleabilityFlag: Indicates if malleable.
+//
+// Returns:
+// - []byte: The recovered public key.
+// - error: An error if the input hash or signature is empty, or if the recovery fails.
 func EcrecoverPubKey(hash, signature []byte, v byte, malleabilityFlag bool) ([]byte, error) {
 	if len(hash) == 0 || len(signature) == 0 {
 		return nil, errors.New(ErrInvalidInputHashAndSignatureEmpty)
@@ -442,6 +671,15 @@ func EcrecoverPubKey(hash, signature []byte, v byte, malleabilityFlag bool) ([]b
 	})
 }
 
+// Ed25519VerifySig verifies the Ed25519 signature of the given message with the public key.
+//
+// Parameters:
+// - signature: The Ed25519 signature.
+// - message: The message to verify.
+// - publicKey: The Ed25519 public key.
+//
+// Returns:
+// - bool: True if the signature is valid, false otherwise.
 func Ed25519VerifySig(signature [64]byte, message []byte, publicKey [32]byte) bool {
 	result := nearBlockchainImports.Ed25519Verify(
 		uint64(len(signature)), uint64(uintptr(unsafe.Pointer(&signature[0]))),
@@ -451,18 +689,41 @@ func Ed25519VerifySig(signature [64]byte, message []byte, publicKey [32]byte) bo
 	return result == 1
 }
 
+// AltBn128G1MultiExp performs a multi-exponentiation on the given value using the alt_bn128 curve.
+//
+// Parameters:
+// - value: The value to perform multi-exponentiation on.
+//
+// Returns:
+// - []byte: The result of the multi-exponentiation.
+// - error: An error if the operation fails.
 func AltBn128G1MultiExp(value []byte) ([]byte, error) {
 	return methodIntoRegister(func(registerID uint64) {
 		nearBlockchainImports.AltBn128G1Multiexp(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))), registerID)
 	})
 }
 
+// AltBn128G1Sum performs a summation on the given value using the alt_bn128 curve.
+//
+// Parameters:
+// - value: The value to perform summation on.
+//
+// Returns:
+// - []byte: The result of the summation.
+// - error: An error if the operation fails.
 func AltBn128G1Sum(value []byte) ([]byte, error) {
 	return methodIntoRegister(func(registerID uint64) {
 		nearBlockchainImports.AltBn128G1SumSystem(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))), registerID)
 	})
 }
 
+// AltBn128PairingCheck performs a pairing check on the given value using the alt_bn128 curve.
+//
+// Parameters:
+// - value: The value to perform pairing check on.
+//
+// Returns:
+// - bool: True if the pairing check is successful, false otherwise.
 func AltBn128PairingCheck(value []byte) bool {
 	return nearBlockchainImports.AltBn128PairingCheckSystem(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0])))) == 1
 }
@@ -471,6 +732,14 @@ func AltBn128PairingCheck(value []byte) bool {
 
 // Validator API
 
+// ValidatorStakeAmount retrieves the stake amount for a given validator account ID.
+//
+// Parameters:
+// - accountID: The account ID of the validator.
+//
+// Returns:
+// - types.Uint128: The stake amount of the validator.
+// - error: An error if the account ID is empty or if the retrieval fails.
 func ValidatorStakeAmount(accountID []byte) (types.Uint128, error) {
 	if len(accountID) == 0 {
 		return types.Uint128{Hi: 0, Lo: 0}, errors.New(ErrAccountIDMustNotBeEmpty)
@@ -487,6 +756,11 @@ func ValidatorStakeAmount(accountID []byte) (types.Uint128, error) {
 	return validatorStakeAmount, nil
 }
 
+// ValidatorTotalStakeAmount retrieves the total stake amount of all validators.
+//
+// Returns:
+// - types.Uint128: The total stake amount of all validators.
+// - error: An error if the retrieval fails.
 func ValidatorTotalStakeAmount() (types.Uint128, error) {
 	var stakeData [16]byte
 	nearBlockchainImports.ValidatorTotalStake(uint64(uintptr(unsafe.Pointer(&stakeData[0]))))
@@ -503,10 +777,18 @@ func ValidatorTotalStakeAmount() (types.Uint128, error) {
 
 // Miscellaneous API
 
+// ContractValueReturn returns the specified value to the contract caller.
+//
+// Parameters:
+// - inputBytes: The value to return.
 func ContractValueReturn(inputBytes []byte) {
 	nearBlockchainImports.ValueReturn(uint64(len(inputBytes)), uint64(uintptr(unsafe.Pointer(&inputBytes[0]))))
 }
 
+// PanicStr triggers a panic with the specified message.
+//
+// Parameters:
+// - input: The panic message.
 func PanicStr(input string) {
 	inputBytes := []byte(input)
 	inputLength := uint64(len(inputBytes))
@@ -520,10 +802,15 @@ func PanicStr(input string) {
 	nearBlockchainImports.PanicUtf8(inputLength, inputPtr)
 }
 
+// AbortExecution aborts the execution of the contract.
 func AbortExecution() {
 	PanicStr("AbortExecution")
 }
 
+// LogString logs the specified string message.
+//
+// Parameters:
+// - input: The string message to log.
 func LogString(input string) {
 	inputBytes := []byte(input)
 	inputLength := uint64(len(inputBytes))
@@ -537,8 +824,11 @@ func LogString(input string) {
 	nearBlockchainImports.LogUtf8(inputLength, inputPtr)
 }
 
+// LogStringUtf8 logs the specified UTF-8 encoded string message.
+//
+// Parameters:
+// - inputBytes: The UTF-8 encoded string message to log.
 func LogStringUtf8(inputBytes []byte) {
-
 	inputLength := uint64(len(inputBytes))
 
 	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
@@ -546,8 +836,11 @@ func LogStringUtf8(inputBytes []byte) {
 	nearBlockchainImports.LogUtf8(inputLength, inputPtr)
 }
 
+// LogStringUtf16 logs the specified UTF-16 encoded string message.
+//
+// Parameters:
+// - inputBytes: The UTF-16 encoded string message to log.
 func LogStringUtf16(inputBytes []byte) {
-
 	inputLength := uint64(len(inputBytes))
 
 	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
@@ -559,6 +852,17 @@ func LogStringUtf16(inputBytes []byte) {
 
 // Promises API
 
+// PromiseCreate creates a promise to call a specified function on a specified account.
+//
+// Parameters:
+// - accountId: The ID of the account to call the function on.
+// - functionName: The name of the function to call.
+// - arguments: The arguments to pass to the function.
+// - amount: The amount to attach to the call.
+// - gas: The amount of gas to attach to the call.
+//
+// Returns:
+// - uint64: The ID of the created promise.
 func PromiseCreate(accountId []byte, functionName []byte, arguments []byte, amount types.Uint128, gas uint64) uint64 {
 	if len(arguments) == 0 {
 		arguments = []byte("{}")
@@ -578,6 +882,18 @@ func PromiseCreate(accountId []byte, functionName []byte, arguments []byte, amou
 	)
 }
 
+// PromiseThen creates a dependent promise that will be executed after the initial promise resolves.
+//
+// Parameters:
+// - promiseIdx: The ID of the initial promise.
+// - accountId: The ID of the account to call the function on.
+// - functionName: The name of the function to call.
+// - arguments: The arguments to pass to the function.
+// - amount: The amount to attach to the call.
+// - gas: The amount of gas to attach to the call.
+//
+// Returns:
+// - uint64: The ID of the created dependent promise.
 func PromiseThen(promiseIdx uint64, accountId []byte, functionName []byte, arguments []byte, amount types.Uint128, gas uint64) uint64 {
 	if len(arguments) == 0 {
 		arguments = []byte("{}")
@@ -599,14 +915,36 @@ func PromiseThen(promiseIdx uint64, accountId []byte, functionName []byte, argum
 	)
 }
 
+// PromiseAnd combines multiple promises into a single promise that will resolve when all the combined promises resolve.
+//
+// Parameters:
+// - promiseIndices: The IDs of the promises to combine.
+//
+// Returns:
+// - uint64: The ID of the combined promise.
 func PromiseAnd(promiseIndices []uint64) uint64 {
 	return nearBlockchainImports.PromiseAnd(uint64(uintptr(unsafe.Pointer(&promiseIndices[0]))), uint64(len(promiseIndices)))
 }
 
+// PromiseBatchCreate creates a batch promise for a specified account.
+//
+// Parameters:
+// - accountId: The ID of the account to create the batch promise for.
+//
+// Returns:
+// - uint64: The ID of the created batch promise.
 func PromiseBatchCreate(accountId []byte) uint64 {
 	return nearBlockchainImports.PromiseBatchCreate(uint64(len(accountId)), uint64(uintptr(unsafe.Pointer(&accountId[0]))))
 }
 
+// PromiseBatchThen creates a dependent batch promise that will be executed after the initial promise resolves.
+//
+// Parameters:
+// - promiseIdx: The ID of the initial promise.
+// - accountId: The ID of the account to create the dependent batch promise for.
+//
+// Returns:
+// - uint64: The ID of the created dependent batch promise.
 func PromiseBatchThen(promiseIdx uint64, accountId []byte) uint64 {
 	return nearBlockchainImports.PromiseBatchThen(promiseIdx, uint64(len(accountId)), uint64(uintptr(unsafe.Pointer(&accountId[0]))))
 }
@@ -615,14 +953,31 @@ func PromiseBatchThen(promiseIdx uint64, accountId []byte) uint64 {
 
 // Promises API Action
 
+// PromiseBatchActionCreateAccount creates a promise batch action to create a new account.
+//
+// Parameters:
+// - promiseIdx: The ID of the promise batch.
 func PromiseBatchActionCreateAccount(promiseIdx uint64) {
 	nearBlockchainImports.PromiseBatchActionCreateAccount(promiseIdx)
 }
 
+// PromiseBatchActionDeployContract creates a promise batch action to deploy a contract.
+//
+// Parameters:
+// - promiseIdx: The ID of the promise batch.
+// - bytes: The contract code to deploy.
 func PromiseBatchActionDeployContract(promiseIdx uint64, bytes []byte) {
 	nearBlockchainImports.PromiseBatchActionDeployContract(promiseIdx, uint64(len(bytes)), uint64(uintptr(unsafe.Pointer(&bytes[0]))))
 }
 
+// PromiseBatchActionFunctionCall creates a promise batch action to call a function.
+//
+// Parameters:
+// - promiseIdx: The ID of the promise batch.
+// - functionName: The name of the function to call.
+// - arguments: The arguments to pass to the function.
+// - amount: The amount to attach to the call.
+// - gas: The amount of gas to attach to the call.
 func PromiseBatchActionFunctionCall(promiseIdx uint64, functionName []byte, arguments []byte, amount types.Uint128, gas uint64) {
 	if len(arguments) == 0 {
 		arguments = []byte("{}")
@@ -639,6 +994,15 @@ func PromiseBatchActionFunctionCall(promiseIdx uint64, functionName []byte, argu
 	)
 }
 
+// PromiseBatchActionFunctionCallWeight creates a promise batch action to call a function with a specified weight.
+//
+// Parameters:
+// - promiseIdx: The ID of the promise batch.
+// - functionName: The name of the function to call.
+// - arguments: The arguments to pass to the function.
+// - amount: The amount to attach to the call.
+// - gas: The amount of gas to attach to the call.
+// - weight: The weight of the call.
 func PromiseBatchActionFunctionCallWeight(promiseIdx uint64, functionName []byte, arguments []byte, amount types.Uint128, gas uint64, weight uint64) {
 	if len(arguments) == 0 {
 		arguments = []byte("{}")
@@ -656,10 +1020,21 @@ func PromiseBatchActionFunctionCallWeight(promiseIdx uint64, functionName []byte
 	)
 }
 
+// PromiseBatchActionTransfer creates a promise batch action to transfer an amount.
+//
+// Parameters:
+// - promiseIdx: The ID of the promise batch.
+// - amount: The amount to transfer.
 func PromiseBatchActionTransfer(promiseIdx uint64, amount types.Uint128) {
 	nearBlockchainImports.PromiseBatchActionTransfer(promiseIdx, uint64(uintptr(unsafe.Pointer(&amount.ToLE()[0]))))
 }
 
+// PromiseBatchActionStake creates a promise batch action to stake an amount.
+//
+// Parameters:
+// - promiseIdx: The ID of the promise batch.
+// - amount: The amount to stake.
+// - publicKey: The public key to stake with.
 func PromiseBatchActionStake(promiseIdx uint64, amount types.Uint128, publicKey []byte) {
 	nearBlockchainImports.PromiseBatchActionStake(
 		promiseIdx,
@@ -670,6 +1045,12 @@ func PromiseBatchActionStake(promiseIdx uint64, amount types.Uint128, publicKey 
 	)
 }
 
+// PromiseBatchActionAddKeyWithFullAccess creates a promise batch action to add a key with full access.
+//
+// Parameters:
+// - promiseIdx: The ID of the promise batch.
+// - publicKey: The public key to add.
+// - nonce: The nonce for the key.
 func PromiseBatchActionAddKeyWithFullAccess(promiseIdx uint64, publicKey []byte, nonce uint64) {
 	nearBlockchainImports.PromiseBatchActionAddKeyWithFullAccess(
 		promiseIdx,
@@ -681,6 +1062,15 @@ func PromiseBatchActionAddKeyWithFullAccess(promiseIdx uint64, publicKey []byte,
 	)
 }
 
+// PromiseBatchActionAddKeyWithFunctionCall creates a promise batch action to add a key with function call access.
+//
+// Parameters:
+// - promiseIdx: The ID of the promise batch.
+// - publicKey: The public key to add.
+// - nonce: The nonce for the key.
+// - amount: The amount to attach to the call.
+// - receiverId: The ID of the receiver account.
+// - functionName: The name of the function to call.
 func PromiseBatchActionAddKeyWithFunctionCall(promiseIdx uint64, publicKey []byte, nonce uint64, amount types.Uint128, receiverId []byte, functionName []byte) {
 	nearBlockchainImports.PromiseBatchActionAddKeyWithFunctionCall(
 		promiseIdx,
@@ -699,6 +1089,11 @@ func PromiseBatchActionAddKeyWithFunctionCall(promiseIdx uint64, publicKey []byt
 	)
 }
 
+// PromiseBatchActionDeleteKey creates a promise batch action to delete a key.
+//
+// Parameters:
+// - promiseIdx: The ID of the promise batch.
+// - publicKey: The public key to delete.
 func PromiseBatchActionDeleteKey(promiseIdx uint64, publicKey []byte) {
 	nearBlockchainImports.PromiseBatchActionDeleteKey(
 		promiseIdx,
@@ -708,6 +1103,11 @@ func PromiseBatchActionDeleteKey(promiseIdx uint64, publicKey []byte) {
 	)
 }
 
+// PromiseBatchActionDeleteAccount creates a promise batch action to delete an account.
+//
+// Parameters:
+// - promiseIdx: The ID of the promise batch.
+// - beneficiaryId: The ID of the beneficiary account.
 func PromiseBatchActionDeleteAccount(promiseIdx uint64, beneficiaryId []byte) {
 	nearBlockchainImports.PromiseBatchActionDeleteAccount(
 		promiseIdx,
@@ -717,6 +1117,16 @@ func PromiseBatchActionDeleteAccount(promiseIdx uint64, beneficiaryId []byte) {
 	)
 }
 
+// PromiseYieldCreate creates a yield promise to call a specified function.
+//
+// Parameters:
+// - functionName: The name of the function to call.
+// - arguments: The arguments to pass to the function.
+// - gas: The amount of gas to attach to the call.
+// - gasWeight: The weight of the gas.
+//
+// Returns:
+// - uint64: The ID of the created yield promise.
 func PromiseYieldCreate(functionName []byte, arguments []byte, gas uint64, gasWeight uint64) uint64 {
 	if len(arguments) == 0 {
 		arguments = []byte("{}")
@@ -733,6 +1143,14 @@ func PromiseYieldCreate(functionName []byte, arguments []byte, gas uint64, gasWe
 	)
 }
 
+// PromiseYieldResume resumes a yield promise with the specified data and payload.
+//
+// Parameters:
+// - data: The data to resume the promise with.
+// - payload: The payload to resume the promise with.
+//
+// Returns:
+// - uint32: The status of the resumed promise.
 func PromiseYieldResume(data []byte, payload []byte) uint32 {
 	return nearBlockchainImports.PromiseYieldResume(
 		uint64(len(data)),
@@ -747,10 +1165,22 @@ func PromiseYieldResume(data []byte, payload []byte) uint32 {
 
 // Promise API Results
 
+// PromiseResultsCount retrieves the count of promise results.
+//
+// Returns:
+// - uint64: The count of promise results.
 func PromiseResultsCount() uint64 {
 	return nearBlockchainImports.PromiseResultsCount()
 }
 
+// PromiseResult retrieves the result of a specified promise.
+//
+// Parameters:
+// - resultIdx: The index of the promise result to retrieve.
+//
+// Returns:
+// - []byte: The result of the specified promise.
+// - error: An error if there are no promise results or if the retrieval fails.
 func PromiseResult(resultIdx uint64) ([]byte, error) {
 	if PromiseResultsCount() == 0 {
 		return nil, errors.New(ErrPromiseResult)
@@ -766,6 +1196,10 @@ func PromiseResult(resultIdx uint64) ([]byte, error) {
 	return value, nil
 }
 
+// PromiseReturn returns the result of a specified promise.
+//
+// Parameters:
+// - promiseId: The ID of the promise to return the result for.
 func PromiseReturn(promiseId uint64) {
 	nearBlockchainImports.PromiseReturn(promiseId)
 }

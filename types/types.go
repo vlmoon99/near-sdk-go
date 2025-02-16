@@ -466,15 +466,17 @@ type NearGas struct {
 	Inner uint64
 }
 
-// PublickKey
-
+// CurveType represents the type of cryptographic curve used.
 type CurveType byte
 
 const (
+	// ED25519 represents the ed25519 curve.
 	ED25519 CurveType = iota
+	// SECP256K1 represents the secp256k1 curve.
 	SECP256K1
 )
 
+// String returns the string representation of the CurveType.
 func (c CurveType) String() string {
 	switch c {
 	case ED25519:
@@ -486,6 +488,7 @@ func (c CurveType) String() string {
 	}
 }
 
+// DataLen returns the length of the data for the given CurveType.
 func (c CurveType) DataLen() int {
 	switch c {
 	case ED25519:
@@ -497,6 +500,7 @@ func (c CurveType) DataLen() int {
 	}
 }
 
+// ParseCurveType parses a string to a CurveType.
 func ParseCurveType(s string) (CurveType, error) {
 	switch strings.ToLower(s) {
 	case "ed25519":
@@ -508,11 +512,13 @@ func ParseCurveType(s string) (CurveType, error) {
 	}
 }
 
+// PublicKey represents a public key with a specific curve type.
 type PublicKey struct {
 	Curve CurveType
 	Data  []byte
 }
 
+// NewPublicKey creates a new PublicKey with the given curve type and data.
 func NewPublicKey(curve CurveType, data []byte) (*PublicKey, error) {
 	if len(data) != curve.DataLen() {
 		return nil, errors.New("invalid data length for curve")
@@ -520,6 +526,7 @@ func NewPublicKey(curve CurveType, data []byte) (*PublicKey, error) {
 	return &PublicKey{Curve: curve, Data: data}, nil
 }
 
+// PublicKeyFromString parses a string to create a PublicKey.
 func PublicKeyFromString(s string) (*PublicKey, error) {
 	parts := strings.Split(s, ":")
 	if len(parts) != 2 {
@@ -539,18 +546,20 @@ func PublicKeyFromString(s string) (*PublicKey, error) {
 	return NewPublicKey(curve, data)
 }
 
+// ToHexString returns the hexadecimal string representation of the PublicKey.
 func (pk *PublicKey) ToHexString() string {
 	return pk.Curve.String() + ":" + hex.EncodeToString(pk.Data)
 }
+
+// ToBase58String returns the Base58 string representation of the PublicKey.
 func (pk *PublicKey) ToBase58String() string {
 	return pk.Curve.String() + ":" + base58.Encode(pk.Data)
 }
 
+// Bytes returns the byte representation of the PublicKey.
 func (pk *PublicKey) Bytes() []byte {
 	curveByte := byte(pk.Curve)
 	result := []byte{curveByte}
 	result = append(result, pk.Data...)
 	return result
 }
-
-// PublickKey
