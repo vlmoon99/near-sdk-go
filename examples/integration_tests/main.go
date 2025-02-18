@@ -156,21 +156,39 @@ func TestStateExists() {
 	}
 }
 
-// NOT Working for some Reason
+//go:export TestStorageGetEvicted
+func TestStorageGetEvicted() {
+	result, err := env.StorageWrite([]byte("qwerty"), []byte("Hello World"))
 
-// //go:export TestStorageGetEvicted
-// func TestStorageGetEvicted() {
-// 	value, err := env.StorageGetEvicted()
-// 	if err != nil {
-// 		env.PanicStr("Failed to get evicted value: " + err.Error())
-// 	}
+	if err != nil {
+		env.LogString("err :" + err.Error())
+		return
+	}
 
-// 	if value == nil {
-// 		env.ContractValueReturn([]byte("0"))
-// 	} else {
-// 		env.ContractValueReturn([]byte("1"))
-// 	}
-// }
+	env.LogString("result :" + fmt.Sprintf("%d", result))
+
+	data, err := env.StorageRead([]byte("qwerty"))
+
+	if err != nil {
+		env.LogString("err :" + err.Error())
+		return
+	}
+
+	env.LogString("data :" + string(data))
+
+	value, err := env.StorageGetEvicted()
+	if err != nil {
+		env.PanicStr("Failed to get evicted value: " + err.Error())
+	}
+
+	env.LogString("StorageGetEvicted value :" + string(value))
+
+	if value == nil {
+		env.ContractValueReturn([]byte("0"))
+	} else {
+		env.ContractValueReturn([]byte("1"))
+	}
+}
 
 // Storage API
 

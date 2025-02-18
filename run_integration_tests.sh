@@ -1,1 +1,1 @@
-tinygo build -size short -no-debug -panic=trap -scheduler=none -gc=leaking -o main.wasm -target wasm-unknown ./ && ls -lh main.wasm && cd integration_tests && cargo run && cd ..
+tinygo build -size short -no-debug -panic=trap -scheduler=none -gc=leaking -o main.wasm -target wasm-unknown ./examples/integration_tests/main.go && ls -lh main.wasm && cd integration_tests && cargo run && cd .. && rm -rf main.wasm

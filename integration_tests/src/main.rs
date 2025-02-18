@@ -47,37 +47,7 @@ async fn call_integration_test_function(
         }
     }
 }
-// async fn call_integration_test_function(
-//     contract: &near_workspaces::Contract,
-//     function_name: &str,
-//     args: serde_json::Value,
-//     deposit: NearToken,
-//     gas: NearGas,
-//     is_panic: bool,
-// ) -> anyhow::Result<()> {
-//     let outcome = contract
-//         .call(function_name)
-//         .args_json(args)
-//         .deposit(deposit)
-//         .gas(gas)
-//         .transact()
-//         .await?;
 
-//     let result = unsafe { outcome.clone().json::<i8>().unwrap_unchecked() };
-
-//     if result == 1 {
-//         println!("{} result: Test succeeded", function_name);
-//         println!("result: Functions Logs: {:#?}", outcome.logs());
-//     } else {
-//         if is_panic {
-//             println!("{} result: Test succeeded (panic scenario)", function_name);
-//         } else {
-//             println!("{} result: Test failed", function_name);
-//         }
-//     }
-
-//     Ok(())
-// }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -163,14 +133,14 @@ async fn main() -> anyhow::Result<()> {
             standard_gas,
         )
         .await,
-        // // Not Working, throws unreachable
-        // call_integration_test_function(
-        //     &contract,
-        //     "TestStorageGetEvicted",
-        //     json!({}),
-        //     standard_deposit,
-        //     standard_gas,
-        // ).await,
+
+        call_integration_test_function(
+            &contract,
+            "TestStorageGetEvicted",
+            json!({}),
+            standard_deposit,
+            standard_gas,
+        ).await,
 
         // Storage API
 
