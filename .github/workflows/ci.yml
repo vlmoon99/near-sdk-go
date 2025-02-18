@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.23.5'
+
+      - name: Install TinyGo
+        run: |
+          wget https://github.com/tinygo-org/tinygo/releases/download/v0.35.0/tinygo_0.35.0_amd64.deb
+          sudo dpkg -i tinygo_0.35.0_amd64.deb
+
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source $HOME/.cargo/env
+          echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> $HOME/.profile
+          source $HOME/.profile
+
+      - name: TinyGo tests
+        run: |
+          set +e
+          tinygo test ./...
+          tinygo test ./...
+          set -e
+
+      - name: Build the integration tests project with TinyGo
+        run: |
+          set +e
+          tinygo build -size short -no-debug -panic=trap -scheduler=none -gc=leaking -o integrationTests.wasm -target wasm-unknown ./examples/integration_tests/main.go
+          tinygo build -size short -no-debug -panic=trap -scheduler=none -gc=leaking -o integrationTests.wasm -target wasm-unknown ./examples/integration_tests/main.go
+          set -e
+
+      - name: List the integrationTests.wasm file
+        run: ls -lh integrationTests.wasm
+
+      - name: Run integration tests
+        run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
+          cd integration_tests
+          cargo run
+          cd ..
