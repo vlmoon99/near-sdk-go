@@ -16,8 +16,8 @@ func TestSetEnv(t *testing.T) {
 	mockSys := system.NewMockSystem()
 	SetEnv(mockSys)
 
-	if nearBlockchainImports != mockSys {
-		t.Errorf("expected nearBlockchainImports to be set to mockSys, got %v", nearBlockchainImports)
+	if NearBlockchainImports != mockSys {
+		t.Errorf("expected NearBlockchainImports to be set to mockSys, got %v", NearBlockchainImports)
 	}
 }
 
@@ -305,7 +305,7 @@ func TestContractInputJSON(t *testing.T) {
 		AddBool("key3", true).
 		Build()
 
-	mockSys, _ := nearBlockchainImports.(*system.MockSystem)
+	mockSys, _ := NearBlockchainImports.(*system.MockSystem)
 	mockSys.ContractInput = jsonData
 	mockSys.Input(1)
 
@@ -483,7 +483,7 @@ func TestEcrecoverPubKey(t *testing.T) {
 	malleabilityFlag := true
 	expected := []byte{1, 2, 3, 4}
 
-	mockSys, _ := nearBlockchainImports.(*system.MockSystem)
+	mockSys, _ := NearBlockchainImports.(*system.MockSystem)
 	mockSys.Registers[AtomicOpRegister] = expected
 
 	pubKey, err := EcrecoverPubKey(hash, signature, v, malleabilityFlag)
@@ -587,7 +587,7 @@ func TestValidatorTotalStakeAmount(t *testing.T) {
 
 func TestContractValueReturn(t *testing.T) {
 	input := []byte("test value")
-	mockSys, _ := nearBlockchainImports.(*system.MockSystem)
+	mockSys, _ := NearBlockchainImports.(*system.MockSystem)
 	ContractValueReturn(input)
 	if string(mockSys.Registers[0]) != string(input) {
 		t.Fatalf("expected %s, got %s", string(input), string(mockSys.Registers[0]))
@@ -611,9 +611,9 @@ func TestPromiseCreate(t *testing.T) {
 		t.Errorf("expected promise index %d, got %d", expectedIndex, promiseIndex)
 	}
 
-	mockSys, ok := nearBlockchainImports.(*system.MockSystem)
+	mockSys, ok := NearBlockchainImports.(*system.MockSystem)
 	if !ok {
-		t.Fatalf("Failed to cast nearBlockchainImports to *system.MockSystem")
+		t.Fatalf("Failed to cast NearBlockchainImports to *system.MockSystem")
 	}
 
 	if len(mockSys.Promises) != 1 {
@@ -656,9 +656,9 @@ func TestPromiseThen(t *testing.T) {
 		t.Errorf("expected promise index %d, got %d", expectedIndex, promiseIndex)
 	}
 
-	mockSys, ok := nearBlockchainImports.(*system.MockSystem)
+	mockSys, ok := NearBlockchainImports.(*system.MockSystem)
 	if !ok {
-		t.Fatalf("Failed to cast nearBlockchainImports to *system.MockSystem")
+		t.Fatalf("Failed to cast NearBlockchainImports to *system.MockSystem")
 	}
 
 	if len(mockSys.Promises) != 3 {

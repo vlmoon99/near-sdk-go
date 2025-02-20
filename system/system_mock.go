@@ -61,6 +61,16 @@ func NewMockSystem() *MockSystem {
 	}
 }
 
+//Internal State
+
+func (m *MockSystem) SetPredecessorAccountID(accountId string) {
+	m.PredecessorAccountIdSys = accountId
+}
+
+func (m *MockSystem) SetContractInput(input []byte) {
+	m.ContractInput = input
+}
+
 // Registers API
 
 func (m *MockSystem) WriteRegister(registerId, dataLen, dataPtr uint64) {

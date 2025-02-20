@@ -29,7 +29,7 @@ const MinAccountIDLen uint64 = 2
 
 const MaxAccountIDLen uint64 = 64
 
-var nearBlockchainImports system.System = system.SystemNear{}
+var NearBlockchainImports system.System = system.SystemNear{}
 
 const (
 	ErrExpectedDataInRegister            = "(REGISTER_ERROR): expected data in register, but found none"
@@ -63,7 +63,7 @@ const (
 // Parameters:
 // - system: The system environment to be set.
 func SetEnv(system system.System) {
-	nearBlockchainImports = system
+	NearBlockchainImports = system
 }
 
 // Registers API
@@ -109,7 +109,7 @@ func methodIntoRegister(method func(uint64)) ([]byte, error) {
 // Returns:
 // - []byte: The data read from the register, or an error if the register reading fails.
 func ReadRegisterSafe(registerId uint64) ([]byte, error) {
-	length := nearBlockchainImports.RegisterLen(registerId)
+	length := NearBlockchainImports.RegisterLen(registerId)
 	//TODO: If len == 0 - ExecutionError("WebAssembly trap: An `unreachable` opcode was executed.") for some reason, if we convert value into string, error gone
 	assertValidAccountId([]byte(string(length)))
 	if length == 0 {
@@ -117,7 +117,7 @@ func ReadRegisterSafe(registerId uint64) ([]byte, error) {
 	}
 	buffer := make([]byte, length)
 	ptr := uint64(uintptr(unsafe.Pointer(&buffer[0])))
-	nearBlockchainImports.ReadRegister(registerId, ptr)
+	NearBlockchainImports.ReadRegister(registerId, ptr)
 	return buffer, nil
 }
 
@@ -133,7 +133,7 @@ func WriteRegisterSafe(registerId uint64, data []byte) {
 
 	ptr := uint64(uintptr(unsafe.Pointer(&data[0])))
 
-	nearBlockchainImports.WriteRegister(registerId, uint64(len(data)), ptr)
+	NearBlockchainImports.WriteRegister(registerId, uint64(len(data)), ptr)
 }
 
 // Registers API
@@ -180,7 +180,7 @@ func StorageWrite(key, value []byte) (bool, error) {
 // - bool: True if the value was successfully written, false otherwise.
 // - error: An error if the write operation fails after the allowed attempts.
 func storageWriteRecursive(keyLen uint64, keyPtr uint64, valueLen uint64, valuePtr uint64, attempt int) (bool, error) {
-	result := nearBlockchainImports.StorageWrite(keyLen, keyPtr, valueLen, valuePtr, EvictedRegister)
+	result := NearBlockchainImports.StorageWrite(keyLen, keyPtr, valueLen, valuePtr, EvictedRegister)
 
 	if result == 1 {
 		return true, nil
@@ -206,7 +206,7 @@ func StorageRead(key []byte) ([]byte, error) {
 	}
 	keyLen := uint64(len(key))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
-	result := nearBlockchainImports.StorageRead(keyLen, keyPtr, AtomicOpRegister)
+	result := NearBlockchainImports.StorageRead(keyLen, keyPtr, AtomicOpRegister)
 
 	if result == 0 {
 		return nil, errors.New(ErrFailedToReadKey)
@@ -236,7 +236,7 @@ func StorageRemove(key []byte) (bool, error) {
 	keyLen := uint64(len(key))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
 
-	result := nearBlockchainImports.StorageRemove(keyLen, keyPtr, EvictedRegister)
+	result := NearBlockchainImports.StorageRemove(keyLen, keyPtr, EvictedRegister)
 	if result == 0 {
 		return false, errors.New(ErrCantRemoveDataByKey)
 	}
@@ -273,7 +273,7 @@ func StorageHasKey(key []byte) (bool, error) {
 	keyLen := uint64(len(key))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&key[0])))
 
-	result := nearBlockchainImports.StorageHasKey(keyLen, keyPtr)
+	result := NearBlockchainImports.StorageHasKey(keyLen, keyPtr)
 
 	return result == 1, nil
 }
@@ -306,7 +306,7 @@ func StateRead() ([]byte, error) {
 	keyLen := uint64(len(StateKey))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&StateKey[0])))
 
-	result := nearBlockchainImports.StorageRead(keyLen, keyPtr, EvictedRegister)
+	result := NearBlockchainImports.StorageRead(keyLen, keyPtr, EvictedRegister)
 	if result == 0 {
 		return nil, errors.New(ErrStateNotFound)
 	}
@@ -327,7 +327,7 @@ func StateExists() bool {
 	keyLen := uint64(len(StateKey))
 	keyPtr := uint64(uintptr(unsafe.Pointer(&StateKey[0])))
 
-	result := nearBlockchainImports.StorageHasKey(keyLen, keyPtr)
+	result := NearBlockchainImports.StorageHasKey(keyLen, keyPtr)
 	return result == 1
 }
 
@@ -356,7 +356,7 @@ func assertValidAccountId(data []byte) (string, error) {
 // - string: The current account ID.
 // - error: An error if the retrieval fails.
 func GetCurrentAccountId() (string, error) {
-	data, err := methodIntoRegister(func(registerID uint64) { nearBlockchainImports.CurrentAccountId(registerID) })
+	data, err := methodIntoRegister(func(registerID uint64) { NearBlockchainImports.CurrentAccountId(registerID) })
 	if err != nil {
 		LogString("Error in GetCurrentAccountId: " + err.Error())
 		return "", err
@@ -371,7 +371,7 @@ func GetCurrentAccountId() (string, error) {
 // - string: The signer account ID.
 // - error: An error if the retrieval fails.
 func GetSignerAccountID() (string, error) {
-	data, err := methodIntoRegister(func(registerID uint64) { nearBlockchainImports.SignerAccountId(registerID) })
+	data, err := methodIntoRegister(func(registerID uint64) { NearBlockchainImports.SignerAccountId(registerID) })
 	if err != nil {
 		LogString("Error in GetSignerAccountID: " + err.Error())
 		return "", err
@@ -386,7 +386,7 @@ func GetSignerAccountID() (string, error) {
 // - []byte: The public key of the signer account.
 // - error: An error if the retrieval fails.
 func GetSignerAccountPK() ([]byte, error) {
-	data, err := methodIntoRegister(func(registerID uint64) { nearBlockchainImports.SignerAccountPk(registerID) })
+	data, err := methodIntoRegister(func(registerID uint64) { NearBlockchainImports.SignerAccountPk(registerID) })
 	if err != nil {
 		LogString("Error in GetSignerAccountPK: " + err.Error())
 		return nil, err
@@ -401,7 +401,7 @@ func GetSignerAccountPK() ([]byte, error) {
 // - string: The predecessor account ID.
 // - error: An error if the retrieval fails.
 func GetPredecessorAccountID() (string, error) {
-	data, err := methodIntoRegister(func(registerID uint64) { nearBlockchainImports.PredecessorAccountId(registerID) })
+	data, err := methodIntoRegister(func(registerID uint64) { NearBlockchainImports.PredecessorAccountId(registerID) })
 	if err != nil {
 		LogString("Error in GetPredecessorAccountID: " + err.Error())
 		return "", err
@@ -415,7 +415,7 @@ func GetPredecessorAccountID() (string, error) {
 // Returns:
 // - uint64: The current block height.
 func GetCurrentBlockHeight() uint64 {
-	return nearBlockchainImports.BlockTimestamp()
+	return NearBlockchainImports.BlockTimestamp()
 }
 
 // GetBlockTimeMs retrieves the block time in milliseconds.
@@ -423,7 +423,7 @@ func GetCurrentBlockHeight() uint64 {
 // Returns:
 // - uint64: The block time in milliseconds.
 func GetBlockTimeMs() uint64 {
-	return nearBlockchainImports.BlockTimestamp() / 1_000_000
+	return NearBlockchainImports.BlockTimestamp() / 1_000_000
 }
 
 // GetEpochHeight retrieves the current epoch height.
@@ -431,7 +431,7 @@ func GetBlockTimeMs() uint64 {
 // Returns:
 // - uint64: The current epoch height.
 func GetEpochHeight() uint64 {
-	return nearBlockchainImports.EpochHeight()
+	return NearBlockchainImports.EpochHeight()
 }
 
 // GetStorageUsage retrieves the storage usage.
@@ -439,7 +439,7 @@ func GetEpochHeight() uint64 {
 // Returns:
 // - uint64: The storage usage.
 func GetStorageUsage() uint64 {
-	return nearBlockchainImports.StorageUsage()
+	return NearBlockchainImports.StorageUsage()
 }
 
 // detectInputType detects the type of input data based on the provided key path.
@@ -491,7 +491,7 @@ func detectInputType(decodedData []byte, keyPath ...string) ([]byte, string, err
 // - error: An error if the retrieval or processing fails.
 func ContractInput(options types.ContractInputOptions) ([]byte, string, error) {
 	data, err := methodIntoRegister(func(registerID uint64) {
-		nearBlockchainImports.Input(registerID)
+		NearBlockchainImports.Input(registerID)
 	})
 	if err != nil {
 		LogString("Error in GetContractInput: " + err.Error())
@@ -522,7 +522,7 @@ func ContractInput(options types.ContractInputOptions) ([]byte, string, error) {
 // - error: An error if the retrieval fails.
 func GetAccountBalance() (types.Uint128, error) {
 	var data [16]byte
-	nearBlockchainImports.AccountBalance(uint64(uintptr(unsafe.Pointer(&data[0]))))
+	NearBlockchainImports.AccountBalance(uint64(uintptr(unsafe.Pointer(&data[0]))))
 	accountBalance, err := types.LoadUint128LE(data[:])
 	if err != nil {
 		return types.Uint128{Hi: 0, Lo: 0}, errors.New(ErrGettingAccountBalance)
@@ -537,7 +537,7 @@ func GetAccountBalance() (types.Uint128, error) {
 // - error: An error if the retrieval fails.
 func GetAccountLockedBalance() (types.Uint128, error) {
 	var data [16]byte
-	nearBlockchainImports.AccountLockedBalance(uint64(uintptr(unsafe.Pointer(&data[0]))))
+	NearBlockchainImports.AccountLockedBalance(uint64(uintptr(unsafe.Pointer(&data[0]))))
 	accountBalance, err := types.LoadUint128LE(data[:])
 	if err != nil {
 		return types.Uint128{Hi: 0, Lo: 0}, errors.New(ErrGettingLockedAccountBalance)
@@ -552,7 +552,7 @@ func GetAccountLockedBalance() (types.Uint128, error) {
 // - error: An error if the retrieval fails.
 func GetAttachedDepoist() (types.Uint128, error) {
 	var data [16]byte
-	nearBlockchainImports.AttachedDeposit(uint64(uintptr(unsafe.Pointer(&data[0]))))
+	NearBlockchainImports.AttachedDeposit(uint64(uintptr(unsafe.Pointer(&data[0]))))
 	attachedDeposit, err := types.LoadUint128LE(data[:])
 	if err != nil {
 		return types.Uint128{Hi: 0, Lo: 0}, errors.New(ErrGettingAttachedDeposit)
@@ -565,7 +565,7 @@ func GetAttachedDepoist() (types.Uint128, error) {
 // Returns:
 // - types.NearGas: The prepaid gas.
 func GetPrepaidGas() types.NearGas {
-	return types.NearGas{Inner: nearBlockchainImports.PrepaidGas()}
+	return types.NearGas{Inner: NearBlockchainImports.PrepaidGas()}
 }
 
 // GetUsedGas retrieves the used gas.
@@ -573,7 +573,7 @@ func GetPrepaidGas() types.NearGas {
 // Returns:
 // - types.NearGas: The used gas.
 func GetUsedGas() types.NearGas {
-	return types.NearGas{Inner: nearBlockchainImports.UsedGas()}
+	return types.NearGas{Inner: NearBlockchainImports.UsedGas()}
 }
 
 // Economics API
@@ -587,7 +587,7 @@ func GetUsedGas() types.NearGas {
 // - error: An error if the retrieval fails.
 func GetRandomSeed() ([]byte, error) {
 	return methodIntoRegister(func(registerID uint64) {
-		nearBlockchainImports.RandomSeed(registerID)
+		NearBlockchainImports.RandomSeed(registerID)
 	})
 }
 
@@ -601,7 +601,7 @@ func GetRandomSeed() ([]byte, error) {
 // - error: An error if the hashing fails.
 func Sha256Hash(data []byte) ([]byte, error) {
 	return methodIntoRegister(func(registerID uint64) {
-		nearBlockchainImports.Sha256(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), registerID)
+		NearBlockchainImports.Sha256(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), registerID)
 	})
 }
 
@@ -615,7 +615,7 @@ func Sha256Hash(data []byte) ([]byte, error) {
 // - error: An error if the hashing fails.
 func Keccak256Hash(data []byte) ([]byte, error) {
 	return methodIntoRegister(func(registerID uint64) {
-		nearBlockchainImports.Keccak256(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), registerID)
+		NearBlockchainImports.Keccak256(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), registerID)
 	})
 }
 
@@ -629,7 +629,7 @@ func Keccak256Hash(data []byte) ([]byte, error) {
 // - error: An error if the hashing fails.
 func Keccak512Hash(data []byte) ([]byte, error) {
 	return methodIntoRegister(func(registerID uint64) {
-		nearBlockchainImports.Keccak512(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), registerID)
+		NearBlockchainImports.Keccak512(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), registerID)
 	})
 }
 
@@ -643,7 +643,7 @@ func Keccak512Hash(data []byte) ([]byte, error) {
 // - error: An error if the hashing fails.
 func Ripemd160Hash(data []byte) ([]byte, error) {
 	return methodIntoRegister(func(registerID uint64) {
-		nearBlockchainImports.Ripemd160(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), registerID)
+		NearBlockchainImports.Ripemd160(uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))), registerID)
 	})
 }
 
@@ -664,7 +664,7 @@ func EcrecoverPubKey(hash, signature []byte, v byte, malleabilityFlag bool) ([]b
 	}
 
 	return methodIntoRegister(func(registerID uint64) {
-		result := nearBlockchainImports.Ecrecover(
+		result := NearBlockchainImports.Ecrecover(
 			uint64(len(hash)), uint64(uintptr(unsafe.Pointer(&hash[0]))),
 			uint64(len(signature)), uint64(uintptr(unsafe.Pointer(&signature[0]))),
 			uint64(v), types.BoolToUnit(malleabilityFlag), registerID,
@@ -686,7 +686,7 @@ func EcrecoverPubKey(hash, signature []byte, v byte, malleabilityFlag bool) ([]b
 // Returns:
 // - bool: True if the signature is valid, false otherwise.
 func Ed25519VerifySig(signature [64]byte, message []byte, publicKey [32]byte) bool {
-	result := nearBlockchainImports.Ed25519Verify(
+	result := NearBlockchainImports.Ed25519Verify(
 		uint64(len(signature)), uint64(uintptr(unsafe.Pointer(&signature[0]))),
 		uint64(len(message)), uint64(uintptr(unsafe.Pointer(&message[0]))),
 		uint64(len(publicKey)), uint64(uintptr(unsafe.Pointer(&publicKey[0]))),
@@ -704,7 +704,7 @@ func Ed25519VerifySig(signature [64]byte, message []byte, publicKey [32]byte) bo
 // - error: An error if the operation fails.
 func AltBn128G1MultiExp(value []byte) ([]byte, error) {
 	return methodIntoRegister(func(registerID uint64) {
-		nearBlockchainImports.AltBn128G1Multiexp(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))), registerID)
+		NearBlockchainImports.AltBn128G1Multiexp(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))), registerID)
 	})
 }
 
@@ -718,7 +718,7 @@ func AltBn128G1MultiExp(value []byte) ([]byte, error) {
 // - error: An error if the operation fails.
 func AltBn128G1Sum(value []byte) ([]byte, error) {
 	return methodIntoRegister(func(registerID uint64) {
-		nearBlockchainImports.AltBn128G1SumSystem(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))), registerID)
+		NearBlockchainImports.AltBn128G1SumSystem(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))), registerID)
 	})
 }
 
@@ -730,7 +730,7 @@ func AltBn128G1Sum(value []byte) ([]byte, error) {
 // Returns:
 // - bool: True if the pairing check is successful, false otherwise.
 func AltBn128PairingCheck(value []byte) bool {
-	return nearBlockchainImports.AltBn128PairingCheckSystem(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0])))) == 1
+	return NearBlockchainImports.AltBn128PairingCheckSystem(uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0])))) == 1
 }
 
 // Math API
@@ -751,7 +751,7 @@ func ValidatorStakeAmount(accountID []byte) (types.Uint128, error) {
 	}
 
 	var stakeData [16]byte
-	nearBlockchainImports.ValidatorStake(uint64(len(accountID)), uint64(uintptr(unsafe.Pointer(&accountID[0]))), uint64(uintptr(unsafe.Pointer(&stakeData[0]))))
+	NearBlockchainImports.ValidatorStake(uint64(len(accountID)), uint64(uintptr(unsafe.Pointer(&accountID[0]))), uint64(uintptr(unsafe.Pointer(&stakeData[0]))))
 
 	validatorStakeAmount, err := types.LoadUint128LE(stakeData[:])
 	if err != nil {
@@ -768,7 +768,7 @@ func ValidatorStakeAmount(accountID []byte) (types.Uint128, error) {
 // - error: An error if the retrieval fails.
 func ValidatorTotalStakeAmount() (types.Uint128, error) {
 	var stakeData [16]byte
-	nearBlockchainImports.ValidatorTotalStake(uint64(uintptr(unsafe.Pointer(&stakeData[0]))))
+	NearBlockchainImports.ValidatorTotalStake(uint64(uintptr(unsafe.Pointer(&stakeData[0]))))
 
 	validatorTotalStakeAmount, err := types.LoadUint128LE(stakeData[:])
 	if err != nil {
@@ -787,7 +787,7 @@ func ValidatorTotalStakeAmount() (types.Uint128, error) {
 // Parameters:
 // - inputBytes: The value to return.
 func ContractValueReturn(inputBytes []byte) {
-	nearBlockchainImports.ValueReturn(uint64(len(inputBytes)), uint64(uintptr(unsafe.Pointer(&inputBytes[0]))))
+	NearBlockchainImports.ValueReturn(uint64(len(inputBytes)), uint64(uintptr(unsafe.Pointer(&inputBytes[0]))))
 }
 
 // PanicStr triggers a panic with the specified message.
@@ -804,7 +804,7 @@ func PanicStr(input string) {
 
 	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
 
-	nearBlockchainImports.PanicUtf8(inputLength, inputPtr)
+	NearBlockchainImports.PanicUtf8(inputLength, inputPtr)
 }
 
 // AbortExecution aborts the execution of the contract.
@@ -826,7 +826,7 @@ func LogString(input string) {
 
 	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
 
-	nearBlockchainImports.LogUtf8(inputLength, inputPtr)
+	NearBlockchainImports.LogUtf8(inputLength, inputPtr)
 }
 
 // LogStringUtf8 logs the specified UTF-8 encoded string message.
@@ -838,7 +838,7 @@ func LogStringUtf8(inputBytes []byte) {
 
 	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
 
-	nearBlockchainImports.LogUtf8(inputLength, inputPtr)
+	NearBlockchainImports.LogUtf8(inputLength, inputPtr)
 }
 
 // LogStringUtf16 logs the specified UTF-16 encoded string message.
@@ -850,7 +850,7 @@ func LogStringUtf16(inputBytes []byte) {
 
 	inputPtr := uint64(uintptr(unsafe.Pointer(&inputBytes[0])))
 
-	nearBlockchainImports.LogUtf16(inputLength, inputPtr)
+	NearBlockchainImports.LogUtf16(inputLength, inputPtr)
 }
 
 // Miscellaneous API
@@ -872,7 +872,7 @@ func PromiseCreate(accountId []byte, functionName []byte, arguments []byte, amou
 	if len(arguments) == 0 {
 		arguments = []byte("{}")
 	}
-	return nearBlockchainImports.PromiseCreate(
+	return NearBlockchainImports.PromiseCreate(
 		uint64(len(accountId)),
 		uint64(uintptr(unsafe.Pointer(&accountId[0]))),
 
@@ -904,7 +904,7 @@ func PromiseThen(promiseIdx uint64, accountId []byte, functionName []byte, argum
 		arguments = []byte("{}")
 	}
 
-	return nearBlockchainImports.PromiseThen(
+	return NearBlockchainImports.PromiseThen(
 		promiseIdx,
 		uint64(len(accountId)),
 		uint64(uintptr(unsafe.Pointer(&accountId[0]))),
@@ -928,7 +928,7 @@ func PromiseThen(promiseIdx uint64, accountId []byte, functionName []byte, argum
 // Returns:
 // - uint64: The ID of the combined promise.
 func PromiseAnd(promiseIndices []uint64) uint64 {
-	return nearBlockchainImports.PromiseAnd(uint64(uintptr(unsafe.Pointer(&promiseIndices[0]))), uint64(len(promiseIndices)))
+	return NearBlockchainImports.PromiseAnd(uint64(uintptr(unsafe.Pointer(&promiseIndices[0]))), uint64(len(promiseIndices)))
 }
 
 // PromiseBatchCreate creates a batch promise for a specified account.
@@ -939,7 +939,7 @@ func PromiseAnd(promiseIndices []uint64) uint64 {
 // Returns:
 // - uint64: The ID of the created batch promise.
 func PromiseBatchCreate(accountId []byte) uint64 {
-	return nearBlockchainImports.PromiseBatchCreate(uint64(len(accountId)), uint64(uintptr(unsafe.Pointer(&accountId[0]))))
+	return NearBlockchainImports.PromiseBatchCreate(uint64(len(accountId)), uint64(uintptr(unsafe.Pointer(&accountId[0]))))
 }
 
 // PromiseBatchThen creates a dependent batch promise that will be executed after the initial promise resolves.
@@ -951,7 +951,7 @@ func PromiseBatchCreate(accountId []byte) uint64 {
 // Returns:
 // - uint64: The ID of the created dependent batch promise.
 func PromiseBatchThen(promiseIdx uint64, accountId []byte) uint64 {
-	return nearBlockchainImports.PromiseBatchThen(promiseIdx, uint64(len(accountId)), uint64(uintptr(unsafe.Pointer(&accountId[0]))))
+	return NearBlockchainImports.PromiseBatchThen(promiseIdx, uint64(len(accountId)), uint64(uintptr(unsafe.Pointer(&accountId[0]))))
 }
 
 // Promises API
@@ -963,7 +963,7 @@ func PromiseBatchThen(promiseIdx uint64, accountId []byte) uint64 {
 // Parameters:
 // - promiseIdx: The ID of the promise batch.
 func PromiseBatchActionCreateAccount(promiseIdx uint64) {
-	nearBlockchainImports.PromiseBatchActionCreateAccount(promiseIdx)
+	NearBlockchainImports.PromiseBatchActionCreateAccount(promiseIdx)
 }
 
 // PromiseBatchActionDeployContract creates a promise batch action to deploy a contract.
@@ -972,7 +972,7 @@ func PromiseBatchActionCreateAccount(promiseIdx uint64) {
 // - promiseIdx: The ID of the promise batch.
 // - bytes: The contract code to deploy.
 func PromiseBatchActionDeployContract(promiseIdx uint64, bytes []byte) {
-	nearBlockchainImports.PromiseBatchActionDeployContract(promiseIdx, uint64(len(bytes)), uint64(uintptr(unsafe.Pointer(&bytes[0]))))
+	NearBlockchainImports.PromiseBatchActionDeployContract(promiseIdx, uint64(len(bytes)), uint64(uintptr(unsafe.Pointer(&bytes[0]))))
 }
 
 // PromiseBatchActionFunctionCall creates a promise batch action to call a function.
@@ -987,7 +987,7 @@ func PromiseBatchActionFunctionCall(promiseIdx uint64, functionName []byte, argu
 	if len(arguments) == 0 {
 		arguments = []byte("{}")
 	}
-	nearBlockchainImports.PromiseBatchActionFunctionCall(promiseIdx,
+	NearBlockchainImports.PromiseBatchActionFunctionCall(promiseIdx,
 		uint64(len(functionName)),
 		uint64(uintptr(unsafe.Pointer(&functionName[0]))),
 
@@ -1012,7 +1012,7 @@ func PromiseBatchActionFunctionCallWeight(promiseIdx uint64, functionName []byte
 	if len(arguments) == 0 {
 		arguments = []byte("{}")
 	}
-	nearBlockchainImports.PromiseBatchActionFunctionCallWeight(promiseIdx,
+	NearBlockchainImports.PromiseBatchActionFunctionCallWeight(promiseIdx,
 		uint64(len(functionName)),
 		uint64(uintptr(unsafe.Pointer(&functionName[0]))),
 
@@ -1031,7 +1031,7 @@ func PromiseBatchActionFunctionCallWeight(promiseIdx uint64, functionName []byte
 // - promiseIdx: The ID of the promise batch.
 // - amount: The amount to transfer.
 func PromiseBatchActionTransfer(promiseIdx uint64, amount types.Uint128) {
-	nearBlockchainImports.PromiseBatchActionTransfer(promiseIdx, uint64(uintptr(unsafe.Pointer(&amount.ToLE()[0]))))
+	NearBlockchainImports.PromiseBatchActionTransfer(promiseIdx, uint64(uintptr(unsafe.Pointer(&amount.ToLE()[0]))))
 }
 
 // PromiseBatchActionStake creates a promise batch action to stake an amount.
@@ -1041,7 +1041,7 @@ func PromiseBatchActionTransfer(promiseIdx uint64, amount types.Uint128) {
 // - amount: The amount to stake.
 // - publicKey: The public key to stake with.
 func PromiseBatchActionStake(promiseIdx uint64, amount types.Uint128, publicKey []byte) {
-	nearBlockchainImports.PromiseBatchActionStake(
+	NearBlockchainImports.PromiseBatchActionStake(
 		promiseIdx,
 		uint64(uintptr(unsafe.Pointer(&amount.ToLE()[0]))),
 
@@ -1057,7 +1057,7 @@ func PromiseBatchActionStake(promiseIdx uint64, amount types.Uint128, publicKey 
 // - publicKey: The public key to add.
 // - nonce: The nonce for the key.
 func PromiseBatchActionAddKeyWithFullAccess(promiseIdx uint64, publicKey []byte, nonce uint64) {
-	nearBlockchainImports.PromiseBatchActionAddKeyWithFullAccess(
+	NearBlockchainImports.PromiseBatchActionAddKeyWithFullAccess(
 		promiseIdx,
 
 		uint64(len(publicKey)),
@@ -1077,7 +1077,7 @@ func PromiseBatchActionAddKeyWithFullAccess(promiseIdx uint64, publicKey []byte,
 // - receiverId: The ID of the receiver account.
 // - functionName: The name of the function to call.
 func PromiseBatchActionAddKeyWithFunctionCall(promiseIdx uint64, publicKey []byte, nonce uint64, amount types.Uint128, receiverId []byte, functionName []byte) {
-	nearBlockchainImports.PromiseBatchActionAddKeyWithFunctionCall(
+	NearBlockchainImports.PromiseBatchActionAddKeyWithFunctionCall(
 		promiseIdx,
 
 		uint64(len(publicKey)),
@@ -1100,7 +1100,7 @@ func PromiseBatchActionAddKeyWithFunctionCall(promiseIdx uint64, publicKey []byt
 // - promiseIdx: The ID of the promise batch.
 // - publicKey: The public key to delete.
 func PromiseBatchActionDeleteKey(promiseIdx uint64, publicKey []byte) {
-	nearBlockchainImports.PromiseBatchActionDeleteKey(
+	NearBlockchainImports.PromiseBatchActionDeleteKey(
 		promiseIdx,
 
 		uint64(len(publicKey)),
@@ -1114,7 +1114,7 @@ func PromiseBatchActionDeleteKey(promiseIdx uint64, publicKey []byte) {
 // - promiseIdx: The ID of the promise batch.
 // - beneficiaryId: The ID of the beneficiary account.
 func PromiseBatchActionDeleteAccount(promiseIdx uint64, beneficiaryId []byte) {
-	nearBlockchainImports.PromiseBatchActionDeleteAccount(
+	NearBlockchainImports.PromiseBatchActionDeleteAccount(
 		promiseIdx,
 
 		uint64(len(beneficiaryId)),
@@ -1136,7 +1136,7 @@ func PromiseYieldCreate(functionName []byte, arguments []byte, gas uint64, gasWe
 	if len(arguments) == 0 {
 		arguments = []byte("{}")
 	}
-	return nearBlockchainImports.PromiseYieldCreate(
+	return NearBlockchainImports.PromiseYieldCreate(
 		uint64(len(functionName)),
 		uint64(uintptr(unsafe.Pointer(&functionName[0]))),
 
@@ -1157,7 +1157,7 @@ func PromiseYieldCreate(functionName []byte, arguments []byte, gas uint64, gasWe
 // Returns:
 // - uint32: The status of the resumed promise.
 func PromiseYieldResume(data []byte, payload []byte) uint32 {
-	return nearBlockchainImports.PromiseYieldResume(
+	return NearBlockchainImports.PromiseYieldResume(
 		uint64(len(data)),
 		uint64(uintptr(unsafe.Pointer(&data[0]))),
 
@@ -1175,7 +1175,7 @@ func PromiseYieldResume(data []byte, payload []byte) uint32 {
 // Returns:
 // - uint64: The count of promise results.
 func PromiseResultsCount() uint64 {
-	return nearBlockchainImports.PromiseResultsCount()
+	return NearBlockchainImports.PromiseResultsCount()
 }
 
 // PromiseResult retrieves the result of a specified promise.
@@ -1191,7 +1191,7 @@ func PromiseResult(resultIdx uint64) ([]byte, error) {
 		return nil, errors.New(ErrPromiseResult)
 	}
 
-	nearBlockchainImports.PromiseResult(resultIdx, AtomicOpRegister)
+	NearBlockchainImports.PromiseResult(resultIdx, AtomicOpRegister)
 
 	value, err := ReadRegisterSafe(AtomicOpRegister)
 	if err != nil {
@@ -1206,7 +1206,7 @@ func PromiseResult(resultIdx uint64) ([]byte, error) {
 // Parameters:
 // - promiseId: The ID of the promise to return the result for.
 func PromiseReturn(promiseId uint64) {
-	nearBlockchainImports.PromiseReturn(promiseId)
+	NearBlockchainImports.PromiseReturn(promiseId)
 }
 
 // Promise API Results
