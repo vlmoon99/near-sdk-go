@@ -22,10 +22,12 @@
 
 ⚠️ **Ensure these tools are installed to avoid errors!** ⚠️
 
-*In this tutorial, I will explain how to create a smart contract called "Status Message" in Go from scratch using raw TinyGo and NEAR CLI RS. Additionally, to simplify the development process, you can use the [NEAR Go CLI](https://github.com/vlmoon99/near-cli-go), which provides simplified versions of all commands for creating a project, building, creating a developer account, deploying on the testnet, importing a production account, and deploying it to production.*
+*In this tutorial, I will explain how to create a smart contract called "Status Message" in Go from scratch using raw TinyGo and NEAR CLI RS. Additionally, to simplify the development process, you can use the [NEAR Go CLI](https://github.com/vlmoon99/near-cli-go), which provides simplified versions of all commands for creating a project, building, creating a developer account, deploying on the testnet, importing a production account, running tests,  and deploying it to production.*
 
 
 ## **Project Creation**
+
+🚨 **Highly recommended to see how it works without CLI the first time, and after that, you can use CLI to simplify development** 🚨
 
 ### **1. Without CLI**
 
@@ -239,11 +241,6 @@ func TestGetStatus(t *testing.T) {
 
 ```
 
-
-Here's the standardized and prettified version of your documentation, following the example format:
-
----
-
 ## **Unit Testing Process**
 
 ### **1. Run Unit Tests Without CLI**
@@ -269,21 +266,18 @@ Here's the standardized and prettified version of your documentation, following 
 
 1. Simply call the following commands:
     ```bash
-    near-go test package
+    near-go test-package
     ```
     - To run unit tests inside your package.
 
     ```bash
-    near-go test project
+    near-go test-project
     ```
     - To run unit tests inside your project.
 
    The CLI will handle all other logic under the hood.
 
 ---
-
-This should make your documentation look more polished and consistent. Let me know if you need any further adjustments!
-
 
 
 ## **Integration Testing**
@@ -405,6 +399,12 @@ async fn main() -> anyhow::Result<()> {
 ```
 
 Let's run and see how our function will execute and check their logs:
+
+```bash
+cd integration_tests && cargo run
+```
+
+Logs :
 
 ```bash
 Dev Account ID: dev-20250220113022-97536040932569
