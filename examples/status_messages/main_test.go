@@ -16,15 +16,12 @@ func TestSetStatus(t *testing.T) {
 	accountId := "test_account"
 	message := "Hello, NEAR!"
 
-	// Mock the environment
 	systemMock := env.NearBlockchainImports.(*system.MockSystem)
 	systemMock.SetPredecessorAccountID(accountId)
 	systemMock.SetContractInput([]byte(`{"message": "` + message + `"}`))
 
-	// Call the SetStatus function
 	SetStatus()
 
-	// Retrieve the stored status message
 	state := GetState()
 	storedMessageInterface, err := state.Data.Get([]byte(accountId))
 	if err != nil {
@@ -45,19 +42,15 @@ func TestGetStatus(t *testing.T) {
 	accountId := "test_account"
 	message := "Hello, NEAR!"
 
-	// Mock the environment and set the initial state
 	systemMock := env.NearBlockchainImports.(*system.MockSystem)
 	systemMock.SetPredecessorAccountID(accountId)
 	state := GetState()
 	state.Data.Insert([]byte(accountId), []byte(message))
 
-	// Mock contract input
 	systemMock.SetContractInput([]byte(`{"account_id": "` + accountId + `"}`))
 
-	// Call the GetStatus function
 	GetStatus()
 
-	// Retrieve the stored status message
 	storedMessageInterface, err := state.Data.Get([]byte(accountId))
 	if err != nil {
 		t.Fatalf("Failed to get stored message: %v", err)

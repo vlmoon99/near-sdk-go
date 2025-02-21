@@ -38,7 +38,8 @@ func SetStatus() {
 	message, _ := parser.GetString("message")
 	state := GetState()
 	state.Data.Insert([]byte(accountId), string(message))
-	env.ContractValueReturn([]byte(contractInput))
+	// env.LogString("Message : " + message + " was insterted")
+	env.ContractValueReturn([]byte(message))
 }
 
 //go:export GetStatus
@@ -50,5 +51,6 @@ func GetStatus() {
 	state := GetState()
 	val, _ := state.Data.Get([]byte(accountId))
 	status, _ := val.(string)
+	// env.LogString("Status : " + status + " on account id : " + accountId)
 	env.ContractValueReturn([]byte(status))
 }

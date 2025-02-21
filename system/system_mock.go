@@ -4,7 +4,6 @@ package system
 import (
 	"encoding/binary"
 	"fmt"
-	"unicode/utf16"
 	"unsafe"
 
 	"github.com/vlmoon99/near-sdk-go/types"
@@ -287,25 +286,25 @@ func (m *MockSystem) ValueReturn(valueLen, valuePtr uint64) {
 }
 
 func (m *MockSystem) PanicUtf8(len, ptr uint64) {
-	value := make([]byte, len)
-	copy(value, *(*[]byte)(unsafe.Pointer(uintptr(ptr))))
+	// value := make([]byte, len)
+	// copy(value, *(*[]byte)(unsafe.Pointer(uintptr(ptr))))
 
-	fmt.Printf("Panic: %s", value[:len])
+	// fmt.Printf("Panic: %s", value[:len])
 }
 
 func (m *MockSystem) LogUtf8(len, ptr uint64) {
-	value := make([]byte, len)
-	copy(value, *(*[]byte)(unsafe.Pointer(uintptr(ptr))))
-	fmt.Printf("Log: %s", value[:len])
+	// value := make([]byte, len)
+	// copy(value, *(*[]byte)(unsafe.Pointer(uintptr(ptr))))
+	// fmt.Printf("Log: %s", value[:len])
 }
 
 func (m *MockSystem) LogUtf16(len, ptr uint64) {
-	utf16Bytes := make([]uint16, len/2)
-	for i := 0; i < int(len)/2; i++ {
-		utf16Bytes[i] = *(*uint16)(unsafe.Pointer(uintptr(ptr) + uintptr(i*2)))
-	}
-	message := string(utf16.Decode(utf16Bytes))
-	fmt.Printf("Log: %s", message)
+	// utf16Bytes := make([]uint16, len/2)
+	// for i := 0; i < int(len)/2; i++ {
+	// 	utf16Bytes[i] = *(*uint16)(unsafe.Pointer(uintptr(ptr) + uintptr(i*2)))
+	// }
+	// message := string(utf16.Decode(utf16Bytes))
+	// fmt.Printf("Log: %s", message)
 }
 
 // Miscellaneous API

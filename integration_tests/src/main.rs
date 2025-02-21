@@ -5,8 +5,8 @@ use serde_json::json;
 async fn deploy_contract(
     worker: &near_workspaces::Worker<near_workspaces::network::Sandbox>,
 ) -> anyhow::Result<near_workspaces::Contract> {
-    const NFT_WASM_FILEPATH: &str = "../examples/integration_tests/main.wasm";
-    let wasm = std::fs::read(NFT_WASM_FILEPATH)?;
+    const WASM_FILEPATH: &str = "../examples/integration_tests/main.wasm";
+    let wasm = std::fs::read(WASM_FILEPATH)?;
     let contract = worker.dev_deploy(&wasm).await?;
     Ok(contract)
 }
@@ -28,6 +28,7 @@ async fn call_integration_test_function(
 
     match outcome {
         Ok(result) => {
+            
             let result_value: i8 = result.clone().json::<i8>()?;
             if result_value == 1 {
                 println!("{} result: Test succeeded", function_name);
