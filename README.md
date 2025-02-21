@@ -337,15 +337,9 @@ async fn call_integration_test_function(
 
     match outcome {
         Ok(result) => {
-            let result_value: i8 = result.clone().json::<i8>()?;
-            if result_value == 1 {
-                println!("{} result: Test succeeded", function_name);
-                println!("Result: Functions Logs: {:#?}", result.logs());
-                Ok(())
-            } else {
-                println!("{} result: Test failed", function_name);
-                Ok(())
-            }
+            println!("result.is_success: {:#?}", result.clone().is_success());
+            println!("Functions Logs: {:#?}", result.logs());
+            Ok(())
         }
         Err(err) => {
             println!(
