@@ -168,7 +168,7 @@ func init() {
 
 For this Smart Contract we will be using standart mocks for unit tests and  [NEAR Workspaces](https://github.com/near/near-workspaces-rs) for integration tests in emulated Blockchain enviroment.
 
-Let's start from the unit tests which we will write in main_test.go :
+Let's start from the unit tests which we will write in ```main_test.go``` :
 
 ```go
 package main
@@ -395,7 +395,10 @@ async fn main() -> anyhow::Result<()> {
 Let's run and see how our function will execute and check their logs:
 
 ```bash
+
+//Before running integration tests, please build your main.go file with the tinygo program or near-go build command.
 cd integration_tests && cargo run
+
 ```
 
 Logs :
@@ -466,16 +469,8 @@ near contract call-function as-read-only your-smart-contract-account-id.testnet 
 
 To create a mainnet account, you can use various options. For example, you can use near-cli-rs, generate a mnemonic using your own cryptography, import it to the CLI, and fund it with NEAR. However, we advise you to try web wallets of NEAR to see how it works on the client side. For example, [Meteor Wallet](https://wallet.meteorwallet.app/). After that, you can import this account.
 
-**Without CLI:**
-
 ```bash
 near account import-account using-seed-phrase "your mnemonic" --seed-phrase-hd-path m/44'/397'/0' network-config mainnet
-```
-
-**With NEAR-GO CLI:**
-
-```bash
-near-go import-mainnet-account
 ```
 
 ### **5. Deploy Smart Contract to Mainnet**
