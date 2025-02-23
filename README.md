@@ -17,8 +17,20 @@
 
 **Before creating a smart contract in Go, make sure you have the following tools installed on your PC:**
 
-1. **[TinyGo](https://tinygo.org/getting-started/install/)** - **_Required for building smart contracts._**
-2. **[near-cli-rs](https://github.com/near/near-cli-rs)** - **_Required for interacting with the NEAR network._**
+1. **Go:**
+   - Before choosing a Go version, see the [Go Compatibility Matrix](https://tinygo.org/docs/reference/go-compat-matrix/).
+   - **Highly recommended:** Use the latest supported version, Go 1.23.6.
+
+2. **Rust:**
+   - Install Rust from [Rust Lang](https://www.rust-lang.org/tools/install).
+   - **_Required for running integration tests._**
+
+3. **[TinyGo](https://tinygo.org/getting-started/install/):**
+   - **_Required for building smart contracts._**
+
+4. **[near-cli-rs](https://github.com/near/near-cli-rs):**
+   - **_Required for interacting with the NEAR network._**
+
 
 ⚠️ **Ensure these tools are installed to avoid errors!** ⚠️
 
