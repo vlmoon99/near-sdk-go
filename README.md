@@ -530,9 +530,26 @@ near contract call-function as-read-only your-smart-contract-account-id.near Get
 **We can see that the Near Go SDK is more lightweight and faster than the Rust SDK. However, the Rust SDK can be more concise in code stroke size and simplified development with rich developer tools.**
 
 
+Got it! Let's create the contribution guide to streamline the process for all contributors:
+
+## **Contribution Guide**
+
+### **Process**
+1. **Create an Issue:** For each improvement, fix, or proposal, contributors must create an issue. The issue should detail the problem or enhancement clearly.
+2. **Discussion & Approval:** Once the issue is created, a discussion will take place. The issue must be approved before any work begins.
+3. **Pull Request:** After approval, contributors must create a pull request (PR) with the necessary updates.
+4. **Commit Guidelines:** Follow the specific commit guidelines below to ensure consistency and clarity.
+
+### **Commit Guidelines**
+- **Format:** (module): message describing what you did
+- **Examples:**
+  - `(test): add unit tests for system mocks`
+  - `(env): speed up env methods`
+  - `(docs): update contribution guide`
+  - `(examples): add nft real-world example`
+
 ## **TODO List**
 1. **Mock Env Package and Test IT:** Improves mocks in `system/system_mock_test.go` and unit test's in `system/system_mock_test.go`, `env/env_test.go`
 2. **Examples:** Add more real-world examples
 3. **Smart Contract Standards:** Implement basic Smart contract standards as in [**Near RS SDK**](https://github.com/near/near-sdk-rs/tree/master/near-contract-standards)
 
----
