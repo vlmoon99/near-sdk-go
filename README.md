@@ -42,7 +42,7 @@
     ```
 3. Get the required SDK:
     ```bash
-    go get github.com/vlmoon99/near-sdk-go@v0.0.7
+    go get github.com/vlmoon99/near-sdk-go@v0.0.8
     ```
 4. Create the `main.go` file and add the following code:
     ```bash
@@ -75,7 +75,7 @@
     ```
 2. If the build is successful, it will complete 100% correctly. However, if you encounter errors like this one:
     ```bash
-    ../../../../go/pkg/mod/github.com/vlmoon99/near-sdk-go@v0.0.7/system/system_near.go:17:7:
+    ../../../../go/pkg/mod/github.com/vlmoon99/near-sdk-go@v0.0.8/system/system_near.go:17:7:
     ```
     This error is not a real problem but a temporary bug that will be fixed in the future. In such cases, you need to run the build command again.
 
@@ -258,7 +258,7 @@ func TestGetStatus(t *testing.T) {
 
 2. If the tests are successful, they will complete 100% correctly. However, if you encounter errors like this one:
     ```bash
-    ../../../../go/pkg/mod/github.com/vlmoon99/near-sdk-go@v0.0.7/system/system_near.go:17:7:
+    ../../../../go/pkg/mod/github.com/vlmoon99/near-sdk-go@v0.0.8/system/system_near.go:17:7:
     ```
     This error is not a real problem but a temporary bug that will be fixed in the future. In such cases, you need to run the test command again.
 
