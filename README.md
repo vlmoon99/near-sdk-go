@@ -294,13 +294,13 @@ func TestGetStatus(t *testing.T) {
 
 ## **Integration Testing**
 
-After we test our functionality in a mocked environment, we can start to write an integration test. For this task, we will use [Near Workspaces RS](https://github.com/near/near-workspaces-rs). First, we need to create an empty Rust project, add the necessary dependencies, and write our tests:
+After we test our functionality in a mocked environment, we can start to write an integration test. But before we need to build our wasm file. For this task, we will use [Near Workspaces RS](https://github.com/near/near-workspaces-rs). First, we need to create an empty Rust project, add the necessary dependencies, and write our tests:
 
 ```bash
-mkdir integration_tests
-cd integration_tests
-cargo init --bin
+mkdir integration_tests && cd integration_tests && cargo init --bin
+```
 
+```bash
 echo '[package]
 name = "integration_tests"
 version = "0.1.0"
@@ -315,6 +315,7 @@ serde_json = "1.0.133"
 tokio = "1.41.1"
 near-gas = "0.3.0"' > Cargo.toml
 ```
+
 
 After we initialize the project, we need to add the code for our integration tests for the "Status Message" Smart Contract. Let's start with the helper functions:
 
