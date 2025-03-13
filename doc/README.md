@@ -1,0 +1,1 @@
+This is the enchanced docs wherein u can find all detailed instruction about this repository, the blockchain, how to use it ,how to build smart contract, how to connect it to the front end , etc.
