@@ -59,10 +59,10 @@ You will need to build it again, this problem solved in CLI which u can use inst
 For detailed documentation, refer to the `doc` folder. It contains all the essential information required for building smart contracts using Go.  
 
 If you're a beginner, it's highly recommended to start with the tutorials in `doc/beginners/`, which take you through three step-by-step lessons. These lessons cover:  
-1. Core concepts of the Near Blockchain.  
-2. Smart contract basics.  
-3. Client(Frontend) WEB 3 basics.  
+[1. Core concepts of the Blockchain technology and Near Blockchain.](doc/beginners/1.Blockchain.md)  
+[2. Smart contract basics.](doc/beginners/2.SmartContract.md)  
+[3. Client(Frontend) WEB 3 basics.](doc/beginners/3.Client(Frontend).md)  
 
-Once you've mastered these foundational concepts, proceed to `doc/Full-Stack_App_Tutorial.md`. This tutorial guides you through developing and deploying a full-stack application, demonstrating end-to-end development on the Near Blockchain.  
+Once you've mastered these foundational concepts, proceed to [Full-Stack App Tutorial](doc/Full-Stack_App_Tutorial.md). This tutorial guides you through developing and deploying a full-stack application, demonstrating end-to-end development on the Near Blockchain.
 
 ---
