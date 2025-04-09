@@ -101,7 +101,14 @@ func AcceptPayment() {
 
 //go:export ReadIncommingTxData
 func ReadIncommingTxData() {
-
+	env.LogString(`EVENT_JSON:{
+  "standard": "nep999",
+  "version": "1.0.0",
+  "event": "ReadIncommingTxData",
+  "data": [
+    {"info": "ReadIncommingTxData", "test": ["test11"]}
+  ]
+}`)
 	options := types.ContractInputOptions{IsRawBytes: true}
 	input, detectedType, err := env.ContractInput(options)
 	if err != nil {

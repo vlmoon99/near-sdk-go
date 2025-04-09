@@ -1,12 +1,12 @@
 # 🚀 Full Stack NEAR Project with Go
 
-This tutorial walks you through setting up a full-stack NEAR project using Go, React, Node.js, and NEAR smart contracts.
+This tutorial guides you through setting up a full-stack NEAR project with **Go**, **React**, **Node.js**, and NEAR smart contracts.
 
 ---
 
-## 1. Create Project
+## 1. Create the Project
 
-Run the following command to generate a full-stack project template:
+Run this command to generate the full-stack project template:
 
 ```bash
 near-go create -p "full_stack_template" \
@@ -20,7 +20,7 @@ Navigate into the project folder:
 cd full_stack_template
 ```
 
-Your project structure should look like this:
+### Project Structure:
 
 ```bash
 (base) user@pc1:~/dev/near-sdk-go/examples/full_stack_template$ ls
@@ -28,123 +28,253 @@ backend  client  contract  contract_listener
 ```
 
 ### Folder Overview:
+- **backend/**  
+  A backend server (Node.js) to:
+  - Perform blockchain operations like transfers and balance checks.
+  - Interact with smart contracts.
+  - Manage database storage.
 
-- **`backend/`**  
-  Backend server written in Node.js. Use this to:
-  - Execute blockchain operations (transfers, balance checks, etc.)
-  - Interact with smart contracts
-  - Store data in your database
+- **client/**  
+  A React + Vite frontend to call smart contract functions directly from the browser.
 
-- **`client/`**  
-  React + Vite frontend to call your smart contract functions directly from the browser.
+- **contract/**  
+  The smart contract written in **Rust** or **Go**. Deploy it on the NEAR testnet or mainnet.
 
-- **`contract/`**  
-  Smart contract written in Rust (or Go). You can build and deploy this to NEAR testnet or mainnet.
-
-- **`contract_listener/`**  
-  A listener for smart contract events using NEAR Lake framework.  
-  ⚠️ Requires an AWS account and EC2 access to run properly.
-
----
-
-## 2. Setup Accounts for Deployment
-
-### 🧪 Testnet Account
-
-All testnet accounts must end with `.testnet`.  
-You can check availability on [NEAR Blocks Testnet](https://testnet.nearblocks.io/address/mytestnetaccount779.testnet).
-
-Create a testnet account using the CLI:
-
-```bash
-near-go account create -n "testnet" -a "mytestnetaccount779.testnet"
-```
-
-![Check testnet account on Near Blocks](./docs_images/tutorial_account_creation_1.jpeg)
+- **contract_listener/**  
+  A listener for smart contract events using the NEAR Lake framework.  
+  ⚠️ _Note: Requires an AWS account with EC2 access._
 
 ---
 
-### 🌐 Mainnet Account
+## 2. Set Up Accounts for Deployment
 
-1. Create a mainnet account using any NEAR-based wallet (In this tutorial I will use Meteor Wallet) :
-   - [NEAR Wallets](https://wallet.near.org/)
+### 🧪 Testnet Account Setup
+
+1. **Create a Testnet Account:**  
+   Testnet accounts must end with `.testnet`.  
+   Check availability on [NEAR Blocks Testnet](https://testnet.nearblocks.io/address/mytestnetaccount779.testnet).
+
+   ```bash
+   near-go account create -n "testnet" -a "mytestnetaccount779.testnet"
+   ```
+
+![Check Testnet Account](./docs_images/tutorial_account_creation_1.jpeg)
+
+---
+
+### 🌐 Mainnet Account Setup
+
+1. **Create a Mainnet Account:**  
+   Use any NEAR wallet, like:
+   - [NEAR Wallet](https://wallet.near.org/)  
    - [Meteor Wallet](https://wallet.meteorwallet.app/add_wallet/create_new)
 
-![Choose mainnet and Choose your nickname and his availability](./docs_images/tutorial_account_creation_2.jpeg)
+![Mainnet Account Nickname](./docs_images/tutorial_account_creation_2.jpeg)  
+![Fund Mainnet Account](./docs_images/tutorial_account_creation_3.jpeg)
 
-![Fund your account](./docs_images/tutorial_account_creation_3.jpeg)
+2. **Import Mainnet Wallet into the CLI:**  
+   Run the import function:
 
-2. Import your mainnet wallet into the CLI.
+   ```bash
+   near-go account import
+   ```
 
- - Call account import function
+   Follow the prompts to choose the import method:
+   - Using **web wallet** for NEAR sign-in.
+   - Using a **seed phrase**. Detailed instructions can be found [here](https://github.com/near/near-cli-rs/blob/main/docs/GUIDE.en.md#using-seed-phrase---import-existing-account-using-a-seed-phrase).
+
 ```bash
-near-go account import
-```
- - Choose the type of account import and save the mainnet account to your system. If you need more detailed instructions, visit this [link](https://github.com/near/near-cli-rs/blob/main/docs/GUIDE.en.md#using-seed-phrase---import-existing-account-using-a-seed-phrase).
-
-Here's a grammatically corrected version of your sentence:
-
-**"**
-
-Let me know if you want it to sound more casual or more technical!
-```bash
-All necessary programs are installed.
 ? How would you like to import the account?  
-  using-web-wallet          - Import existing account using NEAR Wallet (a.k.a. "sign in")
-> using-seed-phrase         - Import existing account using a seed phrase
-  using-private-key         - Import existing account using a private key
+  using-web-wallet          - Import with NEAR Wallet  
+> using-seed-phrase         - Import with a seed phrase  
+  using-private-key         - Import with a private key  
   back
-[↑↓ to move, enter to select, type to filter]
 ```
 
+---
 
-3.write code and tests ? (think anout how can I show Near Blockchain to the go user and connect contract->client, contract-> backend , contract -> contract_listner)
+## 3. Deploy on Testnet and Mainnet
 
-
-
-4.deploy on the testnet,prod
-
-- build
+### Build the Project
 
 ```bash
-
 near-go build
-
 ```
 
-- deploy it to the testnet
+### Deploy to Testnet
 
 ```bash
-
 near-go deploy -id "mytestnetaccount779.testnet" -n "testnet"
-
 ```
+
+To call a contract function:
 
 ```bash
-near contract call-function as-transaction mytestnetaccount779.testnet ReadIncommingTxData json-args {} prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as mytestnetaccount779.testnet network-config testnet sign-with-legacy-keychain send
+near contract call-function as-transaction mytestnetaccount779.testnet ReadIncommingTxData \
+  json-args {} prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' \
+  sign-as mytestnetaccount779.testnet network-config testnet \
+  sign-with-legacy-keychain send
 ```
 
-[Result on Near Blocks testnet](https://testnet.nearblocks.io/txns/BTgrqPc3e2G1dB1gXCDHic2g8UGBSTJc6nxZPStXih1P?tab=enhanced)
+_See the result on [NEAR Blocks Testnet](https://testnet.nearblocks.io/txns/BTgrqPc3e2G1dB1gXCDHic2g8UGBSTJc6nxZPStXih1P?tab=enhanced)._  
+![Transaction Result](./docs_images/tutorial_account_creation_4.jpeg)
 
-![Photo of TX](./docs_images/tutorial_account_creation_4.jpeg)
-
-- test it using near cli rs
-
-
-- deploy it to the mainnet
+### Deploy to Mainnet
 
 ```bash
 near-go deploy -id "clitutorial.near" -n "mainnet"
-
 ```
-- test it using near cli rs
 
+To test the contract:
 
 ```bash
-near contract call-function as-transaction clitutorial.near ReadIncommingTxData json-args {} prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as clitutorial.near network-config mainnet sign-with-legacy-keychain send
+near contract call-function as-transaction clitutorial.near ReadIncommingTxData \
+  json-args {} prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' \
+  sign-as clitutorial.near network-config mainnet \
+  sign-with-legacy-keychain send
 ```
 
-[Result on Near Blocks testnet](https://testnet.nearblocks.io/txns/BTgrqPc3e2G1dB1gXCDHic2g8UGBSTJc6nxZPStXih1P?tab=enhanced)
+## 4. Connect Client, Backend, and Contract Listener to the Smart Contract
+
+### 📲 Client
+
+Start the client app:
+
+```bash
+cd client && yarn dev
+```
+
+Open your browser and access `localhost`. In the dev console:
+
+1. **Login**  
+   ![Login](./docs_images/tutorial_account_creation_5.png)
+
+2. **After Login:** View Home page with smart contract functions  
+   ![Home Page](./docs_images/tutorial_account_creation_6.png)
+
+3. **Call ReadIncommingTxData** to view TX logs  
+   ![Call ReadIncommingTxData](./docs_images/tutorial_account_creation_7.png)
+
+### 🚀 Backend
+
+Start the backend:
+
+```bash
+cd backend && yarn ts-node src/index.ts
+```
+
+Sample API calls:
+
+**InitContract:**
+```bash
+curl -X POST http://localhost:3000/near/contract/InitContract \
+  -H "Content-Type: application/json" \
+  -d '{"args": {}, "deposit": "0"}'
+```
+
+**WriteData:**
+```bash
+curl -X POST http://localhost:3000/near/contract/WriteData \
+  -H "Content-Type: application/json" \
+  -d '{"args": {"key": "testKey", "data": "lalalla"}, "deposit": "1"}'
+```
+
+**ReadData:**
+```bash
+curl -X POST http://localhost:3000/near/contract/ReadData \
+  -H "Content-Type: application/json" \
+  -d '{"args": {"key": "testKey"}, "deposit": "0"}'
+```
+
+**ReadIncommingTxData:**
+```bash
+curl -X POST http://localhost:3000/near/contract/ReadIncommingTxData \
+  -H "Content-Type: application/json" \
+  -d '{"args": {}, "deposit": "0"}'
+```
+
+Each response returns a transaction hash viewable on NEAR Blocks.
+
+### 🧰 Contract Listener
+
+Start the listener:
+
+```bash
+cd contract_listener && yarn ts-node src/index.ts
+```
+
+Use NEAR CLI to trigger events:
+
+```bash
+near-go deploy -id "mytestnetaccount779.testnet" -n "testnet"
+```
+
+```bash
+near contract call-function as-transaction mytestnetaccount779.testnet ReadIncommingTxData \
+  json-args {} prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' \
+  sign-as mytestnetaccount779.testnet network-config testnet \
+  sign-with-legacy-keychain send
+```
+
+### Sample Output
+
+#### ✅ **Filtered Actions by ID (1)** – *Deploy Contract*
+```json
+{
+  "receiptId": "BjBLFkZa3LnapWvSwEKrrK5qKLbZgh89b8GPDt75A1bU",
+  "receiptStatus": { "SuccessValue": "" },
+  "operations": [ { "DeployContract": { "code": "..." } } ]
+}
+```
+
+#### 📢 **Events**
+```json
+[
+  {
+    "receiptId": "37vXKsZum7uew4BiGpxhvotLo7EVU13qokQ8hcYSmhcV",
+    "rawEvent": {
+      "event": "ReadIncommingTxData",
+      "standard": "nep999",
+      "version": "1.0.0",
+      "data": [
+        { "info": "ReadIncommingTxData", "test": ["test11"] }
+      ]
+    }
+  }
+]
+```
+
+#### ✅ **Filtered Actions by ID (2)** – *FunctionCall: `ReadIncommingTxData`*
+```json
+{
+  "receiptId": "37vXKsZum7uew4BiGpxhvotLo7EVU13qokQ8hcYSmhcV",
+  "receiptStatus": { "SuccessValue": "UmVhZEluY29tbWluZ1R4RGF0YQ==" },
+  "operations": [
+    {
+      "FunctionCall": {
+        "methodName": "ReadIncommingTxData",
+        "args": "{}",
+        "deposit": "0",
+        "gas": 100000000000000
+      }
+    }
+  ]
+}
+```
+
+#### ✅ **Filtered Actions by ID (3)** – *Transfer*
+```json
+{
+  "receiptId": "79Vku7AMti9nujM4Hodr7RKopvf3JA1ADHN8FTL485zR",
+  "operations": [
+    {
+      "Transfer": {
+        "deposit": "18078627381676689526136"
+      }
+    }
+  ]
+}
+```
 
 
 5.Manage in the production
