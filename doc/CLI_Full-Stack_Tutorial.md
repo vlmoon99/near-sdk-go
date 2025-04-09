@@ -80,19 +80,22 @@ near-go account create -n "testnet" -a "mytestnetaccount779.testnet"
 ```bash
 near-go account import
 ```
- - Choose type of account import and save mainnet account into your system
+ - Choose the type of account import and save the mainnet account to your system. If you need more detailed instructions, visit this [link](https://github.com/near/near-cli-rs/blob/main/docs/GUIDE.en.md#using-seed-phrase---import-existing-account-using-a-seed-phrase).
 
+Here's a grammatically corrected version of your sentence:
+
+**"**
+
+Let me know if you want it to sound more casual or more technical!
 ```bash
 All necessary programs are installed.
 ? How would you like to import the account?  
-> using-web-wallet          - Import existing account using NEAR Wallet (a.k.a. "sign in")
-  using-seed-phrase         - Import existing account using a seed phrase
+  using-web-wallet          - Import existing account using NEAR Wallet (a.k.a. "sign in")
+> using-seed-phrase         - Import existing account using a seed phrase
   using-private-key         - Import existing account using a private key
   back
 [↑↓ to move, enter to select, type to filter]
 ```
-
-
 
 
 3.write code and tests ? (think anout how can I show Near Blockchain to the go user and connect contract->client, contract-> backend , contract -> contract_listner)
@@ -101,6 +104,59 @@ All necessary programs are installed.
 
 4.deploy on the testnet,prod
 
+- build
+
+```bash
+
+near-go build
+
+```
+
+- deploy it to the testnet
+
+```bash
+
+near-go deploy -id "mytestnetaccount779.testnet" -n "testnet"
+
+```
+
+```bash
+near contract call-function as-transaction mytestnetaccount779.testnet ReadIncommingTxData json-args {} prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as mytestnetaccount779.testnet network-config testnet sign-with-legacy-keychain send
+```
+
+[Result on Near Blocks testnet](https://testnet.nearblocks.io/txns/BTgrqPc3e2G1dB1gXCDHic2g8UGBSTJc6nxZPStXih1P?tab=enhanced)
+
+![Photo of TX](./docs_images/tutorial_account_creation_4.jpeg)
+
+- test it using near cli rs
+
+
+- deploy it to the mainnet
+
+```bash
+near-go deploy -id "clitutorial.near" -n "mainnet"
+
+```
+- test it using near cli rs
+
+
+```bash
+near contract call-function as-transaction clitutorial.near ReadIncommingTxData json-args {} prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as clitutorial.near network-config mainnet sign-with-legacy-keychain send
+```
+
+[Result on Near Blocks testnet](https://testnet.nearblocks.io/txns/BTgrqPc3e2G1dB1gXCDHic2g8UGBSTJc6nxZPStXih1P?tab=enhanced)
+
+
 5.Manage in the production
 
-Tell abouts things (what if I delete all keys , how much storage costs , what the limits of the Near Blockchain)
+- Transactions (How to see tx, indexer)
+
+- Account System (account names,creation,storage)
+
+- Key's Managment
+
+
+
+
+
+
