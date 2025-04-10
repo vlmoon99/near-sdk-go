@@ -2,6 +2,10 @@
 
 This tutorial guides you through setting up a full-stack NEAR project with **Go**, **React**, **Node.js**, and NEAR smart contracts.
 
+### 🚨 **IMPORTANT PREREQUISITES** 🚨  
+
+- [Near GO CLI](https://github.com/vlmoon99/near-cli-go)  
+
 ---
 
 ## 1. Create the Project
