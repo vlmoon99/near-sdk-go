@@ -163,7 +163,7 @@ Start the backend:
 cd backend && yarn ts-node src/index.ts
 ```
 
-Sample API calls:
+Sample API calls acting as a proxy via NEAR API JS:
 
 **InitContract:**
 ```bash
@@ -186,14 +186,19 @@ curl -X POST http://localhost:3000/near/contract/ReadData \
   -d '{"args": {"key": "testKey"}, "deposit": "0"}'
 ```
 
-**ReadIncommingTxData:**
+**ReadIncomingTxData:**
 ```bash
-curl -X POST http://localhost:3000/near/contract/ReadIncommingTxData \
+curl -X POST http://localhost:3000/near/contract/ReadIncomingTxData \
   -H "Content-Type: application/json" \
   -d '{"args": {}, "deposit": "0"}'
 ```
 
-Each response returns a transaction hash viewable on NEAR Blocks.
+Each response returns a transaction hash, which you can view on [NEAR Blocks](https://explorer.near.org/).
+
+You can also easily authenticate users using a crypto wallet on the client side, and verify the signature on the backend. Learn more here:
+
+👉 [Verify Signature and Authenticate Users via Crypto Wallet](https://docs.near.org/web3-apps/backend/#3-verify-the-signature)
+
 
 ### 🧰 Contract Listener
 
