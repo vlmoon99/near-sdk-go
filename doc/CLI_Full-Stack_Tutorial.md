@@ -197,18 +197,25 @@ Each response returns a transaction hash viewable on NEAR Blocks.
 
 ### 🧰 Contract Listener
 
-Start the listener:
+Start the contract listener:
 
 ```bash
 cd contract_listener && yarn ts-node src/index.ts
 ```
 
-Use NEAR CLI to trigger events:
+Before implementing your listener logic, it's highly recommended to review the following official NEAR documentation :
+
+- ⚙️ [Actions Explained](https://docs.near.org/protocol/transaction-anatomy#actions) – Dive into different action types like `FunctionCall`, `Transfer`, and `DeployContract`.
+- 📢 [NEAR Events Format](https://nomicon.io/Standards/EventsFormat) – Understand the event structure and how to emit and parse events using NEAR standards.
+
+
+Use NEAR CLI to trigger action DeployContract:
 
 ```bash
 near-go deploy -id "mytestnetaccount779.testnet" -n "testnet"
 ```
 
+Use NEAR CLI to trigger event nep999:
 ```bash
 near contract call-function as-transaction mytestnetaccount779.testnet ReadIncommingTxData \
   json-args {} prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' \
@@ -216,16 +223,10 @@ near contract call-function as-transaction mytestnetaccount779.testnet ReadIncom
   sign-with-legacy-keychain send
 ```
 
-### Sample Output
 
-#### ✅ **Filtered Actions by ID (1)** – *Deploy Contract*
-```json
-{
-  "receiptId": "BjBLFkZa3LnapWvSwEKrrK5qKLbZgh89b8GPDt75A1bU",
-  "receiptStatus": { "SuccessValue": "" },
-  "operations": [ { "DeployContract": { "code": "..." } } ]
-}
-```
+
+
+### Sample Output
 
 #### 📢 **Events**
 ```json
@@ -242,6 +243,15 @@ near contract call-function as-transaction mytestnetaccount779.testnet ReadIncom
     }
   }
 ]
+```
+
+#### ✅ **Filtered Actions by ID (1)** – *Deploy Contract*
+```json
+{
+  "receiptId": "BjBLFkZa3LnapWvSwEKrrK5qKLbZgh89b8GPDt75A1bU",
+  "receiptStatus": { "SuccessValue": "" },
+  "operations": [ { "DeployContract": { "code": "..." } } ]
+}
 ```
 
 #### ✅ **Filtered Actions by ID (2)** – *FunctionCall: `ReadIncommingTxData`*
@@ -277,16 +287,72 @@ near contract call-function as-transaction mytestnetaccount779.testnet ReadIncom
 ```
 
 
-5.Manage in the production
+## 5. 🚀 Managing in Production
 
-- Transactions (How to see tx, indexer)
+When moving your NEAR project to production, it's important to understand how to manage transactions, accounts, keys, upgrades, and security. This section provides essential insights and links to official NEAR documentation.
 
-- Account System (account names,creation,storage)
+---
 
-- Key's Managment
+### 🔄 Transactions
 
+Understand how transactions are structured, executed, and monitored:
 
+- 📄 [Transaction Anatomy](https://docs.near.org/protocol/transaction-anatomy) – Learn how NEAR transactions are structured.
+- ⚙️ [GAS](https://docs.near.org/protocol/gas) – Learn how Gas fees work and how to optimize your usage.
+- 🔁 [Lifecycle of a Transaction](https://docs.near.org/protocol/transaction-execution) – Follow the execution flow of a transaction from start to finish.
 
+You can also track transactions using tools like the [NEAR Explorer](https://explorer.testnet.near.org/) or build custom analytics with an [indexer](https://docs.near.org/tools/indexers/overview).
 
+---
 
+### 👤 Account System
 
+NEAR has a unique and human-readable account system:
+
+- Accounts are based on **Ed25519** public-key cryptography.
+- Two types of account formats:
+  - **Implicit accounts** – derived directly from a public key (e.g., `ed25519:abc123...`).
+  - **Named accounts** – readable and memorable (e.g., `neargo.near`).
+
+🔗 Learn more: [Account ID Format](https://docs.near.org/protocol/account-id)
+
+---
+
+### 🔑 Key Management
+
+NEAR provides a flexible **Access Key System**:
+
+- You can create multiple keys per account with different levels of access:
+  - **Full Access Keys**
+  - **Function Call Access Keys** (limited to specific contracts and methods)
+- Ideal for secure delegation and automation.
+
+🔐 Learn more: [Access Keys](https://docs.near.org/protocol/access-keys)
+
+---
+
+### 🔧 Smart Contract Updates & Locking
+
+- When using a **Full Access Key**, you can update a smart contract without affecting its storage (state).
+- Only the contract code is replaced.
+
+📥 [How to Upgrade a Contract](https://docs.near.org/smart-contracts/release/upgrade)
+
+To **lock** an account (prevent further code changes):
+
+- Simply **remove all access keys**.
+- This ensures immutability and trust for users interacting with your dApp.
+
+🔐 [Locking Contracts](https://docs.near.org/smart-contracts/release/lock)
+
+---
+
+### 🛡️ Security
+
+Security is a critical part of production-ready blockchain development. NEAR provides a detailed security guide to help you:
+
+- Prevent common vulnerabilities.
+- Secure smart contracts and keys.
+- Follow best practices for production deployments.
+
+📚 [Security Guide](https://docs.near.org/smart-contracts/security/welcome)
