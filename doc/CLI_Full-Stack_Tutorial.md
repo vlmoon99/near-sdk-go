@@ -58,7 +58,7 @@ backend  client  contract  contract_listener
    near-go account create -n "testnet" -a "mytestnetaccount779.testnet"
    ```
 
-![Check Testnet Account](./docs_images/tutorial_account_creation_1.jpeg)
+![Check Testnet Account](./docs_images/tutorial_1.jpeg)
 
 ---
 
@@ -69,8 +69,8 @@ backend  client  contract  contract_listener
    - [NEAR Wallet](https://wallet.near.org/)  
    - [Meteor Wallet](https://wallet.meteorwallet.app/add_wallet/create_new)
 
-![Mainnet Account Nickname](./docs_images/tutorial_account_creation_2.jpeg)  
-![Fund Mainnet Account](./docs_images/tutorial_account_creation_3.jpeg)
+![Mainnet Account Nickname](./docs_images/tutorial_2.jpeg)  
+![Fund Mainnet Account](./docs_images/tutorial_3.jpeg)
 
 2. **Import Mainnet Wallet into the CLI:**  
    Run the import function:
@@ -117,7 +117,7 @@ near contract call-function as-transaction mytestnetaccount779.testnet ReadIncom
 ```
 
 _See the result on [NEAR Blocks Testnet](https://testnet.nearblocks.io/txns/BTgrqPc3e2G1dB1gXCDHic2g8UGBSTJc6nxZPStXih1P?tab=enhanced)._  
-![Transaction Result](./docs_images/tutorial_account_creation_4.jpeg)
+![Transaction Result](./docs_images/tutorial_4.jpeg)
 
 ### Deploy to Mainnet
 
@@ -147,13 +147,13 @@ cd client && yarn dev
 Open your browser and access `localhost`. In the dev console:
 
 1. **Login**  
-   ![Login](./docs_images/tutorial_account_creation_5.png)
+   ![Login](./docs_images/tutorial_5.png)
 
 2. **After Login:** View Home page with smart contract functions  
-   ![Home Page](./docs_images/tutorial_account_creation_6.png)
+   ![Home Page](./docs_images/tutorial_6.png)
 
 3. **Call ReadIncommingTxData** to view TX logs  
-   ![Call ReadIncommingTxData](./docs_images/tutorial_account_creation_7.png)
+   ![Call ReadIncommingTxData](./docs_images/tutorial_7.png)
 
 ### 🚀 Backend
 
