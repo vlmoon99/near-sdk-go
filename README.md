@@ -66,9 +66,9 @@ If you're a beginner, it's highly recommended to start with the tutorials on the
 4. [What is a Smart Contract?](https://docs.near.org/smart-contracts/what-is)  
 5. [What are Web3 Apps?](https://docs.near.org/web3-apps/what-is)
 
-Once you've mastered these foundational concepts, proceed to the [Full-Stack App Tutorial](doc/Full-Stack_App_Tutorial.md). This tutorial walks you through developing and deploying a full-stack application, demonstrating end-to-end development on the NEAR Blockchain.
+Once you've mastered these foundational concepts, proceed to the [Full-Stack App Tutorial](doc/CLI_Full-Stack_Tutorial.md). This tutorial walks you through developing and deploying a full-stack application, demonstrating end-to-end development on the NEAR Blockchain.
 
-After that, we highly recommend going through the [Status_Message_Tutorial], where you'll explore how the NEAR-Go CLI works under the hood. You'll learn how to:
+After that, we highly recommend going through the [Status_Message_Tutorial](doc/Status_Message_Tutorial.md), where you'll explore how the NEAR-Go CLI works under the hood. You'll learn how to:
 
 - Build Go files into WASM smart contracts  
 - Sign and send transactions  
