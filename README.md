@@ -5,6 +5,9 @@
 
 **Near SDK GO** is a library designed for smart contract development on the Near Blockchain. This SDK provides all the necessary tools for creating, deploying, and testing smart contracts written in Go for the Near Blockchain.
 
+To simplify development on NEAR using Go, you can use the [NEAR Go CLI](https://github.com/vlmoon99/near-cli-go). This tool streamlines common tasks such as building, deploying, and interacting with smart contracts written in Go.
+
+Let me know if you want to expand it with example usage or benefits!
 
 ### 🚨 **IMPORTANT PREREQUISITES** 🚨  
 
