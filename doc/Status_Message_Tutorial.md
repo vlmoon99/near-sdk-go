@@ -433,7 +433,10 @@ near account create-account sponsor-by-faucet-service your-smart-contract-accoun
 **With NEAR-GO CLI:**
 
 ```bash
-near-go create-dev-account
+                                      (write your testnet account)
+
+near-go account create -n "testnet" -a "your-smart-contract-account-id.near"
+
 ```
 
 ### **2. Push Smart Contract to Testnet**
@@ -447,7 +450,7 @@ near contract deploy your-smart-contract-account-id.testnet use-file ./main.wasm
 **With CLI:**
 
 ```bash
-near-go deploy
+near-go deploy -id "your-smart-contract-account-id.near" -n "testnet"
 ```
 
 ### **3. Test Smart Contract on Testnet**
@@ -471,7 +474,7 @@ near contract call-function as-read-only your-smart-contract-account-id.testnet 
 To create a mainnet account, you can use various options. For example, you can use near-cli-rs, generate a mnemonic using your own cryptography, import it to the CLI, and fund it with NEAR. However, we advise you to try web wallets of NEAR to see how it works on the client side. For example, [Meteor Wallet](https://wallet.meteorwallet.app/). After that, you can import this account.
 
 ```bash
-near account import-account using-seed-phrase "your mnemonic" --seed-phrase-hd-path m/44'/397'/0' network-config mainnet
+near account import-account
 ```
 
 ### **5. Deploy Smart Contract to Mainnet**
@@ -485,7 +488,7 @@ near contract deploy your-smart-contract-account-id.near use-file ./main.wasm wi
 **With CLI:**
 
 ```bash
-near-go deploy --prod
+near-go deploy -id "your-smart-contract-account-id.near" -n "mainnet"
 ```
 
 ### **6. Test Smart Contract on Mainnet**

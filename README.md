@@ -52,17 +52,26 @@ unsupported parameter type "xyz"
 ```
 You will need to build it again, this problem solved in CLI which u can use instead of raw tinygo builds
 
-
 ---
 
-## **Documentation**  
-For detailed documentation, refer to the `doc` folder. It contains all the essential information required for building smart contracts using Go.  
+## **Documentation**
 
-If you're a beginner, it's highly recommended to start with the tutorials in `doc/beginners/`, which take you through three step-by-step lessons. These lessons cover:  
-[1. Core concepts of the Blockchain technology and Near Blockchain.](doc/beginners/1.Blockchain.md)  
-[2. Smart contract basics.](doc/beginners/2.SmartContract.md)  
-[3. Client(Frontend) WEB 3 basics.](doc/beginners/3.Client(Frontend).md)  
+For detailed documentation, refer to the `doc` folder. It contains all the essential information required for building smart contracts using Go.
 
-Once you've mastered these foundational concepts, proceed to [Full-Stack App Tutorial](doc/Full-Stack_App_Tutorial.md). This tutorial guides you through developing and deploying a full-stack application, demonstrating end-to-end development on the Near Blockchain.
+If you're a beginner, it's highly recommended to start with the tutorials on the [Official NEAR Docs](https://docs.near.org), which guide you through step-by-step lessons. These lessons cover:
 
----
+1. [What is NEAR?](https://docs.near.org/protocol/basics)  
+2. [NEAR Accounts](https://docs.near.org/protocol/account-model)  
+3. [Transactions](https://docs.near.org/protocol/transactions)  
+4. [What is a Smart Contract?](https://docs.near.org/smart-contracts/what-is)  
+5. [What are Web3 Apps?](https://docs.near.org/web3-apps/what-is)
+
+Once you've mastered these foundational concepts, proceed to the [Full-Stack App Tutorial](doc/Full-Stack_App_Tutorial.md). This tutorial walks you through developing and deploying a full-stack application, demonstrating end-to-end development on the NEAR Blockchain.
+
+After that, we highly recommend going through the [Status_Message_Tutorial], where you'll explore how the NEAR-Go CLI works under the hood. You'll learn how to:
+
+- Build Go files into WASM smart contracts  
+- Sign and send transactions  
+- Deploy code to the blockchain
+
+This hands-on experience is key to understanding the full development and deployment process on NEAR using Go.
