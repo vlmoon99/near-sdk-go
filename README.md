@@ -7,8 +7,6 @@
 
 To simplify development on NEAR using Go, you can use the [NEAR Go CLI](https://github.com/vlmoon99/near-cli-go). This tool streamlines common tasks such as building, deploying, and interacting with smart contracts written in Go.
 
-Let me know if you want to expand it with example usage or benefits!
-
 ### 🚨 **IMPORTANT PREREQUISITES** 🚨  
 
 For an optimal development experience, use **Go** version **1.23.7** and **Tinygo** version **0.36.0**.  
