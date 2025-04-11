@@ -58,13 +58,46 @@ backend  client  contract  contract_listener
    Testnet accounts must end with `.testnet`.  
    Check availability on [NEAR Blocks Testnet](https://testnet.nearblocks.io/address/mytestnetaccount779.testnet).
 
-   ```bash
-   near-go account create -n "testnet" -a "mytestnetaccount779.testnet"
-   ```
 
-![Check Testnet Account](./docs_images/tutorial_1.jpeg)
+```bash
+# Replace this with your actual testnet account name
+near-go account create -n "testnet" -a "mytestnetaccount779.testnet"
+```
+
+
+  <img src="./docs_images/tutorial_1.jpeg" alt="Check Testnet Account" style="width: 50%; max-width:1000px;" />
+
+Here’s the cleaned-up, grammatically corrected, and nicely formatted version of your tutorial section using resized images:
 
 ---
+
+### 📤 Exporting Your Testnet Account
+
+After creating your testnet account, you’ll need to **export it** to use with the NEAR Go CLI.
+
+1. Go to the [Meteor Web Wallet](https://wallet.meteorwallet.app).
+2. Click **"Add Wallet"**.  
+   <img src="./docs_images/tutorial_10.png" alt="Create Wallet" style="width: 50%; max-width: 800px;" />
+
+3. Choose **"Testnet"** as your network.  
+   <img src="./docs_images/tutorial_11.png" alt="Choose Testnet" style="width: 50%; max-width: 800px;" />
+
+4. Select **"Enter manually"**.  
+   <img src="./docs_images/tutorial_12.png" alt="Choose enter manually" style="width: 50%; max-width: 800px;" />
+
+5. Enter your **secret phrase** and **account ID**.  
+   <img src="./docs_images/tutorial_13.png" alt="Enter secret phrase + account ID" style="width: 50%; max-width: 800px;" />
+
+---
+
+Now, use the CLI to export your account:
+
+```bash
+# Replace this with your actual testnet account name
+near account export-account mytestnetaccount779.testnet using-seed-phrase network-config testnet
+```
+
+
 
 ### 🌐 Mainnet Account Setup
 
@@ -73,8 +106,8 @@ backend  client  contract  contract_listener
    - [NEAR Wallet](https://wallet.near.org/)  
    - [Meteor Wallet](https://wallet.meteorwallet.app/add_wallet/create_new)
 
-![Mainnet Account Nickname](./docs_images/tutorial_2.jpeg)  
-![Fund Mainnet Account](./docs_images/tutorial_3.jpeg)
+  <img src="./docs_images/tutorial_2.jpeg" alt="Mainnet Account Nickname" style="width: 50%; max-width: 800px;" />
+  <img src="./docs_images/tutorial_3.jpeg" alt="Fund Mainnet Account" style="width: 50%; max-width: 800px;" />
 
 2. **Import Mainnet Wallet into the CLI:**  
    Run the import function:
@@ -82,9 +115,7 @@ backend  client  contract  contract_listener
    ```bash
    near-go account import
    ```
-
    Follow the prompts to choose the import method:
-   - Using **web wallet** for NEAR sign-in.
    - Using a **seed phrase**. Detailed instructions can be found [here](https://github.com/near/near-cli-rs/blob/main/docs/GUIDE.en.md#using-seed-phrase---import-existing-account-using-a-seed-phrase).
 
 ```bash
@@ -94,6 +125,19 @@ backend  client  contract  contract_listener
   using-private-key         - Import with a private key  
   back
 ```
+
+To retrieve your **mnemonic** and **account ID**, follow these steps:
+
+1. Open the **Meteor Wallet**.
+2. Go to **Settings**:  
+  <img src="./docs_images/tutorial_8.png" alt="Settings" style="width: 50%; max-width: 400px;" />
+3. Navigate to the **Secrets** tab.
+4. Copy both your **mnemonic phrase** and **account ID**:  
+  <img src="./docs_images/tutorial_9.png" alt="Secret" style="width: 50%; max-width: 400px;" />
+
+Once you have this information, return to your terminal and provide the values when prompted.
+
+✅ After completing these steps, your wallet will be successfully imported into the NEAR Go CLI.
 
 ---
 
@@ -121,7 +165,8 @@ near contract call-function as-transaction mytestnetaccount779.testnet ReadIncom
 ```
 
 _See the result on [NEAR Blocks Testnet](https://testnet.nearblocks.io/txns/BTgrqPc3e2G1dB1gXCDHic2g8UGBSTJc6nxZPStXih1P?tab=enhanced)._  
-![Transaction Result](./docs_images/tutorial_4.jpeg)
+
+<img src="./docs_images/tutorial_4.jpeg" alt="Transaction Result" style="width: 50%; max-width: 800px;" />
 
 ### Deploy to Mainnet
 
@@ -151,13 +196,16 @@ cd client && yarn dev
 Open your browser and access `localhost`. In the dev console:
 
 1. **Login**  
-   ![Login](./docs_images/tutorial_5.png)
 
-2. **After Login:** View Home page with smart contract functions  
-   ![Home Page](./docs_images/tutorial_6.png)
+  <img src="./docs_images/tutorial_5.png" alt="Login" style="width: 50%; max-width: 800px;" />
+
+2. **After Login:** View Home page with smart contract functions
+
+  <img src="./docs_images/tutorial_6.png" alt="After Login" style="width: 50%; max-width: 800px;" />
 
 3. **Call ReadIncommingTxData** to view TX logs  
-   ![Call ReadIncommingTxData](./docs_images/tutorial_7.png)
+
+  <img src="./docs_images/tutorial_7.png" alt="Call ReadIncommingTxData" style="width: 50%; max-width: 800px;" />
 
 ### 🚀 Backend
 
