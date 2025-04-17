@@ -16,8 +16,6 @@
 3. **[TinyGo](https://tinygo.org/getting-started/install/):**
    - **_Required for building smart contracts._**
 
-4. **[near-cli-rs](https://github.com/near/near-cli-rs):**
-   - **_Required for interacting with the NEAR network._**
 
 
 ⚠️ **Ensure these tools are installed to avoid errors!** ⚠️
@@ -62,7 +60,7 @@
 
 1. Create the project using the NEAR Go CLI:
     ```bash
-    near-go create -p "status_messages" -m "github.com/{your-github-account-id}/status_messages"
+    near-go create -p "status_messages" -m "github.com/{your-github-account-id}/status_messages" -t "smart-contract-empty"
     ```
 
 ## **Project Building Process**
@@ -433,7 +431,7 @@ near account create-account sponsor-by-faucet-service your-smart-contract-accoun
 **With NEAR-GO CLI:**
 
 ```bash
-                                      (write your testnet account)
+                                            (write your testnet account)
 
 near-go account create -n "testnet" -a "your-smart-contract-account-id.near"
 
