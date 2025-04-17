@@ -455,6 +455,8 @@ near-go deploy -id "your-smart-contract-account-id.near" -n "testnet"
 
 On this step, we can't use NEAR-GO CLI because there are no smart contract calls. You need to do it manually for now. In our "Status Message" example, we have two functions:
 
+**Without CLI:**
+
 **SetStatus:**
 
 ```bash
@@ -467,14 +469,48 @@ near contract call-function as-transaction your-smart-contract-account-id.testne
 near contract call-function as-read-only your-smart-contract-account-id.testnet GetStatus json-args '{"account_id":"your-smart-contract-account-id.testnet"}' network-config testnet now
 ```
 
+
+**With CLI:**
+
+### **SetStatus**
+
+```bash
+near-go call \
+  --from your-account-id.testnet \
+  --to your-smart-contract-account-id.testnet \
+  --function SetStatus \
+  --args '{"message": "tutorial"}' \
+  --gas '100 Tgas' \
+  --deposit '0 NEAR' \
+  --network testnet
+```
+
+### **GetStatus**
+
+```bash
+near-go call \
+  --from your-account-id.testnet \
+  --to your-smart-contract-account-id.testnet \
+  --function GetStatus \
+  --args '{"account_id": "your-account-id.testnet"}' \
+  --network testnet
+```
+
 ### **4. Create Mainnet Account**
 
 To create a mainnet account, you can use various options. For example, you can use near-cli-rs, generate a mnemonic using your own cryptography, import it to the CLI, and fund it with NEAR. However, we advise you to try web wallets of NEAR to see how it works on the client side. For example, [Meteor Wallet](https://wallet.meteorwallet.app/). After that, you can import this account.
+
+**Without CLI:**
 
 ```bash
 near account import-account
 ```
 
+**With CLI:**
+
+```bash
+near-go account import 
+```
 ### **5. Deploy Smart Contract to Mainnet**
 
 **Without CLI:**
@@ -489,16 +525,47 @@ near contract deploy your-smart-contract-account-id.near use-file ./main.wasm wi
 near-go deploy -id "your-smart-contract-account-id.near" -n "mainnet"
 ```
 
+
 ### **6. Test Smart Contract on Mainnet**
 
-**SetStatus:**
+#### **Without CLI:**
+
+##### **SetStatus:**
 
 ```bash
 near contract call-function as-transaction your-smart-contract-account-id.near SetStatus json-args '{"message" : "tutorial"}' prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as your-smart-contract-account-id.near network-config mainnet sign-with-legacy-keychain send
 ```
 
-**GetStatus:**
+##### **GetStatus:**
 
 ```bash
 near contract call-function as-read-only your-smart-contract-account-id.near GetStatus json-args '{"account_id":"your-smart-contract-account-id.near"}' network-config mainnet now
+```
+
+---
+
+#### **With CLI:**
+
+##### **SetStatus:**
+
+```bash
+go run main.go call \
+  --from your-account-id.near \
+  --to your-smart-contract-account-id.near \
+  --function SetStatus \
+  --args '{"message": "tutorial"}' \
+  --gas '100 Tgas' \
+  --deposit '0 NEAR' \
+  --network mainnet
+```
+
+##### **GetStatus:**
+
+```bash
+go run main.go call \
+  --from your-account-id.near \
+  --to your-smart-contract-account-id.near \
+  --function GetStatus \
+  --args '{"account_id": "your-account-id.near"}' \
+  --network mainnet
 ```
