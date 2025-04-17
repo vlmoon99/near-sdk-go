@@ -1,5 +1,4 @@
-## **Full-Stack App tutorial **
-
+## **Full-Stack App Tutorial**
 
 ### 🚨 **IMPORTANT PREREQUISITES** 🚨
 
@@ -16,12 +15,11 @@
 3. **[TinyGo](https://tinygo.org/getting-started/install/):**
    - **_Required for building smart contracts._**
 
-
-
 ⚠️ **Ensure these tools are installed to avoid errors!** ⚠️
 
-*In this tutorial, I will explain how to create a smart contract called "Status Message" in Go from scratch using raw TinyGo and NEAR CLI RS. Additionally, to simplify the development process, you can use the [NEAR Go CLI](https://github.com/vlmoon99/near-cli-go), which provides simplified versions of all commands for creating a project, building, creating a developer account, deploying on the testnet, importing a production account, running tests,  and deploying it to production.*
+*In this tutorial, I will explain how to create a smart contract called "Status Message" in Go from scratch using raw TinyGo and NEAR CLI RS. Additionally, to simplify the development process, you can use the [NEAR Go CLI](https://github.com/vlmoon99/near-cli-go), which provides simplified versions of all commands for creating a project, building, creating a developer account, deploying on the testnet, importing a production account, running tests, and deploying it to production.*
 
+---
 
 ## **Project Creation**
 
@@ -34,14 +32,17 @@
     mkdir status_messages
     cd status_messages
     ```
+
 2. Initialize the project module:
     ```bash
     go mod init github.com/{your-github-account-id}/status_messages
     ```
+
 3. Get the required SDK:
     ```bash
     go get github.com/vlmoon99/near-sdk-go@v0.0.8
     ```
+
 4. Create the `main.go` file and add the following code:
     ```bash
     touch main.go && echo 'package main
@@ -63,6 +64,8 @@
     near-go create -p "status_messages" -m "github.com/{your-github-account-id}/status_messages" -t "smart-contract-empty"
     ```
 
+---
+
 ## **Project Building Process**
 
 ### **1. Without CLI**
@@ -71,6 +74,7 @@
     ```bash
     tinygo build -size short -no-debug -panic=trap -scheduler=none -gc=leaking -o main.wasm -target wasm-unknown ./ && ls -lh main.wasm
     ```
+
 2. If the build is successful, it will complete 100% correctly. However, if you encounter errors like this one:
     ```bash
     ../../../../go/pkg/mod/github.com/vlmoon99/near-sdk-go@v0.0.8/system/system_near.go:17:7:
@@ -83,8 +87,9 @@
     ```bash
     near-go build
     ```
-   Cli will handle all other logic under the hood.
+   The CLI will handle all other logic under the hood.
 
+---
 
 ## **Tests**
 
@@ -147,16 +152,15 @@ func GetStatus() {
 	env.LogString("Status : " + status + " on account id : " + accountId)
 	env.ContractValueReturn([]byte(status))
 }
-
 ```
 
-For now we have some unit test and mocks for system and env methods in SDK which u can find in 
-near-sdk-go/system/system_mock.go, 
-near-sdk-go/system/system_mock_test.go,
-near-sdk-go/env/env_test.go.
+For now, we have some unit tests and mocks for system and env methods in SDK, which you can find in:
 
-And sometimes you also can use them , but for some functionality it will be better to create your own mocks of system methods as in near-sdk-go/system/system_mock.go
-and init this system into enviroment like here
+- `near-sdk-go/system/system_mock.go`
+- `near-sdk-go/system/system_mock_test.go`
+- `near-sdk-go/env/env_test.go`
+
+And sometimes you can use them, but for some functionality, it will be better to create your own mocks of system methods as in `near-sdk-go/system/system_mock.go` and initialize this system into the environment like here:
 
 ```go
 func init() {
@@ -164,93 +168,22 @@ func init() {
 }
 ```
 
-For this Smart Contract we will be using standart mocks for unit tests and  [NEAR Workspaces](https://github.com/near/near-workspaces-rs) for integration tests in emulated Blockchain enviroment.
+For this Smart Contract, we will be using standard mocks for unit tests and [NEAR Workspaces](https://github.com/near/near-workspaces-rs) for integration tests in the emulated Blockchain environment.
 
-Let's start from the unit tests which we will write in ```main_test.go``` :
+---
 
-```go
-package main
+### **Unit Testing Process**
 
-import (
-	"testing"
-
-	"github.com/vlmoon99/near-sdk-go/env"
-	"github.com/vlmoon99/near-sdk-go/system"
-)
-
-func init() {
-	systemMock := system.NewMockSystem()
-	env.SetEnv(systemMock)
-}
-
-func TestSetStatus(t *testing.T) {
-	accountId := "test_account"
-	message := "Hello, NEAR!"
-
-	systemMock := env.NearBlockchainImports.(*system.MockSystem)
-	systemMock.SetPredecessorAccountID(accountId)
-	systemMock.SetContractInput([]byte(`{"message": "` + message + `"}`))
-
-	SetStatus()
-
-	state := GetState()
-	storedMessageInterface, err := state.Data.Get([]byte(accountId))
-	if err != nil {
-		t.Fatalf("Failed to get stored message: %v", err)
-	}
-
-	storedMessage, ok := storedMessageInterface.(string)
-	if !ok {
-		t.Fatalf("Stored message is not a string")
-	}
-
-	if string(storedMessage) != message {
-		t.Fatalf("Expected message %v, got %v", message, string(storedMessage))
-	}
-}
-
-func TestGetStatus(t *testing.T) {
-	accountId := "test_account"
-	message := "Hello, NEAR!"
-
-	systemMock := env.NearBlockchainImports.(*system.MockSystem)
-	systemMock.SetPredecessorAccountID(accountId)
-	state := GetState()
-	state.Data.Insert([]byte(accountId), []byte(message))
-
-	systemMock.SetContractInput([]byte(`{"account_id": "` + accountId + `"}`))
-
-	GetStatus()
-
-	storedMessageInterface, err := state.Data.Get([]byte(accountId))
-	if err != nil {
-		t.Fatalf("Failed to get stored message: %v", err)
-	}
-
-	storedMessage, ok := storedMessageInterface.(string)
-	if !ok {
-		t.Fatalf("Stored message is not a string")
-	}
-
-	if string(storedMessage) != message {
-		t.Fatalf("Expected message %v, got %v", message, string(storedMessage))
-	}
-}
-
-```
-
-## **Unit Testing Process**
-
-### **1. Run Unit Tests Without CLI**
+#### **1. Run Unit Tests Without CLI**
 
 1. To run unit tests, use the following commands:
     ```bash
-    tinygo test ./
+    tinygo test ./ 
     ```
     - To run unit tests inside your package.
 
     ```bash
-    tinygo test ./...
+    tinygo test ./... 
     ```
     - To run unit tests in all your packages.
 
@@ -262,29 +195,35 @@ func TestGetStatus(t *testing.T) {
 
 ### **2. Run Unit Tests With CLI**
 
-1. Simply call the following commands:
-    ```bash
-    near-go test package
-    ```
-    - To run unit tests inside your package.
+You can easily run unit tests with the **NEAR Go CLI** using the following commands:
 
-    ```bash
-    near-go test project
-    ```
-    - To run unit tests inside your project.
+#### **For Unit Tests Inside Your Package:**
 
-   The CLI will handle all other logic under the hood.
+```bash
+near-go test package
+```
+
+#### **For Unit Tests Inside Your Project:**
+
+```bash
+near-go test project
+```
+
+The **NEAR Go CLI** will automatically handle all necessary logic under the hood.
 
 ---
 
+### **Integration Testing**
 
-## **Integration Testing**
+After testing functionality in a mocked environment, we can move on to writing integration tests. But first, we need to build the WASM file. For this, we will use **Near Workspaces RS**. Start by creating a new empty Rust project, adding necessary dependencies, and writing our tests.
 
-After we test our functionality in a mocked environment, we can start to write an integration test. But before we need to build our wasm file. For this task, we will use [Near Workspaces RS](https://github.com/near/near-workspaces-rs). First, we need to create an empty Rust project, add the necessary dependencies, and write our tests:
+#### **Initialize the Rust Project:**
 
 ```bash
 mkdir integration_tests && cd integration_tests && cargo init --bin
 ```
+
+#### **Add Dependencies to `Cargo.toml`:**
 
 ```bash
 echo '[package]
@@ -302,8 +241,7 @@ tokio = "1.41.1"
 near-gas = "0.3.0"' > Cargo.toml
 ```
 
-
-After we initialize the project, we need to add the code for our integration tests for the "Status Message" Smart Contract. Let's start with the helper functions:
+#### **Helper Functions for Integration Testing:**
 
 ```rust
 use near_gas::NearGas;
@@ -351,7 +289,7 @@ async fn call_integration_test_function(
 }
 ```
 
-After we have this in place, we can start to add integration test calls to our smart contract:
+#### **Write Integration Tests for Smart Contract:**
 
 ```rust
 #[tokio::main]
@@ -391,16 +329,15 @@ async fn main() -> anyhow::Result<()> {
 }
 ```
 
-Let's run and see how our function will execute and check their logs:
+#### **Run the Integration Tests:**
+
+Before running integration tests, build your **main.go** file with the **TinyGo** or **NEAR Go build** command:
 
 ```bash
-
-//Before running integration tests, please build your main.go file with the tinygo program or near-go build command.
 cd integration_tests && cargo run
-
 ```
 
-Logs :
+#### **Sample Logs:**
 
 ```bash
 Dev Account ID: dev-20250220113022-97536040932569
@@ -414,65 +351,68 @@ Functions Logs: [
 ]
 ```
 
-We can see that everything is fine, and we can easily deploy our smart contract on the development environment first. After testing on the development side, we can move to production.
+You can see that the tests are passing, and everything is working correctly. After testing in the development environment, you can deploy your contract to production.
 
-## **Deployment Process**
+---
 
-### **1. Create a Development Account on Testnet**
+### **Deployment Process**
 
-In order to create an account on the testnet, you can use either of the following options:
+#### **1. Create a Development Account on Testnet**
 
-**Without CLI:**
+To create an account on the **Testnet**, you can use either of the following methods:
+
+#### **Without CLI:**
 
 ```bash
 near account create-account sponsor-by-faucet-service your-smart-contract-account-id.testnet autogenerate-new-keypair save-to-legacy-keychain network-config testnet create
 ```
 
-**With NEAR-GO CLI:**
+#### **With NEAR-GO CLI:**
 
 ```bash
-                                            (write your testnet account)
-
 near-go account create -n "testnet" -a "your-smart-contract-account-id.near"
-
 ```
 
-### **2. Push Smart Contract to Testnet**
+---
 
-**Without CLI:**
+#### **2. Push Smart Contract to Testnet**
+
+#### **Without CLI:**
 
 ```bash
 near contract deploy your-smart-contract-account-id.testnet use-file ./main.wasm without-init-call network-config testnet sign-with-legacy-keychain send
 ```
 
-**With CLI:**
+#### **With CLI:**
 
 ```bash
 near-go deploy -id "your-smart-contract-account-id.near" -n "testnet"
 ```
 
+
 ### **3. Test Smart Contract on Testnet**
 
-On this step, we can't use NEAR-GO CLI because there are no smart contract calls. You need to do it manually for now. In our "Status Message" example, we have two functions:
+In this step, we cannot use the **NEAR Go CLI** because there are no smart contract calls available. You will need to execute the calls manually for now. In our "Status Message" example, we have two functions:
 
-**Without CLI:**
+#### **Without CLI:**
 
-**SetStatus:**
+##### **SetStatus:**
 
 ```bash
 near contract call-function as-transaction your-smart-contract-account-id.testnet SetStatus json-args '{"message" : "tutorial"}' prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as your-smart-contract-account-id.testnet network-config testnet sign-with-legacy-keychain send
 ```
 
-**GetStatus:**
+##### **GetStatus:**
 
 ```bash
 near contract call-function as-read-only your-smart-contract-account-id.testnet GetStatus json-args '{"account_id":"your-smart-contract-account-id.testnet"}' network-config testnet now
 ```
 
+---
 
-**With CLI:**
+#### **With CLI:**
 
-### **SetStatus**
+##### **SetStatus:**
 
 ```bash
 near-go call \
@@ -485,7 +425,7 @@ near-go call \
   --network testnet
 ```
 
-### **GetStatus**
+##### **GetStatus:**
 
 ```bash
 near-go call \
@@ -496,35 +436,41 @@ near-go call \
   --network testnet
 ```
 
+---
+
 ### **4. Create Mainnet Account**
 
-To create a mainnet account, you can use various options. For example, you can use near-cli-rs, generate a mnemonic using your own cryptography, import it to the CLI, and fund it with NEAR. However, we advise you to try web wallets of NEAR to see how it works on the client side. For example, [Meteor Wallet](https://wallet.meteorwallet.app/). After that, you can import this account.
+To create a **Mainnet** account, you can use various options. For example, you can use **near-cli-rs**, generate a mnemonic using your own cryptography, import it to the CLI, and fund it with NEAR. However, we advise you to try **web wallets** of NEAR to experience the client-side process. For example, use the [Meteor Wallet](https://wallet.meteorwallet.app/). After that, you can import this account.
 
-**Without CLI:**
+#### **Without CLI:**
 
 ```bash
 near account import-account
 ```
 
-**With CLI:**
+#### **With CLI:**
 
 ```bash
-near-go account import 
+near-go account import
 ```
+
+---
+
 ### **5. Deploy Smart Contract to Mainnet**
 
-**Without CLI:**
+#### **Without CLI:**
 
 ```bash
 near contract deploy your-smart-contract-account-id.near use-file ./main.wasm without-init-call network-config mainnet sign-with-legacy-keychain send
 ```
 
-**With CLI:**
+#### **With CLI:**
 
 ```bash
 near-go deploy -id "your-smart-contract-account-id.near" -n "mainnet"
 ```
 
+---
 
 ### **6. Test Smart Contract on Mainnet**
 
