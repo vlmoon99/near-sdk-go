@@ -264,12 +264,12 @@ func TestGetStatus(t *testing.T) {
 
 1. Simply call the following commands:
     ```bash
-    near-go test-package
+    near-go test package
     ```
     - To run unit tests inside your package.
 
     ```bash
-    near-go test-project
+    near-go test project
     ```
     - To run unit tests inside your project.
 
