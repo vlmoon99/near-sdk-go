@@ -1,7 +1,6 @@
 # **Near SDK GO**
 
 [![Telegram](https://img.shields.io/badge/Telegram-join%20chat-blue.svg)](https://t.me/go_near_sdk)  
-[![Discord](https://img.shields.io/badge/Discord-join%20chat-blue.svg)](https://discord.gg/UBUPuBm2)  
 [![Pkg Go Dev](https://img.shields.io/badge/Pkg%20Go%20Dev-view%20docs-blue.svg)](https://pkg.go.dev/github.com/vlmoon99/near-sdk-go)  
 
 **Near SDK GO** is a library designed for smart contract development on the Near Blockchain. This SDK provides the necessary tools for creating, deploying, and testing smart contracts written in Go for the Near Blockchain.
