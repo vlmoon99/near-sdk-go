@@ -18,7 +18,7 @@ func TestSetGreeting(t *testing.T) {
 
 	systemMock := env.NearBlockchainImports.(*system.MockSystem)
 	systemMock.SetPredecessorAccountID(accountId)
-	systemMock.SetContractInput([]byte(`{"greeting_message": "` + message + `"}`))
+	systemMock.SetContractInput([]byte(`{"greeting": "` + message + `"}`))
 	SetGreeting()
 	storedGreeting := getStoredGreeting()
 	if storedGreeting != message {

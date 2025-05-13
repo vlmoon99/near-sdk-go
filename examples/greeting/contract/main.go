@@ -6,9 +6,9 @@ import (
 	"github.com/vlmoon99/near-sdk-go/types"
 )
 
-const GreetingKey = "greeting_message"
+const GreetingKey = "greeting"
 
-const DefaultGreeting = "greeting_message"
+const DefaultGreeting = "Hello"
 
 func getStoredGreeting() string {
 	greeting, err := env.StorageRead([]byte(GreetingKey))
@@ -18,14 +18,14 @@ func getStoredGreeting() string {
 	return DefaultGreeting
 }
 
-//go:export GetGreeting
+//go:export get_greeting
 func GetGreeting() {
 	greeting := getStoredGreeting()
 	env.LogString(greeting)
 	env.ContractValueReturn([]byte(greeting))
 }
 
-//go:export SetGreeting
+//go:export set_greeting
 func SetGreeting() {
 	options := types.ContractInputOptions{IsRawBytes: false}
 	contractInput, _, _ := env.ContractInput(options)
