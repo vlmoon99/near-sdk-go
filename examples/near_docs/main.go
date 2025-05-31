@@ -40,19 +40,18 @@ func FunctionCall() {
 
 //go:export CreateSubaccount
 func CreateSubaccount() {
-	minAmountForAccountCreation, _ := types.U128FromString("1000000000000000000000") //0.001Ⓝ
+	minStorage, _ := types.U128FromString("1000000000000000000000") //0.001Ⓝ
 	contractInput, _, _ := env.ContractInput(types.ContractInputOptions{IsRawBytes: false})
 	prefix, _ := json.NewParser(contractInput).GetString("prefix")
 	currentAccountId, _ := env.GetCurrentAccountId()
 	promiseId := env.PromiseBatchCreate([]byte(prefix + "." + currentAccountId))
 	env.PromiseBatchActionCreateAccount(promiseId)
-	env.PromiseBatchActionTransfer(promiseId, minAmountForAccountCreation)
-	env.LogString("CreateSubaccount")
+	env.PromiseBatchActionTransfer(promiseId, minStorage)
 }
 
 //go:export CreateAccount
 func CreateAccount() {
-	minAmountForAccountCreation, _ := types.U128FromString("2000000000000000000000") //0.002Ⓝ
+	minStorage, _ := types.U128FromString("2000000000000000000000") //0.002Ⓝ
 	contractInput, _, _ := env.ContractInput(types.ContractInputOptions{IsRawBytes: false})
 	accountId, _ := json.NewParser(contractInput).GetString("account_id")
 	publicKey, _ := json.NewParser(contractInput).GetString("public_key")
@@ -63,7 +62,7 @@ func CreateAccount() {
 	promiseId := env.PromiseBatchCreate([]byte("testnet"))
 	functionName := []byte("create_account")
 	gas := uint64(types.ONE_TERA_GAS) * 200
-	env.PromiseBatchActionFunctionCall(promiseId, functionName, args, minAmountForAccountCreation, gas)
+	env.PromiseBatchActionFunctionCall(promiseId, functionName, args, minStorage, gas)
 }
 
 //go:embed greeting_contract.wasm
@@ -79,17 +78,31 @@ func DeployContract() {
 	env.PromiseBatchActionCreateAccount(promiseId)
 	env.PromiseBatchActionTransfer(promiseId, minStorage)
 	env.PromiseBatchActionDeployContract(promiseId, wasmBytes)
-	env.LogString("DeployContract executed")
 }
 
 //go:export AddKeys
 func AddKeys() {
-	env.LogString("AddKeys")
+	minStorage, _ := types.U128FromString("1000000000000000000000") //0.001Ⓝ
+	contractInput, _, _ := env.ContractInput(types.ContractInputOptions{IsRawBytes: false})
+	prefix, _ := json.NewParser(contractInput).GetString("prefix")
+	publicKey, _ := env.GetSignerAccountPK()
+	currentAccountId, _ := env.GetCurrentAccountId()
+	promiseId := env.PromiseBatchCreate([]byte(prefix + "." + currentAccountId))
+	env.PromiseBatchActionCreateAccount(promiseId)
+	env.PromiseBatchActionTransfer(promiseId, minStorage)
+	env.PromiseBatchActionAddKeyWithFullAccess(promiseId, publicKey, 0)
 }
 
 //go:export DeleteAccount
 func DeleteAccount() {
-	env.LogString("DeleteAccount")
+	minStorage, _ := types.U128FromString("1000000000000000000000") //0.001Ⓝ
+	contractInput, _, _ := env.ContractInput(types.ContractInputOptions{IsRawBytes: false})
+	prefix, _ := json.NewParser(contractInput).GetString("prefix")
+	currentAccountId, _ := env.GetCurrentAccountId()
+	promiseId := env.PromiseBatchCreate([]byte(prefix + "." + currentAccountId))
+	env.PromiseBatchActionCreateAccount(promiseId)
+	env.PromiseBatchActionTransfer(promiseId, minStorage)
+	env.PromiseBatchActionDeleteAccount(promiseId, []byte(currentAccountId))
 }
 
 //Cross-Contract Calls
