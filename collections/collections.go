@@ -7,6 +7,7 @@ import (
 
 	"github.com/vlmoon99/near-sdk-go/borsh"
 	"github.com/vlmoon99/near-sdk-go/env"
+	"github.com/vlmoon99/near-sdk-go/types"
 )
 
 const (
@@ -45,7 +46,7 @@ func (b BaseCollection) createKey(key interface{}) string {
 	case string:
 		return b.prefix + KeySeparator + k
 	case uint64:
-		return b.prefix + KeySeparator + fmt.Sprintf("%d", k)
+		return b.prefix + KeySeparator + types.Uint64ToString(k)
 	case int:
 		return b.createKey(uint64(k))
 	default:
@@ -94,15 +95,15 @@ func (s DefaultSerializer) Deserialize(data []byte, value interface{}) error {
 	return borsh.Deserialize(data, value)
 }
 
-type Vector struct {
+type Vector[T any] struct {
 	BaseCollection
 	storage    Storage
 	serializer DefaultSerializer
 	length     uint64
 }
 
-func NewVector(prefix string) *Vector {
-	return &Vector{
+func NewVector[T any](prefix string) *Vector[T] {
+	return &Vector[T]{
 		BaseCollection: NewBaseCollection(prefix),
 		storage:        DefaultStorage{},
 		serializer:     DefaultSerializer{},
@@ -110,11 +111,11 @@ func NewVector(prefix string) *Vector {
 	}
 }
 
-func (v *Vector) Length() uint64 {
+func (v *Vector[T]) Length() uint64 {
 	return v.length
 }
 
-func (v *Vector) Push(value interface{}) error {
+func (v *Vector[T]) Push(value T) error {
 	data, err := v.serializer.Serialize(value)
 	if err != nil {
 		return err
@@ -128,7 +129,6 @@ func (v *Vector) Push(value interface{}) error {
 
 	v.length++
 
-	// Verify the write
 	_, err = v.storage.Read(key)
 	if err != nil {
 		return err
@@ -137,21 +137,23 @@ func (v *Vector) Push(value interface{}) error {
 	return nil
 }
 
-func (v *Vector) Get(index uint64, value interface{}) error {
+func (v *Vector[T]) Get(index uint64) (T, error) {
+	var value T
 	if index >= v.length {
-		return errors.New(CollectionErrIndexOutOfBounds)
+		return value, errors.New(CollectionErrIndexOutOfBounds)
 	}
 
 	key := v.createKey(index)
 	data, err := v.storage.Read(key)
 	if err != nil {
-		return err
+		return value, err
 	}
 
-	return v.serializer.Deserialize(data, value)
+	err = v.serializer.Deserialize(data, &value)
+	return value, err
 }
 
-func (v *Vector) Set(index uint64, value interface{}) error {
+func (v *Vector[T]) Set(index uint64, value T) error {
 	if index >= v.length {
 		return errors.New(CollectionErrIndexOutOfBounds)
 	}
@@ -166,28 +168,29 @@ func (v *Vector) Set(index uint64, value interface{}) error {
 	return err
 }
 
-func (v *Vector) Pop(value interface{}) error {
+func (v *Vector[T]) Pop() (T, error) {
+	var value T
 	if v.length == 0 {
-		return errors.New(CollectionErrVectorEmpty)
+		return value, errors.New(CollectionErrVectorEmpty)
 	}
 
 	v.length--
 	key := v.createKey(v.length)
 	data, err := v.storage.Read(key)
 	if err != nil {
-		return err
+		return value, err
 	}
 
-	err = v.serializer.Deserialize(data, value)
+	err = v.serializer.Deserialize(data, &value)
 	if err != nil {
-		return err
+		return value, err
 	}
 
 	_, err = v.storage.Delete(key)
-	return err
+	return value, err
 }
 
-func (v *Vector) Clear() error {
+func (v *Vector[T]) Clear() error {
 	for i := uint64(0); i < v.length; i++ {
 		key := v.createKey(i)
 		_, err := v.storage.Delete(key)
@@ -199,22 +202,70 @@ func (v *Vector) Clear() error {
 	return nil
 }
 
-func (v *Vector) ToSlice(valueType interface{}) ([]interface{}, error) {
-	result := make([]interface{}, v.length)
+func (v *Vector[T]) ToSlice() ([]T, error) {
+	result := make([]T, v.length)
 	for i := uint64(0); i < v.length; i++ {
-		err := v.Get(i, &result[i])
+		value, err := v.Get(i)
 		if err != nil {
 			return nil, err
 		}
+		result[i] = value
 	}
 	return result, nil
+}
+
+type LookupMap[K comparable, V any] struct {
+	BaseCollection
+	storage    Storage
+	serializer DefaultSerializer
+}
+
+func NewLookupMap[K comparable, V any](prefix string) *LookupMap[K, V] {
+	return &LookupMap[K, V]{
+		BaseCollection: NewBaseCollection(prefix),
+		storage:        DefaultStorage{},
+		serializer:     DefaultSerializer{},
+	}
+}
+
+func (m *LookupMap[K, V]) Insert(key K, value V) error {
+	data, err := m.serializer.Serialize(value)
+	if err != nil {
+		return err
+	}
+
+	storageKey := m.createKey(key)
+	_, err = m.storage.Write(storageKey, data)
+	return err
+}
+
+func (m *LookupMap[K, V]) Get(key K) (V, error) {
+	var value V
+	storageKey := m.createKey(key)
+	data, err := m.storage.Read(storageKey)
+	if err != nil {
+		return value, err
+	}
+	err = m.serializer.Deserialize(data, &value)
+	return value, err
+}
+
+func (m *LookupMap[K, V]) Remove(key K) error {
+	storageKey := m.createKey(key)
+	_, err := m.storage.Delete(storageKey)
+	return err
+}
+
+func (m *LookupMap[K, V]) Contains(key K) (bool, error) {
+	storageKey := m.createKey(key)
+	return m.storage.HasKey(storageKey)
 }
 
 type UnorderedMap[K comparable, V any] struct {
 	BaseCollection
 	storage    Storage
 	serializer DefaultSerializer
-	keys       Vector
+	keys       Vector[[]byte]
 }
 
 func NewUnorderedMap[K comparable, V any](prefix string) *UnorderedMap[K, V] {
@@ -222,7 +273,7 @@ func NewUnorderedMap[K comparable, V any](prefix string) *UnorderedMap[K, V] {
 		BaseCollection: NewBaseCollection(prefix),
 		storage:        DefaultStorage{},
 		serializer:     DefaultSerializer{},
-		keys:           *NewVector(prefix + KeySeparator + "keys"),
+		keys:           *NewVector[[]byte](prefix + KeySeparator + "keys"),
 	}
 }
 
@@ -233,34 +284,20 @@ func (m *UnorderedMap[K, V]) Insert(key K, value V) error {
 	}
 
 	storageKey := m.createKey(key)
+
 	_, err = m.storage.Write(storageKey, data)
 	if err != nil {
 		return err
 	}
 
-	contains, err := m.Contains(key)
+	keyData, err := m.serializer.Serialize(key)
 	if err != nil {
 		return err
 	}
-	if !contains {
-		// Serialize the key for storage
-		keyData, err := m.serializer.Serialize(key)
-		if err != nil {
-			return err
-		}
 
-		// Store the key in the Vector
-		err = m.keys.Push(keyData)
-		if err != nil {
-			return err
-		}
-
-		// Verify the key was stored
-		var storedKeyData []byte
-		err = m.keys.Get(m.keys.Length()-1, &storedKeyData)
-		if err != nil {
-			return err
-		}
+	err = m.keys.Push(keyData)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -286,8 +323,7 @@ func (m *UnorderedMap[K, V]) Remove(key K) error {
 
 	length := m.keys.Length()
 	for i := uint64(0); i < length; i++ {
-		var keyData []byte
-		err := m.keys.Get(i, &keyData)
+		keyData, err := m.keys.Get(i)
 		if err != nil {
 			return err
 		}
@@ -300,8 +336,7 @@ func (m *UnorderedMap[K, V]) Remove(key K) error {
 
 		if storedKey == key {
 			if i < length-1 {
-				var lastKey []byte
-				err := m.keys.Get(length-1, &lastKey)
+				lastKey, err := m.keys.Get(length - 1)
 				if err != nil {
 					return err
 				}
@@ -310,8 +345,8 @@ func (m *UnorderedMap[K, V]) Remove(key K) error {
 					return err
 				}
 			}
-			var unused interface{}
-			return m.keys.Pop(&unused)
+			_, err := m.keys.Pop()
+			return err
 		}
 	}
 
@@ -328,8 +363,7 @@ func (m *UnorderedMap[K, V]) Keys() ([]K, error) {
 	keys := make([]K, length)
 
 	for i := uint64(0); i < length; i++ {
-		var keyData []byte
-		err := m.keys.Get(i, &keyData)
+		keyData, err := m.keys.Get(i)
 		if err != nil {
 			return nil, err
 		}
@@ -402,21 +436,21 @@ func (m *UnorderedMap[K, V]) Clear() error {
 	return m.keys.Clear()
 }
 
-type LookupSet struct {
+type LookupSet[T comparable] struct {
 	BaseCollection
 	storage    Storage
 	serializer DefaultSerializer
 }
 
-func NewLookupSet(prefix string) *LookupSet {
-	return &LookupSet{
+func NewLookupSet[T comparable](prefix string) *LookupSet[T] {
+	return &LookupSet[T]{
 		BaseCollection: NewBaseCollection(prefix),
 		storage:        DefaultStorage{},
 		serializer:     DefaultSerializer{},
 	}
 }
 
-func (s *LookupSet) Insert(value interface{}) error {
+func (s *LookupSet[T]) Insert(value T) error {
 	data, err := s.serializer.Serialize(value)
 	if err != nil {
 		return err
@@ -427,34 +461,34 @@ func (s *LookupSet) Insert(value interface{}) error {
 	return err
 }
 
-func (s *LookupSet) Remove(value interface{}) error {
+func (s *LookupSet[T]) Remove(value T) error {
 	storageKey := s.createKey(value)
 	_, err := s.storage.Delete(storageKey)
 	return err
 }
 
-func (s *LookupSet) Contains(value interface{}) (bool, error) {
+func (s *LookupSet[T]) Contains(value T) (bool, error) {
 	storageKey := s.createKey(value)
 	return s.storage.HasKey(storageKey)
 }
 
-type UnorderedSet struct {
+type UnorderedSet[T comparable] struct {
 	BaseCollection
 	storage    Storage
 	serializer DefaultSerializer
-	values     Vector
+	values     Vector[[]byte]
 }
 
-func NewUnorderedSet(prefix string) *UnorderedSet {
-	return &UnorderedSet{
+func NewUnorderedSet[T comparable](prefix string) *UnorderedSet[T] {
+	return &UnorderedSet[T]{
 		BaseCollection: NewBaseCollection(prefix),
 		storage:        DefaultStorage{},
 		serializer:     DefaultSerializer{},
-		values:         *NewVector(prefix + KeySeparator + "values"),
+		values:         *NewVector[[]byte](prefix + KeySeparator + "values"),
 	}
 }
 
-func (s *UnorderedSet) Insert(value interface{}) error {
+func (s *UnorderedSet[T]) Insert(value T) error {
 	contains, err := s.Contains(value)
 	if err != nil {
 		return err
@@ -473,11 +507,15 @@ func (s *UnorderedSet) Insert(value interface{}) error {
 	if err != nil {
 		return err
 	}
+	err = s.values.Push(data)
+	if err != nil {
+		return err
+	}
 
-	return s.values.Push(data)
+	return nil
 }
 
-func (s *UnorderedSet) Remove(value interface{}) error {
+func (s *UnorderedSet[T]) Remove(value T) error {
 	storageKey := s.createKey(value)
 	_, err := s.storage.Delete(storageKey)
 	if err != nil {
@@ -486,13 +524,12 @@ func (s *UnorderedSet) Remove(value interface{}) error {
 
 	length := s.values.Length()
 	for i := uint64(0); i < length; i++ {
-		var valueData []byte
-		err := s.values.Get(i, &valueData)
+		valueData, err := s.values.Get(i)
 		if err != nil {
 			return err
 		}
 
-		var storedValue interface{}
+		var storedValue T
 		err = s.serializer.Deserialize(valueData, &storedValue)
 		if err != nil {
 			return err
@@ -500,8 +537,7 @@ func (s *UnorderedSet) Remove(value interface{}) error {
 
 		if storedValue == value {
 			if i < length-1 {
-				var lastValue []byte
-				err := s.values.Get(length-1, &lastValue)
+				lastValue, err := s.values.Get(length - 1)
 				if err != nil {
 					return err
 				}
@@ -510,26 +546,25 @@ func (s *UnorderedSet) Remove(value interface{}) error {
 					return err
 				}
 			}
-			var unused interface{}
-			return s.values.Pop(&unused)
+			_, err := s.values.Pop()
+			return err
 		}
 	}
 
 	return nil
 }
 
-func (s *UnorderedSet) Contains(value interface{}) (bool, error) {
+func (s *UnorderedSet[T]) Contains(value T) (bool, error) {
 	storageKey := s.createKey(value)
 	return s.storage.HasKey(storageKey)
 }
 
-func (s *UnorderedSet) Values() ([]interface{}, error) {
+func (s *UnorderedSet[T]) Values() ([]T, error) {
 	length := s.values.Length()
-	values := make([]interface{}, length)
+	values := make([]T, length)
 
 	for i := uint64(0); i < length; i++ {
-		var valueData []byte
-		err := s.values.Get(i, &valueData)
+		valueData, err := s.values.Get(i)
 		if err != nil {
 			return nil, err
 		}
@@ -543,7 +578,7 @@ func (s *UnorderedSet) Values() ([]interface{}, error) {
 	return values, nil
 }
 
-func (s *UnorderedSet) Clear() error {
+func (s *UnorderedSet[T]) Clear() error {
 	values, err := s.Values()
 	if err != nil {
 		return err
@@ -559,99 +594,104 @@ func (s *UnorderedSet) Clear() error {
 	return s.values.Clear()
 }
 
-type TreeMap struct {
+type TreeMap[K comparable, V any] struct {
 	BaseCollection
 	storage    Storage
 	serializer DefaultSerializer
-	keys       Vector
+	keys       Vector[[]byte]
 }
 
-func NewTreeMap(prefix string) *TreeMap {
-	return &TreeMap{
+func NewTreeMap[K comparable, V any](prefix string) *TreeMap[K, V] {
+	return &TreeMap[K, V]{
 		BaseCollection: NewBaseCollection(prefix),
 		storage:        DefaultStorage{},
 		serializer:     DefaultSerializer{},
-		keys:           *NewVector(prefix + KeySeparator + "keys"),
+		keys:           *NewVector[[]byte](prefix + KeySeparator + "keys"),
 	}
 }
 
-func (m *TreeMap) Insert(key interface{}, value interface{}) error {
+func (m *TreeMap[K, V]) Insert(key K, value V) error {
 	data, err := m.serializer.Serialize(value)
 	if err != nil {
 		return err
 	}
 
 	storageKey := m.createKey(key)
-	_, err = m.storage.Write(storageKey, data)
+	fmt.Printf("storageKey: %v\n", storageKey)
+	isSuccess, err := m.storage.Write(storageKey, data)
+	fmt.Printf("isSuccess: %v\n", isSuccess)
+	if err != nil {
+		fmt.Printf("err: %v\n", err.Error())
+		return err
+	}
+
+	keyData, err := m.serializer.Serialize(key)
 	if err != nil {
 		return err
 	}
 
-	contains, err := m.Contains(key)
+	keys, err := m.Keys()
 	if err != nil {
 		return err
 	}
-	if !contains {
-		keyData, err := m.serializer.Serialize(key)
+
+	insertIndex := 0
+	for i, existingKey := range keys {
+		if compareKeys(key, existingKey) <= 0 {
+			insertIndex = i
+			break
+		}
+		insertIndex = i + 1
+	}
+
+	err = m.keys.Clear()
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < insertIndex; i++ {
+		existingKeyData, err := m.serializer.Serialize(keys[i])
 		if err != nil {
 			return err
 		}
-
-		length := m.keys.Length()
-		insertIndex := uint64(0)
-
-		for i := uint64(0); i < length; i++ {
-			var existingKeyData []byte
-			err := m.keys.Get(i, &existingKeyData)
-			if err != nil {
-				return err
-			}
-
-			var existingKey interface{}
-			err = m.serializer.Deserialize(existingKeyData, &existingKey)
-			if err != nil {
-				return err
-			}
-
-			if compareKeys(key, existingKey) < 0 {
-				break
-			}
-			insertIndex = i + 1
+		err = m.keys.Push(existingKeyData)
+		if err != nil {
+			return err
 		}
+	}
 
-		if insertIndex == length {
-			return m.keys.Push(keyData)
+	err = m.keys.Push(keyData)
+	if err != nil {
+		return err
+	}
+
+	for i := insertIndex; i < len(keys); i++ {
+		existingKeyData, err := m.serializer.Serialize(keys[i])
+		if err != nil {
+			return err
 		}
-
-		for i := length; i > insertIndex; i-- {
-			var prevKey []byte
-			err := m.keys.Get(i-1, &prevKey)
-			if err != nil {
-				return err
-			}
-			err = m.keys.Set(i, prevKey)
-			if err != nil {
-				return err
-			}
+		err = m.keys.Push(existingKeyData)
+		if err != nil {
+			return err
 		}
-
-		return m.keys.Set(insertIndex, keyData)
 	}
 
 	return nil
 }
 
-func (m *TreeMap) Get(key interface{}, value interface{}) error {
+func (m *TreeMap[K, V]) Get(key K) (V, error) {
+	var value V
 	storageKey := m.createKey(key)
 	data, err := m.storage.Read(storageKey)
 	if err != nil {
-		return err
+		return value, err
 	}
 
-	return m.serializer.Deserialize(data, value)
+	err = m.serializer.Deserialize(data, &value)
+	return value, err
 }
 
-func (m *TreeMap) Remove(key interface{}) error {
+func (m *TreeMap[K, V]) Remove(key K) error {
 	storageKey := m.createKey(key)
 	_, err := m.storage.Delete(storageKey)
 	if err != nil {
@@ -660,13 +700,12 @@ func (m *TreeMap) Remove(key interface{}) error {
 
 	length := m.keys.Length()
 	for i := uint64(0); i < length; i++ {
-		var keyData []byte
-		err := m.keys.Get(i, &keyData)
+		keyData, err := m.keys.Get(i)
 		if err != nil {
 			return err
 		}
 
-		var storedKey interface{}
+		var storedKey K
 		err = m.serializer.Deserialize(keyData, &storedKey)
 		if err != nil {
 			return err
@@ -674,8 +713,7 @@ func (m *TreeMap) Remove(key interface{}) error {
 
 		if storedKey == key {
 			for j := i; j < length-1; j++ {
-				var nextKey []byte
-				err := m.keys.Get(j+1, &nextKey)
+				nextKey, err := m.keys.Get(j + 1)
 				if err != nil {
 					return err
 				}
@@ -684,26 +722,25 @@ func (m *TreeMap) Remove(key interface{}) error {
 					return err
 				}
 			}
-			var unused interface{}
-			return m.keys.Pop(&unused)
+			_, err := m.keys.Pop()
+			return err
 		}
 	}
 
 	return nil
 }
 
-func (m *TreeMap) Contains(key interface{}) (bool, error) {
+func (m *TreeMap[K, V]) Contains(key K) (bool, error) {
 	storageKey := m.createKey(key)
 	return m.storage.HasKey(storageKey)
 }
 
-func (m *TreeMap) Keys() ([]interface{}, error) {
+func (m *TreeMap[K, V]) Keys() ([]K, error) {
 	length := m.keys.Length()
-	keys := make([]interface{}, length)
+	keys := make([]K, length)
 
 	for i := uint64(0); i < length; i++ {
-		var keyData []byte
-		err := m.keys.Get(i, &keyData)
+		keyData, err := m.keys.Get(i)
 		if err != nil {
 			return nil, err
 		}
@@ -717,113 +754,141 @@ func (m *TreeMap) Keys() ([]interface{}, error) {
 	return keys, nil
 }
 
-func (m *TreeMap) Values(valueType interface{}) ([]interface{}, error) {
+func (m *TreeMap[K, V]) Values() ([]V, error) {
 	keys, err := m.Keys()
 	if err != nil {
 		return nil, err
 	}
 
-	values := make([]interface{}, len(keys))
+	values := make([]V, len(keys))
 	for i, key := range keys {
-		err := m.Get(key, &values[i])
+		value, err := m.Get(key)
 		if err != nil {
 			return nil, err
 		}
+		values[i] = value
 	}
 
 	return values, nil
 }
 
-func (m *TreeMap) Items(valueType interface{}) ([]struct{ Key, Value interface{} }, error) {
+func (m *TreeMap[K, V]) Items() ([]struct {
+	Key   K
+	Value V
+}, error) {
 	keys, err := m.Keys()
 	if err != nil {
 		return nil, err
 	}
 
-	items := make([]struct{ Key, Value interface{} }, len(keys))
+	items := make([]struct {
+		Key   K
+		Value V
+	}, len(keys))
 	for i, key := range keys {
-		items[i].Key = key
-		err := m.Get(key, &items[i].Value)
+		value, err := m.Get(key)
 		if err != nil {
 			return nil, err
 		}
+		items[i].Key = key
+		items[i].Value = value
 	}
 
 	return items, nil
 }
 
-func (m *TreeMap) MinKey() (interface{}, error) {
+func (m *TreeMap[K, V]) MinKey() (K, error) {
 	if m.keys.Length() == 0 {
-		return nil, errors.New(CollectionErrMapEmpty)
+		var zero K
+		return zero, errors.New(CollectionErrMapEmpty)
 	}
 
 	var keyData []byte
-	err := m.keys.Get(0, &keyData)
+	keyData, err := m.keys.Get(0)
 	if err != nil {
-		return nil, err
+		var zero K
+		return zero, err
 	}
 
-	var key interface{}
+	var key K
 	err = m.serializer.Deserialize(keyData, &key)
 	if err != nil {
-		return nil, err
+		var zero K
+		return zero, err
 	}
 
 	return key, nil
 }
 
-func (m *TreeMap) MaxKey() (interface{}, error) {
+func (m *TreeMap[K, V]) MaxKey() (K, error) {
 	length := m.keys.Length()
 	if length == 0 {
-		return nil, errors.New(CollectionErrMapEmpty)
+		var zero K
+		return zero, errors.New(CollectionErrMapEmpty)
 	}
 
 	var keyData []byte
-	err := m.keys.Get(length-1, &keyData)
+	keyData, err := m.keys.Get(length - 1)
 	if err != nil {
-		return nil, err
+		var zero K
+		return zero, err
 	}
 
-	var key interface{}
+	var key K
 	err = m.serializer.Deserialize(keyData, &key)
 	if err != nil {
-		return nil, err
+		var zero K
+		return zero, err
 	}
 
 	return key, nil
 }
 
-func (m *TreeMap) FloorKey(key interface{}) (interface{}, error) {
+func (m *TreeMap[K, V]) FloorKey(key K) (K, error) {
+	env.LogString("TreeMap FloorKey: Starting floor key search for: " + fmt.Sprint(key))
 	keys, err := m.Keys()
 	if err != nil {
-		return nil, err
+		var zero K
+		return zero, err
 	}
 
+	env.LogString("TreeMap FloorKey: Found " + fmt.Sprint(len(keys)) + " keys")
 	for i := len(keys) - 1; i >= 0; i-- {
+		env.LogString("TreeMap FloorKey: Checking key: " + fmt.Sprint(keys[i]))
 		if compareKeys(keys[i], key) <= 0 {
+			env.LogString("TreeMap FloorKey: Found floor key: " + fmt.Sprint(keys[i]))
 			return keys[i], nil
 		}
 	}
 
-	return nil, errors.New(CollectionErrNoKeyLessOrEqual)
+	var zero K
+	env.LogString("TreeMap FloorKey: No floor key found")
+	return zero, errors.New(CollectionErrNoKeyLessOrEqual)
 }
 
-func (m *TreeMap) CeilingKey(key interface{}) (interface{}, error) {
+func (m *TreeMap[K, V]) CeilingKey(key K) (K, error) {
+	env.LogString("TreeMap CeilingKey: Starting ceiling key search for: " + fmt.Sprint(key))
 	keys, err := m.Keys()
 	if err != nil {
-		return nil, err
+		var zero K
+		return zero, err
 	}
 
+	env.LogString("TreeMap CeilingKey: Found " + fmt.Sprint(len(keys)) + " keys")
 	for _, k := range keys {
+		env.LogString("TreeMap CeilingKey: Checking key: " + fmt.Sprint(k))
 		if compareKeys(k, key) >= 0 {
+			env.LogString("TreeMap CeilingKey: Found ceiling key: " + fmt.Sprint(k))
 			return k, nil
 		}
 	}
 
-	return nil, errors.New(CollectionErrNoKeyGreaterOrEqual)
+	var zero K
+	env.LogString("TreeMap CeilingKey: No ceiling key found")
+	return zero, errors.New(CollectionErrNoKeyGreaterOrEqual)
 }
 
-func (m *TreeMap) Clear() error {
+func (m *TreeMap[K, V]) Clear() error {
 	keys, err := m.Keys()
 	if err != nil {
 		return err
@@ -871,51 +936,4 @@ func compareKeys(a, b interface{}) int {
 	}
 	env.PanicStr(CollectionErrUnsupportedKeyType)
 	return 0
-}
-
-type LookupMap[K comparable, V any] struct {
-	BaseCollection
-	storage    Storage
-	serializer DefaultSerializer
-}
-
-func NewLookupMap[K comparable, V any](prefix string) *LookupMap[K, V] {
-	return &LookupMap[K, V]{
-		BaseCollection: NewBaseCollection(prefix),
-		storage:        DefaultStorage{},
-		serializer:     DefaultSerializer{},
-	}
-}
-
-func (m *LookupMap[K, V]) Insert(key K, value V) error {
-	data, err := m.serializer.Serialize(value)
-	if err != nil {
-		return err
-	}
-
-	storageKey := m.createKey(key)
-	_, err = m.storage.Write(storageKey, data)
-	return err
-}
-
-func (m *LookupMap[K, V]) Get(key K) (V, error) {
-	var value V
-	storageKey := m.createKey(key)
-	data, err := m.storage.Read(storageKey)
-	if err != nil {
-		return value, err
-	}
-	err = m.serializer.Deserialize(data, &value)
-	return value, err
-}
-
-func (m *LookupMap[K, V]) Remove(key K) error {
-	storageKey := m.createKey(key)
-	_, err := m.storage.Delete(storageKey)
-	return err
-}
-
-func (m *LookupMap[K, V]) Contains(key K) (bool, error) {
-	storageKey := m.createKey(key)
-	return m.storage.HasKey(storageKey)
 }
