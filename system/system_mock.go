@@ -60,16 +60,6 @@ func NewMockSystem() *MockSystem {
 	}
 }
 
-//Internal State
-
-func (m *MockSystem) SetPredecessorAccountID(accountId string) {
-	m.PredecessorAccountIdSys = accountId
-}
-
-func (m *MockSystem) SetContractInput(input []byte) {
-	m.ContractInput = input
-}
-
 // Registers API
 
 func (m *MockSystem) WriteRegister(registerId, dataLen, dataPtr uint64) {
@@ -100,7 +90,13 @@ func (m *MockSystem) StorageWrite(keyLen, keyPtr, valueLen, valuePtr, registerId
 	value := unsafe.Slice((*byte)(unsafe.Pointer(uintptr(valuePtr))), valueLen)
 	keyStr := string(key)
 
-	m.Storage[keyStr] = value
+	fmt.Printf("MockSystem StorageWrite - key: %s, value: %v\n", keyStr, value)
+	m.Storage[keyStr] = make([]byte, valueLen)
+	copy(m.Storage[keyStr], value)
+
+	if registerId != 0 {
+		m.WriteRegister(registerId, valueLen, valuePtr)
+	}
 	return 1
 }
 
@@ -108,10 +104,17 @@ func (m *MockSystem) StorageRead(keyLen, keyPtr, registerId uint64) uint64 {
 	key := unsafe.Slice((*byte)(unsafe.Pointer(uintptr(keyPtr))), keyLen)
 	keyStr := string(key)
 
+	fmt.Printf("MockSystem StorageRead - key: %s\n", keyStr)
 	if value, exists := m.Storage[keyStr]; exists {
-		m.WriteRegister(registerId, uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))))
+		fmt.Printf("MockSystem StorageRead - found value: %v\n", value)
+		if registerId != 0 {
+			valueCopy := make([]byte, len(value))
+			copy(valueCopy, value)
+			m.WriteRegister(registerId, uint64(len(valueCopy)), uint64(uintptr(unsafe.Pointer(&valueCopy[0]))))
+		}
 		return 1
 	}
+	fmt.Printf("MockSystem StorageRead - key not found\n")
 	return 0
 }
 
@@ -120,8 +123,13 @@ func (m *MockSystem) StorageRemove(keyLen, keyPtr, registerId uint64) uint64 {
 	keyStr := string(key)
 
 	if value, exists := m.Storage[keyStr]; exists {
+		if registerId != 0 {
+			// Create a copy of the value to avoid pointer issues
+			valueCopy := make([]byte, len(value))
+			copy(valueCopy, value)
+			m.WriteRegister(registerId, uint64(len(valueCopy)), uint64(uintptr(unsafe.Pointer(&valueCopy[0]))))
+		}
 		delete(m.Storage, keyStr)
-		m.WriteRegister(registerId, uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))))
 		return 1
 	}
 	return 0
@@ -142,25 +150,51 @@ func (m *MockSystem) StorageHasKey(keyLen, keyPtr uint64) uint64 {
 // Context API
 func (m *MockSystem) CurrentAccountId(registerId uint64) {
 	data := []byte(m.CurrentAccountIdSys)
+	fmt.Printf("CurrentAccountId - data length: %d, data: %s\n", len(data), string(data))
 	m.WriteRegister(registerId, uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))))
 }
 
 func (m *MockSystem) SignerAccountId(registerId uint64) {
 	data := []byte(m.SignerAccountIdSys)
+	fmt.Printf("SignerAccountId - data length: %d, data: %s\n", len(data), string(data))
 	m.WriteRegister(registerId, uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))))
 }
 
 func (m *MockSystem) SignerAccountPk(registerId uint64) {
-	m.WriteRegister(registerId, uint64(len(m.SignerAccountPkSys)), uint64(uintptr(unsafe.Pointer(&m.SignerAccountPkSys[0]))))
+	data := m.SignerAccountPkSys
+	fmt.Printf("SignerAccountPk - data length: %d\n", len(data))
+	if len(data) > 0 {
+		fmt.Printf("First byte: %x\n", data[0])
+	}
+	m.WriteRegister(registerId, uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))))
 }
 
 func (m *MockSystem) PredecessorAccountId(registerId uint64) {
 	data := []byte(m.PredecessorAccountIdSys)
+	fmt.Printf("PredecessorAccountId - data length: %d, data: %s\n", len(data), string(data))
 	m.WriteRegister(registerId, uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))))
 }
 
 func (m *MockSystem) Input(registerId uint64) {
-	m.WriteRegister(registerId, uint64(len(m.ContractInput)), uint64(uintptr(unsafe.Pointer(&m.ContractInput[0]))))
+	data := m.ContractInput
+	fmt.Printf("Input - data length: %d\n", len(data))
+
+	// Handle empty input case
+	if len(data) == 0 {
+		m.WriteRegister(registerId, 0, 0)
+		return
+	}
+
+	fmt.Printf("First few bytes: %x\n", data[:min(4, len(data))])
+	m.WriteRegister(registerId, uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))))
+}
+
+// Helper function to safely get minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func (m *MockSystem) BlockIndex() uint64 {
@@ -183,21 +217,21 @@ func (m *MockSystem) StorageUsage() uint64 {
 
 // Economics API
 func (m *MockSystem) AccountBalance(balancePtr uint64) {
-	balance := *(*[]byte)(unsafe.Pointer(&balancePtr))
-	balance = m.AccountBalanceSys.ToLE()
-	fmt.Printf("balance: %v\n", balance)
+	balanceBytes := m.AccountBalanceSys.ToLE()
+	targetBytes := (*[16]byte)(unsafe.Pointer(uintptr(balancePtr)))
+	copy(targetBytes[:], balanceBytes)
 }
 
 func (m *MockSystem) AccountLockedBalance(balancePtr uint64) {
-	balance := *(*[]byte)(unsafe.Pointer(&balancePtr))
-	balance = m.AccountLockedBalanceSys.ToLE()
-	fmt.Printf("balance: %v\n", balance)
+	balanceBytes := m.AccountLockedBalanceSys.ToLE()
+	targetBytes := (*[16]byte)(unsafe.Pointer(uintptr(balancePtr)))
+	copy(targetBytes[:], balanceBytes)
 }
 
 func (m *MockSystem) AttachedDeposit(balancePtr uint64) {
-	balance := *(*[]byte)(unsafe.Pointer(&balancePtr))
-	balance = m.AttachedDepositSys.ToLE()
-	fmt.Printf("balance: %v\n", balance)
+	balanceBytes := m.AttachedDepositSys.ToLE()
+	targetBytes := (*[16]byte)(unsafe.Pointer(uintptr(balancePtr)))
+	copy(targetBytes[:], balanceBytes)
 }
 
 func (m *MockSystem) PrepaidGas() uint64 {

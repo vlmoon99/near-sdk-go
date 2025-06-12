@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "embed"
+	"fmt"
 
 	"github.com/vlmoon99/near-sdk-go/env"
 	"github.com/vlmoon99/near-sdk-go/json"
@@ -107,14 +108,58 @@ func DeleteAccount() {
 
 //Cross-Contract Calls
 
+const hello_account = "hello-nearverse.testnet"
+
 //go:export QueryingInformation
 func QueryingInformation() {
-	env.LogString("QueryingInformation")
+	minStorage, _ := types.U128FromString("1000000000000000000000") //0.001Ⓝ
+	accountId := []byte("hello-nearverse.testnet")
+	contractId, _ := env.GetCurrentAccountId()
+	promiseId := env.PromiseBatchCreate(accountId)
+	builder := json.NewBuilder()
+	args := builder.Build()
+	functionName := []byte("get_greeting")
+	gas := uint64(types.ONE_TERA_GAS) * 10
+	env.PromiseBatchActionFunctionCall(promiseId, functionName, args, minStorage, gas)
+	env.PromiseThen(promiseId, []byte(contractId), []byte("QueryingInformationResponse"), args, minStorage, gas)
+}
+
+//go:export QueryingInformationResponse
+func QueryingInformationResponse() {
+	signerAccountId, _ := env.GetSignerAccountID()
+	contractAccountId, _ := env.GetCurrentAccountId()
+	if signerAccountId != contractAccountId {
+		env.LogString("Error")
+		return
+	}
+	env.LogString("Callback was executed sucsesfully")
 }
 
 //go:export SendingInformation
 func SendingInformation() {
-	env.LogString("SendingInformation")
+	minStorage, _ := types.U128FromString("0") //0.001Ⓝ
+	accountId := []byte("hello-nearverse.testnet")
+	contractId, _ := env.GetCurrentAccountId()
+	promiseId := env.PromiseBatchCreate(accountId)
+	builder := json.NewBuilder().
+		AddString("message", "New Greeting")
+	args := builder.Build()
+	functionName := []byte("set_greeting")
+	gas := uint64(types.ONE_TERA_GAS) * 30
+	env.PromiseBatchActionFunctionCall(promiseId, functionName, args, minStorage, gas)
+	env.PromiseThen(promiseId, []byte(contractId), []byte("ChangeGreetignCallback"), args, minStorage, gas)
+}
+
+//go:export ChangeGreetignCallback
+func ChangeGreetignCallback() {
+	signerAccountId, _ := env.GetSignerAccountID()
+	contractAccountId, _ := env.GetCurrentAccountId()
+	if signerAccountId != contractAccountId {
+		env.LogString("Error")
+		return
+	}
+	result, _ := env.PromiseResult(0)
+	env.LogString(fmt.Sprintf("result %d", result))
 }
 
 //go:export Promises
@@ -141,6 +186,8 @@ func MultipleFunctionsSameContract() {
 func MultipleFunctionsDifferentContracts() {
 	env.LogString("MultipleFunctionsDifferentContracts")
 }
+
+//Yielding Promises
 
 //go:export YieldingPromise
 func YieldingPromise() {
