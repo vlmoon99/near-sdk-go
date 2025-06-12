@@ -121,23 +121,18 @@ func (v *Vector) Push(value interface{}) error {
 	}
 
 	key := v.createKey(v.length)
-	fmt.Printf("Vector Push - key: %s, data: %v\n", key, data)
 	_, err = v.storage.Write(key, data)
 	if err != nil {
-		fmt.Printf("Vector Push - write failed: %v\n", err)
 		return err
 	}
 
 	v.length++
-	fmt.Printf("Vector length after push: %d\n", v.length)
 
 	// Verify the write
-	readData, err := v.storage.Read(key)
+	_, err = v.storage.Read(key)
 	if err != nil {
-		fmt.Printf("Vector Push - verification read failed: %v\n", err)
 		return err
 	}
-	fmt.Printf("Vector Push - verified data: %v\n", readData)
 
 	return nil
 }
@@ -148,13 +143,10 @@ func (v *Vector) Get(index uint64, value interface{}) error {
 	}
 
 	key := v.createKey(index)
-	fmt.Printf("Vector Get - key: %s\n", key)
 	data, err := v.storage.Read(key)
 	if err != nil {
-		fmt.Printf("Vector Get - read failed: %v\n", err)
 		return err
 	}
-	fmt.Printf("Vector Get - retrieved data: %v\n", data)
 
 	return v.serializer.Deserialize(data, value)
 }
@@ -256,12 +248,10 @@ func (m *UnorderedMap[K, V]) Insert(key K, value V) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Inserting key data into Vector: %v\n", keyData)
 
 		// Store the key in the Vector
 		err = m.keys.Push(keyData)
 		if err != nil {
-			fmt.Printf("Error pushing key to Vector: %v\n", err)
 			return err
 		}
 
@@ -269,10 +259,8 @@ func (m *UnorderedMap[K, V]) Insert(key K, value V) error {
 		var storedKeyData []byte
 		err = m.keys.Get(m.keys.Length()-1, &storedKeyData)
 		if err != nil {
-			fmt.Printf("Error verifying key storage: %v\n", err)
 			return err
 		}
-		fmt.Printf("Verified key data in Vector: %v\n", storedKeyData)
 	}
 
 	return nil
@@ -337,24 +325,19 @@ func (m *UnorderedMap[K, V]) Contains(key K) (bool, error) {
 
 func (m *UnorderedMap[K, V]) Keys() ([]K, error) {
 	length := m.keys.Length()
-	fmt.Printf("Keys() called, Vector length: %d\n", length)
 	keys := make([]K, length)
 
 	for i := uint64(0); i < length; i++ {
 		var keyData []byte
 		err := m.keys.Get(i, &keyData)
 		if err != nil {
-			fmt.Printf("Error getting key at index %d: %v\n", i, err)
 			return nil, err
 		}
-		fmt.Printf("Retrieved key data at index %d: %v\n", i, keyData)
 
 		err = m.serializer.Deserialize(keyData, &keys[i])
 		if err != nil {
-			fmt.Printf("Error deserializing key at index %d: %v\n", i, err)
 			return nil, err
 		}
-		fmt.Printf("Deserialized key at index %d: %v\n", i, keys[i])
 	}
 
 	return keys, nil

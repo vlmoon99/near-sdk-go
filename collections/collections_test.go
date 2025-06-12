@@ -86,8 +86,6 @@ func TestVector_Pop(t *testing.T) {
 		t.Fatalf("Push failed: %v", err)
 	}
 
-	fmt.Printf("testValue: %v\n", testValue)
-
 	err = v.Pop(&value)
 	if err != nil {
 		t.Fatalf("Pop failed: %v", err)
@@ -206,10 +204,6 @@ func TestUnorderedMap_Keys_Values(t *testing.T) {
 	// Verify storage after insert
 	mockSys := env.NearBlockchainImports.(*system.MockSystem)
 	fmt.Printf("Storage after insert: %+v\n", mockSys.Storage)
-
-	// Check keys Vector state
-	fmt.Printf("Keys Vector length: %d\n", m.keys.Length())
-	fmt.Printf("Keys Vector prefix: %s\n", m.keys.GetPrefix())
 
 	// Print all storage keys for debugging
 	fmt.Println("All storage keys:")
