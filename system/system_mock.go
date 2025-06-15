@@ -3,7 +3,6 @@ package system
 // For some env limitation reason we can't use crypto/* or golang.org/x/crypto/* packages
 import (
 	"encoding/binary"
-	"fmt"
 	"unsafe"
 
 	"github.com/vlmoon99/near-sdk-go/types"
@@ -60,16 +59,6 @@ func NewMockSystem() *MockSystem {
 	}
 }
 
-//Internal State
-
-func (m *MockSystem) SetPredecessorAccountID(accountId string) {
-	m.PredecessorAccountIdSys = accountId
-}
-
-func (m *MockSystem) SetContractInput(input []byte) {
-	m.ContractInput = input
-}
-
 // Registers API
 
 func (m *MockSystem) WriteRegister(registerId, dataLen, dataPtr uint64) {
@@ -100,7 +89,12 @@ func (m *MockSystem) StorageWrite(keyLen, keyPtr, valueLen, valuePtr, registerId
 	value := unsafe.Slice((*byte)(unsafe.Pointer(uintptr(valuePtr))), valueLen)
 	keyStr := string(key)
 
-	m.Storage[keyStr] = value
+	m.Storage[keyStr] = make([]byte, valueLen)
+	copy(m.Storage[keyStr], value)
+
+	if registerId != 0 {
+		m.WriteRegister(registerId, valueLen, valuePtr)
+	}
 	return 1
 }
 
@@ -109,7 +103,11 @@ func (m *MockSystem) StorageRead(keyLen, keyPtr, registerId uint64) uint64 {
 	keyStr := string(key)
 
 	if value, exists := m.Storage[keyStr]; exists {
-		m.WriteRegister(registerId, uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))))
+		if registerId != 0 {
+			valueCopy := make([]byte, len(value))
+			copy(valueCopy, value)
+			m.WriteRegister(registerId, uint64(len(valueCopy)), uint64(uintptr(unsafe.Pointer(&valueCopy[0]))))
+		}
 		return 1
 	}
 	return 0
@@ -120,8 +118,13 @@ func (m *MockSystem) StorageRemove(keyLen, keyPtr, registerId uint64) uint64 {
 	keyStr := string(key)
 
 	if value, exists := m.Storage[keyStr]; exists {
+		if registerId != 0 {
+			// Create a copy of the value to avoid pointer issues
+			valueCopy := make([]byte, len(value))
+			copy(valueCopy, value)
+			m.WriteRegister(registerId, uint64(len(valueCopy)), uint64(uintptr(unsafe.Pointer(&valueCopy[0]))))
+		}
 		delete(m.Storage, keyStr)
-		m.WriteRegister(registerId, uint64(len(value)), uint64(uintptr(unsafe.Pointer(&value[0]))))
 		return 1
 	}
 	return 0
@@ -151,7 +154,8 @@ func (m *MockSystem) SignerAccountId(registerId uint64) {
 }
 
 func (m *MockSystem) SignerAccountPk(registerId uint64) {
-	m.WriteRegister(registerId, uint64(len(m.SignerAccountPkSys)), uint64(uintptr(unsafe.Pointer(&m.SignerAccountPkSys[0]))))
+	data := m.SignerAccountPkSys
+	m.WriteRegister(registerId, uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))))
 }
 
 func (m *MockSystem) PredecessorAccountId(registerId uint64) {
@@ -160,7 +164,23 @@ func (m *MockSystem) PredecessorAccountId(registerId uint64) {
 }
 
 func (m *MockSystem) Input(registerId uint64) {
-	m.WriteRegister(registerId, uint64(len(m.ContractInput)), uint64(uintptr(unsafe.Pointer(&m.ContractInput[0]))))
+	data := m.ContractInput
+
+	// Handle empty input case
+	if len(data) == 0 {
+		m.WriteRegister(registerId, 0, 0)
+		return
+	}
+
+	m.WriteRegister(registerId, uint64(len(data)), uint64(uintptr(unsafe.Pointer(&data[0]))))
+}
+
+// Helper function to safely get minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func (m *MockSystem) BlockIndex() uint64 {
@@ -183,21 +203,21 @@ func (m *MockSystem) StorageUsage() uint64 {
 
 // Economics API
 func (m *MockSystem) AccountBalance(balancePtr uint64) {
-	balance := *(*[]byte)(unsafe.Pointer(&balancePtr))
-	balance = m.AccountBalanceSys.ToLE()
-	fmt.Printf("balance: %v\n", balance)
+	balanceBytes := m.AccountBalanceSys.ToLE()
+	targetBytes := (*[16]byte)(unsafe.Pointer(uintptr(balancePtr)))
+	copy(targetBytes[:], balanceBytes)
 }
 
 func (m *MockSystem) AccountLockedBalance(balancePtr uint64) {
-	balance := *(*[]byte)(unsafe.Pointer(&balancePtr))
-	balance = m.AccountLockedBalanceSys.ToLE()
-	fmt.Printf("balance: %v\n", balance)
+	balanceBytes := m.AccountLockedBalanceSys.ToLE()
+	targetBytes := (*[16]byte)(unsafe.Pointer(uintptr(balancePtr)))
+	copy(targetBytes[:], balanceBytes)
 }
 
 func (m *MockSystem) AttachedDeposit(balancePtr uint64) {
-	balance := *(*[]byte)(unsafe.Pointer(&balancePtr))
-	balance = m.AttachedDepositSys.ToLE()
-	fmt.Printf("balance: %v\n", balance)
+	balanceBytes := m.AttachedDepositSys.ToLE()
+	targetBytes := (*[16]byte)(unsafe.Pointer(uintptr(balancePtr)))
+	copy(targetBytes[:], balanceBytes)
 }
 
 func (m *MockSystem) PrepaidGas() uint64 {
@@ -266,7 +286,6 @@ func (m *MockSystem) ValidatorStake(accountIdLen, accountIdPtr, stakePtr uint64)
 	stakeData := expectedStake.ToLE()
 
 	copy((*(*[16]byte)(unsafe.Pointer(uintptr(stakePtr))))[:], stakeData)
-	fmt.Printf("stake: %v\n", expectedStake)
 }
 
 func (m *MockSystem) ValidatorTotalStake(stakePtr uint64) {
@@ -274,7 +293,6 @@ func (m *MockSystem) ValidatorTotalStake(stakePtr uint64) {
 	stakeData := expectedStake.ToLE()
 
 	copy((*(*[16]byte)(unsafe.Pointer(uintptr(stakePtr))))[:], stakeData)
-	fmt.Printf("total stake: %v\n", expectedStake)
 }
 
 // Validator API
@@ -367,13 +385,11 @@ func (m *MockSystem) PromiseBatchThen(promiseIndex, accountIdLen, accountIdPtr u
 // Promise API Actions
 
 func (m *MockSystem) PromiseBatchActionCreateAccount(promiseIndex uint64) {
-	fmt.Printf("Promise batch action create account with index: %d\n", promiseIndex)
 }
 
 func (m *MockSystem) PromiseBatchActionDeployContract(promiseIndex, codeLen, codePtr uint64) {
 	contractBytes := make([]byte, codeLen)
 	copy(contractBytes, *(*[]byte)(unsafe.Pointer(uintptr(codePtr))))
-	fmt.Printf("Promise batch action deploy contract with index: %d\n", promiseIndex)
 }
 
 func (m *MockSystem) PromiseBatchActionFunctionCall(promiseIndex, functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, amountPtr, gas uint64) {
@@ -381,9 +397,7 @@ func (m *MockSystem) PromiseBatchActionFunctionCall(promiseIndex, functionNameLe
 	copy(functionName, *(*[]byte)(unsafe.Pointer(uintptr(functionNamePtr))))
 	arguments := make([]byte, argumentsLen)
 	copy(arguments, *(*[]byte)(unsafe.Pointer(uintptr(argumentsPtr))))
-	amount := binary.LittleEndian.Uint64((*(*[8]byte)(unsafe.Pointer(uintptr(amountPtr))))[:])
-	fmt.Printf("Promise batch action function call with index: %d\n", promiseIndex)
-	fmt.Printf("amount: %d\n", amount)
+	binary.LittleEndian.Uint64((*(*[8]byte)(unsafe.Pointer(uintptr(amountPtr))))[:])
 
 }
 
@@ -392,66 +406,52 @@ func (m *MockSystem) PromiseBatchActionFunctionCallWeight(promiseIndex, function
 	copy(functionName, *(*[]byte)(unsafe.Pointer(uintptr(functionNamePtr))))
 	arguments := make([]byte, argumentsLen)
 	copy(arguments, *(*[]byte)(unsafe.Pointer(uintptr(argumentsPtr))))
-	amount := binary.LittleEndian.Uint64((*(*[8]byte)(unsafe.Pointer(uintptr(amountPtr))))[:])
-	fmt.Printf("Promise batch action function call with weight with index: %d\n", promiseIndex)
-	fmt.Printf("amount: %d\n", amount)
+	binary.LittleEndian.Uint64((*(*[8]byte)(unsafe.Pointer(uintptr(amountPtr))))[:])
 
 }
 
 func (m *MockSystem) PromiseBatchActionTransfer(promiseIndex, amountPtr uint64) {
-	amount := binary.LittleEndian.Uint64((*(*[8]byte)(unsafe.Pointer(uintptr(amountPtr))))[:])
-	fmt.Printf("Promise batch action transfer with index: %d\n", promiseIndex)
-	fmt.Printf("amount: %d\n", amount)
-
+	binary.LittleEndian.Uint64((*(*[8]byte)(unsafe.Pointer(uintptr(amountPtr))))[:])
 }
 
 func (m *MockSystem) PromiseBatchActionStake(promiseIndex, amountPtr, publicKeyLen, publicKeyPtr uint64) {
-	amount := binary.LittleEndian.Uint64((*(*[8]byte)(unsafe.Pointer(uintptr(amountPtr))))[:])
+	binary.LittleEndian.Uint64((*(*[8]byte)(unsafe.Pointer(uintptr(amountPtr))))[:])
 	publicKey := make([]byte, publicKeyLen)
 	copy(publicKey, *(*[]byte)(unsafe.Pointer(uintptr(publicKeyPtr))))
-	fmt.Printf("Promise batch action stake with index: %d\n", promiseIndex)
-	fmt.Printf("amount: %d\n", amount)
 
 }
 
 func (m *MockSystem) PromiseBatchActionAddKeyWithFullAccess(promiseIndex, publicKeyLen, publicKeyPtr, nonce uint64) {
 	publicKey := make([]byte, publicKeyLen)
 	copy(publicKey, *(*[]byte)(unsafe.Pointer(uintptr(publicKeyPtr))))
-	fmt.Printf("Promise batch action add key with full access with index: %d\n", promiseIndex)
 }
 
 func (m *MockSystem) PromiseBatchActionAddKeyWithFunctionCall(promiseIndex, publicKeyLen, publicKeyPtr, nonce, allowancePtr, receiverIdLen, receiverIdPtr, functionNamesLen, functionNamesPtr uint64) {
 	publicKey := make([]byte, publicKeyLen)
 	copy(publicKey, *(*[]byte)(unsafe.Pointer(uintptr(publicKeyPtr))))
-	allowance := binary.LittleEndian.Uint64((*(*[8]byte)(unsafe.Pointer(uintptr(allowancePtr))))[:])
-	fmt.Printf("allowance: %d\n", allowance)
+	binary.LittleEndian.Uint64((*(*[8]byte)(unsafe.Pointer(uintptr(allowancePtr))))[:])
 
 	receiverId := make([]byte, receiverIdLen)
 	copy(receiverId, *(*[]byte)(unsafe.Pointer(uintptr(receiverIdPtr))))
 	functionNames := make([]byte, functionNamesLen)
 	copy(functionNames, *(*[]byte)(unsafe.Pointer(uintptr(functionNamesPtr))))
-	fmt.Printf("Promise batch action add key with function call with index: %d\n", promiseIndex)
 }
 
 func (m *MockSystem) PromiseBatchActionDeleteKey(promiseIndex, publicKeyLen, publicKeyPtr uint64) {
 	publicKey := make([]byte, publicKeyLen)
 	copy(publicKey, *(*[]byte)(unsafe.Pointer(uintptr(publicKeyPtr))))
-	fmt.Printf("Promise batch action delete key with index: %d\n", promiseIndex)
 }
 
 func (m *MockSystem) PromiseBatchActionDeleteAccount(promiseIndex, beneficiaryIdLen, beneficiaryIdPtr uint64) {
 	beneficiaryId := make([]byte, beneficiaryIdLen)
 	copy(beneficiaryId, *(*[]byte)(unsafe.Pointer(uintptr(beneficiaryIdPtr))))
-	fmt.Printf("Promise batch action delete account with index: %d\n", promiseIndex)
 }
 
 func (m *MockSystem) PromiseYieldCreate(functionNameLen, functionNamePtr, argumentsLen, argumentsPtr, gas, gasWeight, registerId uint64) uint64 {
-	fmt.Printf("Promise yield create called\n")
 	return 1
 }
 
 func (m *MockSystem) PromiseYieldResume(dataIdLen, dataIdPtr, payloadLen, payloadPtr uint64) uint32 {
-	fmt.Printf("Promise yield resume called\n")
 	return 1
 }
 

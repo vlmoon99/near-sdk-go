@@ -452,6 +452,29 @@ func Uint64ToString(n uint64) string {
 	return string(result)
 }
 
+func IntToString(n int) string {
+	if n == 0 {
+		return "0"
+	}
+
+	negative := n < 0
+	if negative {
+		n = -n
+	}
+
+	var digits []byte
+	for n > 0 {
+		digits = append([]byte{byte('0' + n%10)}, digits...)
+		n /= 10
+	}
+
+	if negative {
+		digits = append([]byte{'-'}, digits...)
+	}
+
+	return string(digits)
+}
+
 func BoolToUnit(b bool) uint64 {
 	if b {
 		return 1

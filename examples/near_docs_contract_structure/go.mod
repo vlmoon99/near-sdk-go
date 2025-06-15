@@ -1,4 +1,4 @@
-module github.com/vlmoon99/near-sdk-go/examples/near_docs
+module github.com/vlmoon99/near-sdk-go/examples/near_docs_contract_structure
 
 go 1.23.7
 
