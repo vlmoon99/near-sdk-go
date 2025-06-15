@@ -459,7 +459,7 @@ func TestUnorderedSet_Values(t *testing.T) {
 		}
 	}
 
-	values, err := s.Values()
+	values, err := s.Values(0, nil)
 	if err != nil {
 		t.Fatalf("Values failed: %v", err)
 	}
