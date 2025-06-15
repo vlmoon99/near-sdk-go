@@ -1,3 +1,4 @@
+// Package promise provides functions for creating and managing promises.
 package promise
 
 import (

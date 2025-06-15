@@ -1,3 +1,4 @@
+// Package contract provides functions for createing the basic structure ofthe smart contract.
 package contract
 
 import (
