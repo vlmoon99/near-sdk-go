@@ -17,12 +17,18 @@ func TestSetGreeting(t *testing.T) {
 	message := "Hello, NEAR!"
 
 	systemMock := env.NearBlockchainImports.(*system.MockSystem)
-	systemMock.SetPredecessorAccountID(accountId)
-	systemMock.SetContractInput([]byte(`{"greeting": "` + message + `"}`))
+	systemMock.PredecessorAccountIdSys = accountId
+	systemMock.ContractInput = []byte(`{"greeting": "` + message + `"}`)
 	SetGreeting()
-	storedGreeting := getStoredGreeting()
-	if storedGreeting != message {
-		t.Fatalf("Expected message %v, got %v", message, storedGreeting)
+	contract := GetContract().(*GreetingContract)
+
+	greeting, err := contract.state.greetings.Get("default")
+	if err != nil {
+		greeting = "Error getting greeting"
+	}
+
+	if greeting != message {
+		t.Fatalf("Expected message %v, got %v", message, greeting)
 	}
 
 }
@@ -32,8 +38,14 @@ func TestGetStatus(t *testing.T) {
 
 	GetGreeting()
 
-	storedGreeting := getStoredGreeting()
-	if storedGreeting != message {
-		t.Fatalf("Expected message %v, got %v", message, storedGreeting)
+	contract := GetContract().(*GreetingContract)
+
+	greeting, err := contract.state.greetings.Get("default")
+	if err != nil {
+		greeting = "Error getting greeting"
+	}
+
+	if greeting != message {
+		t.Fatalf("Expected message %v, got %v", message, greeting)
 	}
 }
