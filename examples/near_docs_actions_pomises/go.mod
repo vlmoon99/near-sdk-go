@@ -9,4 +9,4 @@ require (
 	github.com/vlmoon99/jsonparser v0.0.1 // indirect
 )
 
-// replace github.com/vlmoon99/near-sdk-go => ../../
+replace github.com/vlmoon99/near-sdk-go => ../../

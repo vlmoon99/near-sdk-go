@@ -7,6 +7,7 @@ import (
 	"github.com/vlmoon99/near-sdk-go/borsh"
 	"github.com/vlmoon99/near-sdk-go/env"
 	"github.com/vlmoon99/near-sdk-go/json"
+	"github.com/vlmoon99/near-sdk-go/promise"
 	"github.com/vlmoon99/near-sdk-go/types"
 )
 
@@ -26,6 +27,21 @@ func HandleClientRawBytesInput(fn func(*ContractInput) error) {
 		env.PanicStr("failed to get input: " + err.Error())
 	}
 	if err := fn(input); err != nil {
+		env.PanicStr(err.Error())
+	}
+}
+
+func HandlePromiseResult(fn func(*promise.PromiseResult) error) {
+	if err := promise.CallbackGuard(); err != nil {
+		env.PanicStr("callback rejected: " + err.Error())
+	}
+
+	result, err := promise.GetPromiseResultSafe(0)
+	if err != nil {
+		env.PanicStr("failed to get promise result: " + err.Error())
+	}
+
+	if err := fn(&result); err != nil {
 		env.PanicStr(err.Error())
 	}
 }
@@ -111,4 +127,10 @@ func RequireDeposit(minDeposit types.Uint128) error {
 		return errors.New("insufficient deposit")
 	}
 	return nil
+}
+
+type PromiseResult struct {
+	Success    bool
+	Data       []byte
+	StatusCode int
 }
