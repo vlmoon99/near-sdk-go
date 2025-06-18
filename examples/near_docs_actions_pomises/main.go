@@ -327,7 +327,7 @@ func ExampleSendingInformation() {
 		promiseBuilder.NewCrossContract(helloAccount).
 			Gas(gas).
 			Call("set_greeting", args).
-			Then("Example9ChangeGreetingCallback", map[string]string{})
+			Then("ExampleChangeGreetingCallback", map[string]string{})
 		return nil
 	})
 }
@@ -368,7 +368,7 @@ func ExampleCrossContractCall() {
 		promiseBuilder.NewCrossContract(externalAccount).
 			Gas(gas).
 			Call("set_greeting", args).
-			Then("Example10CrossContractCallback", map[string]string{
+			Then("ExampleCrossContractCallback", map[string]string{
 				"context_data": "saved_for_callback",
 			}).
 			Value()
@@ -410,7 +410,7 @@ func ExampleBatchCallsSameContract() {
 				"arg1": "val1",
 			}, amount, gas).
 			Then(helloAccount).
-			FunctionCall("Example11BatchCallsCallback", map[string]string{
+			FunctionCall("ExampleBatchCallsCallback", map[string]string{
 				"original_data": "[Greeting One, Greeting Two]",
 			}, amount, gas)
 
@@ -438,8 +438,6 @@ func ExampleBatchCallsCallback() {
 //go:export ExampleParallelCallsDifferentContracts
 func ExampleParallelCallsDifferentContracts() {
 	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
-		env.LogString("Client input: " + string(input.Data))
-
 		contractA := "hello-nearverse.testnet"
 		contractB := "statusmessage.neargocli.testnet"
 
@@ -450,7 +448,7 @@ func ExampleParallelCallsDifferentContracts() {
 			Call("SetStatus", map[string]string{"message": "Hello, World!"})
 
 		// Join the promises and assign a callback
-		promiseA.Join([]*promiseBuilder.Promise{promiseB}, "Example12ParallelContractsCallback", map[string]string{
+		promiseA.Join([]*promiseBuilder.Promise{promiseB}, "ExampleParallelContractsCallback", map[string]string{
 			"contract_ids": contractA + "," + contractB,
 		}).Value()
 
@@ -465,7 +463,6 @@ func ExampleParallelCallsDifferentContracts() {
 func ExampleParallelContractsCallback() {
 	env.LogString("Processing results from multiple contracts")
 
-	// For parallel calls, we need to handle multiple results
 	count := env.PromiseResultsCount()
 	for i := uint64(0); i < count; i++ {
 		contractBuilder.HandlePromiseResult(func(result *promiseBuilder.PromiseResult) error {
