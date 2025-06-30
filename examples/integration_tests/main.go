@@ -312,7 +312,7 @@ func TestGetAccountLockedBalance() {
 
 //go:export TestGetAttachedDeposit
 func TestGetAttachedDeposit() {
-	attachedDeposit, err := env.GetAttachedDepoist()
+	attachedDeposit, err := env.GetAttachedDeposit()
 	if err != nil {
 		env.PanicStr("Failed to get attached deposit: " + err.Error())
 	}
