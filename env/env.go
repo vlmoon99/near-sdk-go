@@ -545,12 +545,12 @@ func GetAccountLockedBalance() (types.Uint128, error) {
 	return accountBalance, nil
 }
 
-// GetAttachedDepoist retrieves the attached deposit.
+// GetAttachedDeposit retrieves the attached deposit.
 //
 // Returns:
 // - types.Uint128: The attached deposit.
 // - error: An error if the retrieval fails.
-func GetAttachedDepoist() (types.Uint128, error) {
+func GetAttachedDeposit() (types.Uint128, error) {
 	var data [16]byte
 	NearBlockchainImports.AttachedDeposit(uint64(uintptr(unsafe.Pointer(&data[0]))))
 	attachedDeposit, err := types.LoadUint128LE(data[:])

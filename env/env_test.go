@@ -378,11 +378,11 @@ func TestGetAccountLockedBalance(t *testing.T) {
 	}
 }
 
-func TestGetAttachedDepoist(t *testing.T) {
+func TestGetAttachedDeposit(t *testing.T) {
 	expected := types.Uint128{Hi: 0, Lo: 0}
-	deposit, err := GetAttachedDepoist()
+	deposit, err := GetAttachedDeposit()
 	if err != nil {
-		t.Fatalf("GetAttachedDepoist failed: %v", err)
+		t.Fatalf("GetAttachedDeposit failed: %v", err)
 	}
 
 	if deposit != expected {

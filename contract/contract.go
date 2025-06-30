@@ -108,7 +108,7 @@ func GetContext() *ContractContext {
 	accountID, _ := env.GetCurrentAccountId()
 	signerID, _ := env.GetSignerAccountID()
 	predecessorID, _ := env.GetPredecessorAccountID()
-	attachedDeposit, _ := env.GetAttachedDepoist()
+	attachedDeposit, _ := env.GetAttachedDeposit()
 	prepaidGas := env.GetPrepaidGas()
 
 	return &ContractContext{
