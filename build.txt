@@ -1,0 +1,1 @@
+tinygo build -size short -no-debug -o main.wasm -target wasm-unknown generated_exports.go

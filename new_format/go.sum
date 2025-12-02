@@ -1,0 +1,6 @@
+github.com/mr-tron/base58 v1.2.0 h1:T/HDJBh4ZCPbU39/+c3rRvE0uKBQlU27+QI8LJ4t64o=
+github.com/mr-tron/base58 v1.2.0/go.mod h1:BinMc/sQntlIE1frQmRFPUoPA1Zkr8VRgBdjWI2mNwc=
+github.com/vlmoon99/jsonparser v0.0.1 h1:vfPID9QY/s9bVsYQ7Sl6EDvPTXIEcGVVpVpnbA2cg8s=
+github.com/vlmoon99/jsonparser v0.0.1/go.mod h1:GjBpBdc+tq4LSwtfjSIIO/3qLjCTRORUyZMyI3s8VNY=
+github.com/vlmoon99/near-sdk-go v0.0.13 h1:akgN+zQNel8OKFQjgcuDpALm0t2DLVZJwjejdZTswKg=
+github.com/vlmoon99/near-sdk-go v0.0.13/go.mod h1:dD92wg0aRnx1A249xyIBeLsd22RZjKW10uyR923efus=
