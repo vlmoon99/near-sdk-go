@@ -465,15 +465,36 @@ func generateCode(methods []*MethodInfo, stateStructs []*StateInfo) string {
 	sb.WriteString("\t\"github.com/vlmoon99/near-sdk-go/borsh\"\n")
 	sb.WriteString(")\n\n")
 
-	// Copy state struct definitions
-	for _, state := range stateStructs {
+	// Copy state struct definitions (only once, with 'type' keyword)
+	if len(stateStructs) > 0 {
+		state := stateStructs[0] // Take first state struct
 		sb.WriteString("// State struct\n")
+		sb.WriteString("type ")
 		sb.WriteString(state.SourceCode)
 		sb.WriteString("\n\n")
 	}
 
-	// Copy ALL method implementations (public, private, and unannotated)
+	// Copy method implementations from OTHER files (not from main.go or file with state)
+	outputFileName := "generated_exports.go"
 	for _, method := range methods {
+		// Skip methods from the generated file itself or from state file
+		if method.RelativePath == outputFileName {
+			continue
+		}
+		
+		// Skip if method is in the same file as state struct
+		skipMethod := false
+		for _, state := range stateStructs {
+			if method.FilePath == state.FilePath {
+				skipMethod = true
+				break
+			}
+		}
+		
+		if skipMethod {
+			continue
+		}
+
 		sb.WriteString("// Method from: " + method.RelativePath + "\n")
 		sb.WriteString(method.SourceCode)
 		sb.WriteString("\n\n")
@@ -488,9 +509,22 @@ func generateCode(methods []*MethodInfo, stateStructs []*StateInfo) string {
 		sb.WriteString("\n")
 	}
 
-	// Generate exports for public methods
+	// Generate exports for public methods (but skip methods from state file)
 	for _, m := range methods {
 		if !m.IsPublic {
+			continue
+		}
+
+		// Skip if method is in the same file as state struct
+		skipMethod := false
+		for _, state := range stateStructs {
+			if m.FilePath == state.FilePath {
+				skipMethod = true
+				break
+			}
+		}
+		
+		if skipMethod {
 			continue
 		}
 

@@ -8,19 +8,7 @@ import (
 	"github.com/vlmoon99/near-sdk-go/borsh"
 )
 
-//ERROR 1 - u dont need 2 types, only 1 counter, second there are no type word before Counter
-// // State struct
-// Counter struct {
-//     Count int
-// 	Owner string
-// }
-
-// // State struct
-// ContractState struct {
-// 	Count int
-// 	Owner string
-// }
-
+// State struct
 type Counter struct {
     Count int
 	Owner string
@@ -98,7 +86,6 @@ func (c *Counter) Test9() bool {
 func (c *Counter) Test10(name string, amount int) string {
 	return ""
 }
-
 
 // getState reads and deserializes Counter from blockchain
 func getState() *Counter {
