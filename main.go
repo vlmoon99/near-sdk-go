@@ -1,4 +1,4 @@
-// codegen.go - Multi-file recursive code generator with state management
+// codegen.go - Multi-file recursive code generator with Borsh state management
 package main
 
 import (
@@ -25,6 +25,7 @@ type MethodInfo struct {
 	MinDeposit   string
 	FilePath     string
 	RelativePath string
+	SourceCode   string // Raw source code
 }
 
 type Param struct {
@@ -38,6 +39,7 @@ type StateInfo struct {
 	Fields       []FieldInfo
 	FilePath     string
 	RelativePath string
+	SourceCode   string // Raw source code of the struct
 }
 
 type FieldInfo struct {
@@ -72,8 +74,8 @@ func main() {
 		fmt.Println()
 	}
 
-	if len(allMethods) == 0 {
-		fmt.Println("⚠️  No methods with @contract annotations found")
+	if len(allMethods) == 0 && len(stateStructs) == 0 {
+		fmt.Println("⚠️  No methods or state structs with @contract annotations found")
 		os.Exit(0)
 	}
 
@@ -100,7 +102,7 @@ func main() {
 
 	fmt.Printf("\n✅ Generated: %s\n", outputFile)
 	fmt.Println("\n💡 Next step: Build with TinyGo")
-	fmt.Println("   cd new_format && tinygo build -size short -no-debug -o main.wasm -target wasm-unknown generated_exports.go main.go")
+	fmt.Println("   cd new_format && tinygo build -size short -no-debug -o main.wasm -target wasm-unknown generated_exports.go")
 }
 
 // parseAllFilesRecursive recursively scans all directories
@@ -171,6 +173,12 @@ func parseAllFilesRecursive(rootDir string) ([]*MethodInfo, []*StateInfo, error)
 
 // parseContract parses a single Go file
 func parseContract(filePath string, relativePath string) ([]*MethodInfo, []*StateInfo, error) {
+	// Read file content for extracting source code
+	fileContent, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
 	if err != nil {
@@ -198,7 +206,7 @@ func parseContract(filePath string, relativePath string) ([]*MethodInfo, []*Stat
 
 					// Check for @contract:state annotation
 					if node.Doc != nil && hasStateAnnotation(node.Doc) {
-						state := extractStateInfo(typeSpec, structType)
+						state := extractStateInfo(typeSpec, structType, fset, fileContent)
 						state.FilePath = filePath
 						state.RelativePath = relativePath
 						stateStructs = append(stateStructs, state)
@@ -207,18 +215,17 @@ func parseContract(filePath string, relativePath string) ([]*MethodInfo, []*Stat
 			}
 
 		case *ast.FuncDecl:
-			// Only process methods
+			// Process ALL methods (both public and private)
 			if node.Recv == nil || len(node.Recv.List) == 0 {
 				return true
 			}
 
-			method := extractMethod(node)
+			method := extractMethodWithSource(node, fset, fileContent)
 			method.FilePath = filePath
 			method.RelativePath = relativePath
 
-			if method.IsPublic || method.IsPrivate {
-				methods = append(methods, method)
-			}
+			// Include all methods, not just annotated ones
+			methods = append(methods, method)
 		}
 
 		return true
@@ -240,12 +247,13 @@ func hasStateAnnotation(doc *ast.CommentGroup) bool {
 	return false
 }
 
-// extractStateInfo extracts struct field information
-func extractStateInfo(typeSpec *ast.TypeSpec, structType *ast.StructType) *StateInfo {
+// extractStateInfo extracts struct field information and source code
+func extractStateInfo(typeSpec *ast.TypeSpec, structType *ast.StructType, fset *token.FileSet, fileContent []byte) *StateInfo {
 	state := &StateInfo{
 		Name: typeSpec.Name.Name,
 	}
 
+	// Extract field information
 	if structType.Fields != nil {
 		for _, field := range structType.Fields.List {
 			fieldType := typeToString(field.Type)
@@ -258,11 +266,16 @@ func extractStateInfo(typeSpec *ast.TypeSpec, structType *ast.StructType) *State
 		}
 	}
 
+	// Extract the raw source code of the struct
+	startPos := fset.Position(typeSpec.Pos()).Offset
+	endPos := fset.Position(structType.End()).Offset
+	state.SourceCode = string(fileContent[startPos:endPos])
+
 	return state
 }
 
-// extractMethod extracts method information from AST
-func extractMethod(fn *ast.FuncDecl) *MethodInfo {
+// extractMethodWithSource extracts method with source code
+func extractMethodWithSource(fn *ast.FuncDecl, fset *token.FileSet, fileContent []byte) *MethodInfo {
 	method := &MethodInfo{
 		Name: fn.Name.Name,
 	}
@@ -294,6 +307,11 @@ func extractMethod(fn *ast.FuncDecl) *MethodInfo {
 			method.Returns = append(method.Returns, typeToString(field.Type))
 		}
 	}
+
+	// Extract source code
+	startPos := fset.Position(fn.Pos()).Offset
+	endPos := fset.Position(fn.End()).Offset
+	method.SourceCode = string(fileContent[startPos:endPos])
 
 	return method
 }
@@ -421,6 +439,9 @@ func displayMethods(methods []*MethodInfo) {
 					fmt.Printf(" [%s]", strings.Join(tags, ", "))
 				}
 				fmt.Println()
+			} else {
+				// Method without annotations
+				fmt.Printf("  📌 %s.%s() (included)\n", m.ReceiverType, m.Name)
 			}
 		}
 		fmt.Println()
@@ -431,25 +452,39 @@ func displayMethods(methods []*MethodInfo) {
 		publicCount, privateCount, viewCount, payableCount)
 }
 
-// generateCode generates the unified exports file with state management
+// generateCode generates the complete contract file with Borsh serialization
 func generateCode(methods []*MethodInfo, stateStructs []*StateInfo) string {
 	var sb strings.Builder
 
 	// Header
-	sb.WriteString("// Code generated by NEAR contract generator. DO NOT EDIT.\n")
-	sb.WriteString("// This file includes automatic state management.\n\n")
+	sb.WriteString("// Code generated by NEAR contract generator. DO NOT EDIT.\n\n")
 	sb.WriteString("package main\n\n")
 	sb.WriteString("import (\n")
 	sb.WriteString("\tcontractBuilder \"github.com/vlmoon99/near-sdk-go/contract\"\n")
 	sb.WriteString("\t\"github.com/vlmoon99/near-sdk-go/env\"\n")
-	sb.WriteString("\tnearjson \"github.com/vlmoon99/near-sdk-go/json\"\n")
+	sb.WriteString("\t\"github.com/vlmoon99/near-sdk-go/borsh\"\n")
 	sb.WriteString(")\n\n")
 
-	// Generate state read/write functions for each state struct
+	// Copy state struct definitions
 	for _, state := range stateStructs {
-		sb.WriteString(generateStateReadFunction(state))
+		sb.WriteString("// State struct\n")
+		sb.WriteString(state.SourceCode)
+		sb.WriteString("\n\n")
+	}
+
+	// Copy ALL method implementations (public, private, and unannotated)
+	for _, method := range methods {
+		sb.WriteString("// Method from: " + method.RelativePath + "\n")
+		sb.WriteString(method.SourceCode)
+		sb.WriteString("\n\n")
+	}
+
+	// Generate state helper functions
+	if len(stateStructs) > 0 {
+		state := stateStructs[0]
+		sb.WriteString(generateGetState(state))
 		sb.WriteString("\n")
-		sb.WriteString(generateStateWriteFunction(state))
+		sb.WriteString(generateSetState(state))
 		sb.WriteString("\n")
 	}
 
@@ -459,126 +494,52 @@ func generateCode(methods []*MethodInfo, stateStructs []*StateInfo) string {
 			continue
 		}
 
-		exportName := toSnakeCase(m.Name)
-		sb.WriteString(fmt.Sprintf("// From: %s\n", m.RelativePath))
-		sb.WriteString(fmt.Sprintf("//go:export %s\n", exportName))
-		sb.WriteString(fmt.Sprintf("func %s() {\n", exportName))
-		sb.WriteString("\tcontractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {\n")
-
-		// Read state before method execution
-		sb.WriteString("\t\t// Read contract state\n")
-		sb.WriteString(fmt.Sprintf("\t\tcontract := GetContractState%s()\n\n", m.ReceiverType))
-
-		// Add payment validation
-		if m.IsPayable {
-			sb.WriteString(fmt.Sprintf("\t\t// Validate payment: %s NEAR\n", m.MinDeposit))
-			sb.WriteString(fmt.Sprintf("\t\tif !validatePayment(\"%s\") {\n", m.MinDeposit))
-			sb.WriteString("\t\t\tenv.PanicStr(\"Insufficient payment attached\")\n")
-			sb.WriteString("\t\t}\n\n")
-		}
-
-		// Parse parameters
-		for _, p := range m.Params {
-			sb.WriteString(generateParamParser(p))
-		}
-
-		// Call the actual method
-		sb.WriteString("\t\t// Call method\n")
-
-		if len(m.Returns) > 0 {
-			sb.WriteString("\t\tresult := contract.")
-		} else {
-			sb.WriteString("\t\tcontract.")
-		}
-
-		sb.WriteString(m.Name)
-		sb.WriteString("(")
-		for i, p := range m.Params {
-			if i > 0 {
-				sb.WriteString(", ")
-			}
-			sb.WriteString(p.Name)
-		}
-		sb.WriteString(")\n\n")
-
-		// Write state after mutating methods
-		if m.IsMutating {
-			sb.WriteString("\t\t// Save state\n")
-			sb.WriteString(fmt.Sprintf("\t\tSetContractState%s(contract)\n\n", m.ReceiverType))
-		}
-
-		// Return result
-		if len(m.Returns) > 0 {
-			sb.WriteString("\t\tcontractBuilder.ReturnValue(result)\n")
-		} else {
-			sb.WriteString("\t\tcontractBuilder.ReturnValue(\"Success\")\n")
-		}
-
-		sb.WriteString("\t\treturn nil\n")
-		sb.WriteString("\t})\n")
-		sb.WriteString("}\n\n")
+		sb.WriteString(generateExportFunction(m, stateStructs))
+		sb.WriteString("\n")
 	}
 
 	// Add helper functions
 	sb.WriteString("// validatePayment checks if sufficient NEAR is attached\n")
 	sb.WriteString("func validatePayment(minDeposit string) bool {\n")
 	sb.WriteString("\t// TODO: Implement payment validation\n")
-	sb.WriteString("\t// attached := env.AttachedDeposit()\n")
-	sb.WriteString("\t// required := parseNEAR(minDeposit)\n")
-	sb.WriteString("\t// return attached >= required\n")
 	sb.WriteString("\treturn true\n")
 	sb.WriteString("}\n")
 
 	return sb.String()
 }
 
-// generateStateReadFunction generates GetContractState for a struct
-func generateStateReadFunction(state *StateInfo) string {
+// generateGetState generates getState helper
+func generateGetState(state *StateInfo) string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("// GetContractState%s reads state from blockchain\n", state.Name))
-	sb.WriteString(fmt.Sprintf("func GetContractState%s() *%s {\n", state.Name, state.Name))
-	sb.WriteString("\treadBytes, err := env.StateRead()\n")
-	sb.WriteString("\tif err != nil {\n")
-	sb.WriteString("\t\tenv.PanicStr(\"Failed to read state\")\n")
-	sb.WriteString("\t}\n\n")
-
-	sb.WriteString("\tif len(readBytes) == 0 {\n")
+	sb.WriteString(fmt.Sprintf("// getState reads and deserializes %s from blockchain\n", state.Name))
+	sb.WriteString(fmt.Sprintf("func getState() *%s {\n", state.Name))
+	sb.WriteString("\tval, err := env.StateRead()\n")
+	sb.WriteString("\tif err != nil || len(val) == 0 {\n")
 	sb.WriteString(fmt.Sprintf("\t\treturn &%s{}\n", state.Name))
 	sb.WriteString("\t}\n\n")
-
-	sb.WriteString("\tp := nearjson.NewParser(readBytes)\n\n")
-
-	// Parse each field
-	for _, field := range state.Fields {
-		sb.WriteString(generateFieldParser(field))
-	}
-
-	sb.WriteString(fmt.Sprintf("\n\treturn &%s{\n", state.Name))
-	for _, field := range state.Fields {
-		sb.WriteString(fmt.Sprintf("\t\t%s: %s,\n", field.Name, field.Name))
-	}
-	sb.WriteString("\t}\n")
+	sb.WriteString(fmt.Sprintf("\tvar state %s\n", state.Name))
+	sb.WriteString("\terr = borsh.Deserialize(val, &state)\n")
+	sb.WriteString("\tif err != nil {\n")
+	sb.WriteString("\t\tenv.PanicStr(\"Failed to deserialize state\")\n")
+	sb.WriteString("\t}\n\n")
+	sb.WriteString("\treturn &state\n")
 	sb.WriteString("}\n")
 
 	return sb.String()
 }
 
-// generateStateWriteFunction generates SetContractState for a struct
-func generateStateWriteFunction(state *StateInfo) string {
+// generateSetState generates setState helper
+func generateSetState(state *StateInfo) string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("// SetContractState%s writes state to blockchain\n", state.Name))
-	sb.WriteString(fmt.Sprintf("func SetContractState%s(contract *%s) {\n", state.Name, state.Name))
-	sb.WriteString("\tb := nearjson.NewBuilder()\n\n")
-
-	// Add each field
-	for _, field := range state.Fields {
-		sb.WriteString(generateFieldSerializer(field))
-	}
-
-	sb.WriteString("\n\tstateBytes := b.Build()\n\n")
-	sb.WriteString("\terr := env.StateWrite(stateBytes)\n")
+	sb.WriteString(fmt.Sprintf("// setState serializes and writes %s to blockchain\n", state.Name))
+	sb.WriteString(fmt.Sprintf("func setState(state *%s) {\n", state.Name))
+	sb.WriteString("\tval, err := borsh.Serialize(state)\n")
+	sb.WriteString("\tif err != nil {\n")
+	sb.WriteString("\t\tenv.PanicStr(\"Failed to serialize state\")\n")
+	sb.WriteString("\t}\n\n")
+	sb.WriteString("\terr = env.StateWrite(val)\n")
 	sb.WriteString("\tif err != nil {\n")
 	sb.WriteString("\t\tenv.PanicStr(\"Failed to write state\")\n")
 	sb.WriteString("\t}\n")
@@ -587,59 +548,69 @@ func generateStateWriteFunction(state *StateInfo) string {
 	return sb.String()
 }
 
-// generateFieldParser generates parsing code for a field
-func generateFieldParser(field FieldInfo) string {
+// generateExportFunction generates export function for a public method
+func generateExportFunction(m *MethodInfo, stateStructs []*StateInfo) string {
 	var sb strings.Builder
 
-	switch field.Type {
-	case "int":
-		sb.WriteString(fmt.Sprintf("\t%sValue, err := p.GetInt(\"%s\")\n", field.Name, field.Name))
-		sb.WriteString("\tif err != nil {\n")
-		sb.WriteString("\t\tenv.PanicStr(\"Failed to parse state\")\n")
-		sb.WriteString("\t}\n")
-		sb.WriteString(fmt.Sprintf("\t%s := int(%sValue)\n", field.Name, field.Name))
+	exportName := toSnakeCase(m.Name)
+	sb.WriteString(fmt.Sprintf("// Export: %s (from %s)\n", exportName, m.RelativePath))
+	sb.WriteString(fmt.Sprintf("//go:export %s\n", exportName))
+	sb.WriteString(fmt.Sprintf("func %s() {\n", exportName))
+	sb.WriteString("\tcontractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {\n")
 
-	case "string":
-		sb.WriteString(fmt.Sprintf("\t%s, err := p.GetString(\"%s\")\n", field.Name, field.Name))
-		sb.WriteString("\tif err != nil {\n")
-		sb.WriteString("\t\tenv.PanicStr(\"Failed to parse state\")\n")
-		sb.WriteString("\t}\n")
+	// Read state
+	sb.WriteString("\t\t// Read state\n")
+	sb.WriteString("\t\tstate := getState()\n\n")
 
-	case "bool":
-		sb.WriteString(fmt.Sprintf("\t%s, err := p.GetBool(\"%s\")\n", field.Name, field.Name))
-		sb.WriteString("\tif err != nil {\n")
-		sb.WriteString("\t\tenv.PanicStr(\"Failed to parse state\")\n")
-		sb.WriteString("\t}\n")
-
-	case "uint64":
-		sb.WriteString(fmt.Sprintf("\t%sValue, err := p.GetInt(\"%s\")\n", field.Name, field.Name))
-		sb.WriteString("\tif err != nil {\n")
-		sb.WriteString("\t\tenv.PanicStr(\"Failed to parse state\")\n")
-		sb.WriteString("\t}\n")
-		sb.WriteString(fmt.Sprintf("\t%s := uint64(%sValue)\n", field.Name, field.Name))
-
-	default:
-		sb.WriteString(fmt.Sprintf("\t// TODO: Complex type %s (%s)\n", field.Name, field.Type))
-		sb.WriteString(fmt.Sprintf("\tvar %s %s\n", field.Name, field.Type))
+	// Payment validation
+	if m.IsPayable {
+		sb.WriteString(fmt.Sprintf("\t\t// Validate payment: %s NEAR\n", m.MinDeposit))
+		sb.WriteString(fmt.Sprintf("\t\tif !validatePayment(\"%s\") {\n", m.MinDeposit))
+		sb.WriteString("\t\t\tenv.PanicStr(\"Insufficient payment\")\n")
+		sb.WriteString("\t\t}\n\n")
 	}
+
+	// Parse parameters
+	for _, p := range m.Params {
+		sb.WriteString(generateParamParser(p))
+	}
+
+	// Call method
+	sb.WriteString("\t\t// Call method\n")
+	if len(m.Returns) > 0 {
+		sb.WriteString("\t\tresult := state.")
+	} else {
+		sb.WriteString("\t\tstate.")
+	}
+
+	sb.WriteString(m.Name)
+	sb.WriteString("(")
+	for i, p := range m.Params {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		sb.WriteString(p.Name)
+	}
+	sb.WriteString(")\n\n")
+
+	// Save state if mutating
+	if m.IsMutating {
+		sb.WriteString("\t\t// Save state\n")
+		sb.WriteString("\t\tsetState(state)\n\n")
+	}
+
+	// Return result
+	if len(m.Returns) > 0 {
+		sb.WriteString("\t\tcontractBuilder.ReturnValue(result)\n")
+	} else {
+		sb.WriteString("\t\tcontractBuilder.ReturnValue(\"Success\")\n")
+	}
+
+	sb.WriteString("\t\treturn nil\n")
+	sb.WriteString("\t})\n")
+	sb.WriteString("}\n")
 
 	return sb.String()
-}
-
-// generateFieldSerializer generates serialization code for a field
-func generateFieldSerializer(field FieldInfo) string {
-	switch field.Type {
-	case "int", "int64":
-		return fmt.Sprintf("\tb.AddInt(\"%s\", int(contract.%s))\n", field.Name, field.Name)
-	case "string":
-		return fmt.Sprintf("\tb.AddString(\"%s\", contract.%s)\n", field.Name, field.Name)
-	case "bool":
-		return fmt.Sprintf("\tb.AddBool(\"%s\", contract.%s)\n", field.Name, field.Name)
-	case "uint64":
-		return fmt.Sprintf("\tb.AddInt(\"%s\", int(contract.%s))\n", field.Name, field.Name)
-	default:
-		return fmt.Sprintf("\t// TODO: Complex type %s (%s)\n", field.Name, field.Type)
-	}
 }
 
 func generateParamParser(p Param) string {
