@@ -47,6 +47,15 @@ type FieldInfo struct {
 	Type string
 }
 
+// FileContent holds all declarations from a file
+type FileContent struct {
+	FilePath     string
+	RelativePath string
+	Declarations []string // All top-level declarations
+	Imports      []string // All import statements
+	IsStateFile  bool
+}
+
 func main() {
 	rootDir := "./new_format"
 	outputDir := "./new_format"
@@ -56,7 +65,7 @@ func main() {
 	fmt.Printf("📂 Scanning from: %s\n\n", rootDir)
 
 	// Parse all files recursively
-	allMethods, stateStructs, err := parseAllFilesRecursive(rootDir)
+	allMethods, stateStructs, fileContents, err := parseAllFilesRecursive(rootDir)
 	if err != nil {
 		fmt.Printf("❌ Error: %v\n", err)
 		os.Exit(1)
@@ -76,16 +85,16 @@ func main() {
 
 	if len(allMethods) == 0 && len(stateStructs) == 0 {
 		fmt.Println("⚠️  No methods or state structs with @contract annotations found")
-		os.Exit(0)
 	}
 
-	fmt.Printf("✓ Found %d methods total\n\n", len(allMethods))
+	fmt.Printf("✓ Found %d methods total\n", len(allMethods))
+	fmt.Printf("✓ Found %d files to merge\n\n", len(fileContents))
 
 	// Display methods
 	displayMethods(allMethods)
 
 	// Generate the unified code
-	generatedCode := generateCode(allMethods, stateStructs)
+	generatedCode := generateCode(allMethods, stateStructs, fileContents)
 
 	// Write to output file
 	outputFile := filepath.Join(outputDir, "generated_exports.go")
@@ -106,9 +115,10 @@ func main() {
 }
 
 // parseAllFilesRecursive recursively scans all directories
-func parseAllFilesRecursive(rootDir string) ([]*MethodInfo, []*StateInfo, error) {
+func parseAllFilesRecursive(rootDir string) ([]*MethodInfo, []*StateInfo, []*FileContent, error) {
 	var allMethods []*MethodInfo
 	var stateStructs []*StateInfo
+	var fileContents []*FileContent
 
 	err := filepath.WalkDir(rootDir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -147,7 +157,7 @@ func parseAllFilesRecursive(rootDir string) ([]*MethodInfo, []*StateInfo, error)
 
 		fmt.Printf("  📄 Parsing: %s\n", relPath)
 
-		methods, states, err := parseContract(path, relPath)
+		methods, states, content, err := parseContract(path, relPath)
 		if err != nil {
 			fmt.Printf("  ⚠️  Warning: failed to parse %s: %v\n", relPath, err)
 			return nil
@@ -159,79 +169,99 @@ func parseAllFilesRecursive(rootDir string) ([]*MethodInfo, []*StateInfo, error)
 
 		if len(states) > 0 {
 			stateStructs = append(stateStructs, states...)
+			content.IsStateFile = true
 		}
+
+		fileContents = append(fileContents, content)
 
 		return nil
 	})
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to walk directory tree: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed to walk directory tree: %w", err)
 	}
 
-	return allMethods, stateStructs, nil
+	return allMethods, stateStructs, fileContents, nil
 }
 
 // parseContract parses a single Go file
-func parseContract(filePath string, relativePath string) ([]*MethodInfo, []*StateInfo, error) {
-	// Read file content for extracting source code
-	fileContent, err := os.ReadFile(filePath)
+func parseContract(filePath string, relativePath string) ([]*MethodInfo, []*StateInfo, *FileContent, error) {
+	// Read file content
+	fileContentBytes, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	var methods []*MethodInfo
 	var stateStructs []*StateInfo
+	content := &FileContent{
+		FilePath:     filePath,
+		RelativePath: relativePath,
+		Declarations: []string{},
+		Imports:      []string{},
+	}
 
-	ast.Inspect(file, func(n ast.Node) bool {
-		switch node := n.(type) {
+	// Extract imports
+	for _, imp := range file.Imports {
+		startPos := fset.Position(imp.Pos()).Offset
+		endPos := fset.Position(imp.End()).Offset
+		importCode := string(fileContentBytes[startPos:endPos])
+		content.Imports = append(content.Imports, importCode)
+	}
+
+	// Extract ALL top-level declarations
+	for _, decl := range file.Decls {
+		switch d := decl.(type) {
 		case *ast.GenDecl:
-			// Look for type declarations (structs)
-			if node.Tok == token.TYPE {
-				for _, spec := range node.Specs {
+			// Type, const, var declarations
+			startPos := fset.Position(d.Pos()).Offset
+			endPos := fset.Position(d.End()).Offset
+			declCode := string(fileContentBytes[startPos:endPos])
+			
+			// Check for @contract:state annotation
+			if d.Tok == token.TYPE && d.Doc != nil && hasStateAnnotation(d.Doc) {
+				for _, spec := range d.Specs {
 					typeSpec, ok := spec.(*ast.TypeSpec)
 					if !ok {
 						continue
 					}
-
 					structType, ok := typeSpec.Type.(*ast.StructType)
 					if !ok {
 						continue
 					}
-
-					// Check for @contract:state annotation
-					if node.Doc != nil && hasStateAnnotation(node.Doc) {
-						state := extractStateInfo(typeSpec, structType, fset, fileContent)
-						state.FilePath = filePath
-						state.RelativePath = relativePath
-						stateStructs = append(stateStructs, state)
-					}
+					state := extractStateInfo(typeSpec, structType, fset, fileContentBytes)
+					state.FilePath = filePath
+					state.RelativePath = relativePath
+					stateStructs = append(stateStructs, state)
 				}
 			}
+			
+			content.Declarations = append(content.Declarations, declCode)
 
 		case *ast.FuncDecl:
-			// Process ALL methods (both public and private)
-			if node.Recv == nil || len(node.Recv.List) == 0 {
-				return true
+			startPos := fset.Position(d.Pos()).Offset
+			endPos := fset.Position(d.End()).Offset
+			declCode := string(fileContentBytes[startPos:endPos])
+			
+			// If it's a method (has receiver), extract method info
+			if d.Recv != nil && len(d.Recv.List) > 0 {
+				method := extractMethodWithSource(d, fset, fileContentBytes)
+				method.FilePath = filePath
+				method.RelativePath = relativePath
+				methods = append(methods, method)
 			}
-
-			method := extractMethodWithSource(node, fset, fileContent)
-			method.FilePath = filePath
-			method.RelativePath = relativePath
-
-			// Include all methods, not just annotated ones
-			methods = append(methods, method)
+			
+			content.Declarations = append(content.Declarations, declCode)
 		}
+	}
 
-		return true
-	})
-
-	return methods, stateStructs, nil
+	return methods, stateStructs, content, nil
 }
 
 // hasStateAnnotation checks if comment group has @contract:state
@@ -453,51 +483,47 @@ func displayMethods(methods []*MethodInfo) {
 }
 
 // generateCode generates the complete contract file with Borsh serialization
-func generateCode(methods []*MethodInfo, stateStructs []*StateInfo) string {
+func generateCode(methods []*MethodInfo, stateStructs []*StateInfo, fileContents []*FileContent) string {
 	var sb strings.Builder
 
 	// Header
 	sb.WriteString("// Code generated by NEAR contract generator. DO NOT EDIT.\n\n")
 	sb.WriteString("package main\n\n")
-	sb.WriteString("import (\n")
-	sb.WriteString("\tcontractBuilder \"github.com/vlmoon99/near-sdk-go/contract\"\n")
-	sb.WriteString("\t\"github.com/vlmoon99/near-sdk-go/env\"\n")
-	sb.WriteString("\t\"github.com/vlmoon99/near-sdk-go/borsh\"\n")
-	sb.WriteString(")\n\n")
-
-	// Copy state struct definitions (only once, with 'type' keyword)
-	if len(stateStructs) > 0 {
-		state := stateStructs[0] // Take first state struct
-		sb.WriteString("// State struct\n")
-		sb.WriteString("type ")
-		sb.WriteString(state.SourceCode)
-		sb.WriteString("\n\n")
-	}
-
-	// Copy method implementations from OTHER files (not from main.go or file with state)
-	outputFileName := "generated_exports.go"
-	for _, method := range methods {
-		// Skip methods from the generated file itself or from state file
-		if method.RelativePath == outputFileName {
-			continue
-		}
-		
-		// Skip if method is in the same file as state struct
-		skipMethod := false
-		for _, state := range stateStructs {
-			if method.FilePath == state.FilePath {
-				skipMethod = true
-				break
+	
+	// Collect all unique imports
+	importMap := make(map[string]bool)
+	
+	// Add required imports
+	importMap["contractBuilder \"github.com/vlmoon99/near-sdk-go/contract\""] = true
+	importMap["\"github.com/vlmoon99/near-sdk-go/env\""] = true
+	importMap["\"github.com/vlmoon99/near-sdk-go/borsh\""] = true
+	
+	// Add imports from all files
+	for _, content := range fileContents {
+		for _, imp := range content.Imports {
+			// Clean up the import (remove any extra whitespace)
+			cleanImp := strings.TrimSpace(imp)
+			if cleanImp != "" {
+				importMap[cleanImp] = true
 			}
 		}
-		
-		if skipMethod {
-			continue
-		}
+	}
+	
+	// Write imports
+	sb.WriteString("import (\n")
+	for imp := range importMap {
+		sb.WriteString("\t" + imp + "\n")
+	}
+	sb.WriteString(")\n\n")
 
-		sb.WriteString("// Method from: " + method.RelativePath + "\n")
-		sb.WriteString(method.SourceCode)
-		sb.WriteString("\n\n")
+	// Copy ALL declarations from ALL files
+	for _, content := range fileContents {
+		sb.WriteString(fmt.Sprintf("// ===== From: %s =====\n", content.RelativePath))
+		
+		for _, decl := range content.Declarations {
+			sb.WriteString(decl)
+			sb.WriteString("\n\n")
+		}
 	}
 
 	// Generate state helper functions
@@ -510,6 +536,7 @@ func generateCode(methods []*MethodInfo, stateStructs []*StateInfo) string {
 	}
 
 	// Generate exports for public methods (but skip methods from state file)
+	sb.WriteString("// ===== Generated Exports =====\n")
 	for _, m := range methods {
 		if !m.IsPublic {
 			continue
@@ -533,6 +560,7 @@ func generateCode(methods []*MethodInfo, stateStructs []*StateInfo) string {
 	}
 
 	// Add helper functions
+	sb.WriteString("// ===== Helper Functions =====\n")
 	sb.WriteString("// validatePayment checks if sufficient NEAR is attached\n")
 	sb.WriteString("func validatePayment(minDeposit string) bool {\n")
 	sb.WriteString("\t// TODO: Implement payment validation\n")

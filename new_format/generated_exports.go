@@ -6,84 +6,208 @@ import (
 	contractBuilder "github.com/vlmoon99/near-sdk-go/contract"
 	"github.com/vlmoon99/near-sdk-go/env"
 	"github.com/vlmoon99/near-sdk-go/borsh"
+	"github.com/vlmoon99/near-sdk-go/json"
 )
 
-// State struct
+// ===== From: counter2.go =====
+func (c *Counter) Test12() string {
+	return ""
+}
+
+func (c *Counter) Test22(value int) int {
+	return 0
+}
+
+func (c *Counter) Test32(msg string) string {
+	return ""
+}
+
+func (c *Counter) Test42() {
+	// internal logic
+}
+
+func (c *Counter) Test52(key string) int {
+	return 0
+}
+
+func (c *Counter) Test62(a, b int) int {
+	return 0
+}
+
+func (c *Counter) Test72() string {
+	return ""
+}
+
+func (c *Counter) Test82(flag bool) {
+	// internal logic
+}
+
+func (c *Counter) Test92() bool {
+	return false
+}
+
+func (c *Counter) Test102(name string, amount int) string {
+	return ""
+}
+
+// ===== From: func1.go =====
+
+func TestIdea() bool {
+	builder := json.NewBuilder()
+	expected := `{"age":30}`
+	result := string(builder.AddInt("age", 30).Build())
+	if result != expected {
+		env.LogString("Error")
+	}
+	return true
+}
+
+// ===== From: main.go =====
 type Counter struct {
     Count int
 	Owner string
 }
 
-// Method from: modules/counter.go
+// ===== From: modules/counter.go =====
 func (c *Counter) GetCount() int {
 	return c.Count
 }
 
-// Method from: modules/counter.go
 func (c *Counter) Increment(amount int) int {
 	c.Count += amount
 	return c.Count
 }
 
-// Method from: modules/counter.go
 func (c *Counter) Decrement(amount int) int {
 	c.Count -= amount
 	return c.Count
 }
 
-// Method from: modules/counter.go
 func (c *Counter) Reset() string {
 	c.Count = 0
 	return "Counter reset"
 }
 
-// Method from: modules/counter1.go
+// ===== From: modules/counter1.go =====
 func (c *Counter) Test1() string {
 	return ""
 }
 
-// Method from: modules/counter1.go
 func (c *Counter) Test2(value int) int {
 	return 0
 }
 
-// Method from: modules/counter1.go
 func (c *Counter) Test3(msg string) string {
 	return ""
 }
 
-// Method from: modules/counter1.go
 func (c *Counter) Test4() {
 	// internal logic
 }
 
-// Method from: modules/counter1.go
 func (c *Counter) Test5(key string) int {
 	return 0
 }
 
-// Method from: modules/counter1.go
 func (c *Counter) Test6(a, b int) int {
 	return 0
 }
 
-// Method from: modules/counter1.go
 func (c *Counter) Test7() string {
 	return ""
 }
 
-// Method from: modules/counter1.go
 func (c *Counter) Test8(flag bool) {
 	// internal logic
 }
 
-// Method from: modules/counter1.go
 func (c *Counter) Test9() bool {
+	return TestIdea();
+}
+
+func (c *Counter) Test10(name string, amount int) string {
+	return ""
+}
+
+// ===== From: modules/sub_module1/counter4.go =====
+func (c *Counter) Test14() string {
+	return ""
+}
+
+func (c *Counter) Test24(value int) int {
+	return 0
+}
+
+func (c *Counter) Test34(msg string) string {
+	return ""
+}
+
+func (c *Counter) Test44() {
+	// internal logic
+}
+
+func (c *Counter) Test54(key string) int {
+	return 0
+}
+
+func (c *Counter) Test64(a, b int) int {
+	return 0
+}
+
+func (c *Counter) Test74() string {
+	return ""
+}
+
+func (c *Counter) Test84(flag bool) {
+	// internal logic
+}
+
+func (c *Counter) Test94() bool {
 	return false
 }
 
-// Method from: modules/counter1.go
-func (c *Counter) Test10(name string, amount int) string {
+func (c *Counter) Test104(name string, amount int) string {
+	return ""
+}
+
+// ===== From: modules/sub_module2/counter3.go =====
+func (c *Counter) Test13() string {
+	return ""
+}
+
+func (c *Counter) Test23(value int) int {
+	return 0
+}
+
+func (c *Counter) Test33(msg string) string {
+	return ""
+}
+
+func (c *Counter) Test43() {
+	// internal logic
+}
+
+func (c *Counter) Test53(key string) int {
+	return 0
+}
+
+func (c *Counter) Test63(a, b int) int {
+	return 0
+}
+
+func (c *Counter) Test73() string {
+	return ""
+}
+
+func (c *Counter) Test83(flag bool) {
+	// internal logic
+}
+
+func (c *Counter) Test93() bool {
+	return false
+}
+
+func (c *Counter) Test103(name string, amount int) string {
 	return ""
 }
 
@@ -114,6 +238,191 @@ func setState(state *Counter) {
 	if err != nil {
 		env.PanicStr("Failed to write state")
 	}
+}
+
+// ===== Generated Exports =====
+// Export: test12 (from counter2.go)
+//go:export test12
+func test12() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		// Call method
+		result := state.Test12()
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test22 (from counter2.go)
+//go:export test22
+func test22() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		valueInt64, err := input.JSON.GetInt("value")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+		value := int(valueInt64)
+
+		// Call method
+		result := state.Test22(value)
+
+		// Save state
+		setState(state)
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test32 (from counter2.go)
+//go:export test32
+func test32() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		// Validate payment: 0.0005 NEAR
+		if !validatePayment("0.0005") {
+			env.PanicStr("Insufficient payment")
+		}
+
+		msg, err := input.JSON.GetString("msg")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+
+		// Call method
+		result := state.Test32(msg)
+
+		// Save state
+		setState(state)
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test52 (from counter2.go)
+//go:export test52
+func test52() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		key, err := input.JSON.GetString("key")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+
+		// Call method
+		result := state.Test52(key)
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test62 (from counter2.go)
+//go:export test62
+func test62() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		aInt64, err := input.JSON.GetInt("a")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+		a := int(aInt64)
+
+		bInt64, err := input.JSON.GetInt("b")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+		b := int(bInt64)
+
+		// Call method
+		result := state.Test62(a, b)
+
+		// Save state
+		setState(state)
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test72 (from counter2.go)
+//go:export test72
+func test72() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		// Validate payment: 1 NEAR
+		if !validatePayment("1") {
+			env.PanicStr("Insufficient payment")
+		}
+
+		// Call method
+		result := state.Test72()
+
+		// Save state
+		setState(state)
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test92 (from counter2.go)
+//go:export test92
+func test92() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		// Call method
+		result := state.Test92()
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test102 (from counter2.go)
+//go:export test102
+func test102() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		name, err := input.JSON.GetString("name")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+
+		amountInt64, err := input.JSON.GetInt("amount")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+		amount := int(amountInt64)
+
+		// Call method
+		result := state.Test102(name, amount)
+
+		// Save state
+		setState(state)
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
 }
 
 // Export: get_count (from modules/counter.go)
@@ -386,6 +695,375 @@ func test10() {
 	})
 }
 
+// Export: test14 (from modules/sub_module1/counter4.go)
+//go:export test14
+func test14() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		// Call method
+		result := state.Test14()
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test24 (from modules/sub_module1/counter4.go)
+//go:export test24
+func test24() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		valueInt64, err := input.JSON.GetInt("value")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+		value := int(valueInt64)
+
+		// Call method
+		result := state.Test24(value)
+
+		// Save state
+		setState(state)
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test34 (from modules/sub_module1/counter4.go)
+//go:export test34
+func test34() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		// Validate payment: 0.0005 NEAR
+		if !validatePayment("0.0005") {
+			env.PanicStr("Insufficient payment")
+		}
+
+		msg, err := input.JSON.GetString("msg")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+
+		// Call method
+		result := state.Test34(msg)
+
+		// Save state
+		setState(state)
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test54 (from modules/sub_module1/counter4.go)
+//go:export test54
+func test54() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		key, err := input.JSON.GetString("key")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+
+		// Call method
+		result := state.Test54(key)
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test64 (from modules/sub_module1/counter4.go)
+//go:export test64
+func test64() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		aInt64, err := input.JSON.GetInt("a")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+		a := int(aInt64)
+
+		bInt64, err := input.JSON.GetInt("b")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+		b := int(bInt64)
+
+		// Call method
+		result := state.Test64(a, b)
+
+		// Save state
+		setState(state)
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test74 (from modules/sub_module1/counter4.go)
+//go:export test74
+func test74() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		// Validate payment: 1 NEAR
+		if !validatePayment("1") {
+			env.PanicStr("Insufficient payment")
+		}
+
+		// Call method
+		result := state.Test74()
+
+		// Save state
+		setState(state)
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test94 (from modules/sub_module1/counter4.go)
+//go:export test94
+func test94() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		// Call method
+		result := state.Test94()
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test104 (from modules/sub_module1/counter4.go)
+//go:export test104
+func test104() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		name, err := input.JSON.GetString("name")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+
+		amountInt64, err := input.JSON.GetInt("amount")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+		amount := int(amountInt64)
+
+		// Call method
+		result := state.Test104(name, amount)
+
+		// Save state
+		setState(state)
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test13 (from modules/sub_module2/counter3.go)
+//go:export test13
+func test13() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		// Call method
+		result := state.Test13()
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test23 (from modules/sub_module2/counter3.go)
+//go:export test23
+func test23() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		valueInt64, err := input.JSON.GetInt("value")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+		value := int(valueInt64)
+
+		// Call method
+		result := state.Test23(value)
+
+		// Save state
+		setState(state)
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test33 (from modules/sub_module2/counter3.go)
+//go:export test33
+func test33() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		// Validate payment: 0.0005 NEAR
+		if !validatePayment("0.0005") {
+			env.PanicStr("Insufficient payment")
+		}
+
+		msg, err := input.JSON.GetString("msg")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+
+		// Call method
+		result := state.Test33(msg)
+
+		// Save state
+		setState(state)
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test53 (from modules/sub_module2/counter3.go)
+//go:export test53
+func test53() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		key, err := input.JSON.GetString("key")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+
+		// Call method
+		result := state.Test53(key)
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test63 (from modules/sub_module2/counter3.go)
+//go:export test63
+func test63() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		aInt64, err := input.JSON.GetInt("a")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+		a := int(aInt64)
+
+		bInt64, err := input.JSON.GetInt("b")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+		b := int(bInt64)
+
+		// Call method
+		result := state.Test63(a, b)
+
+		// Save state
+		setState(state)
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test73 (from modules/sub_module2/counter3.go)
+//go:export test73
+func test73() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		// Validate payment: 1 NEAR
+		if !validatePayment("1") {
+			env.PanicStr("Insufficient payment")
+		}
+
+		// Call method
+		result := state.Test73()
+
+		// Save state
+		setState(state)
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test93 (from modules/sub_module2/counter3.go)
+//go:export test93
+func test93() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		// Call method
+		result := state.Test93()
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// Export: test103 (from modules/sub_module2/counter3.go)
+//go:export test103
+func test103() {
+	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+		// Read state
+		state := getState()
+
+		name, err := input.JSON.GetString("name")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+
+		amountInt64, err := input.JSON.GetInt("amount")
+		if err != nil {
+			env.PanicStr("Failed to parse parameter")
+		}
+		amount := int(amountInt64)
+
+		// Call method
+		result := state.Test103(name, amount)
+
+		// Save state
+		setState(state)
+
+		contractBuilder.ReturnValue(result)
+		return nil
+	})
+}
+
+// ===== Helper Functions =====
 // validatePayment checks if sufficient NEAR is attached
 func validatePayment(minDeposit string) bool {
 	// TODO: Implement payment validation
