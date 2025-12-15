@@ -51,7 +51,6 @@ func (c *Counter) Test102(name string, amount int) string {
 }
 
 // ===== From: func1.go =====
-
 func TestIdea() bool {
 	builder := json.NewBuilder()
 	expected := `{"age":30}`
@@ -211,6 +210,7 @@ func (c *Counter) Test103(name string, amount int) string {
 	return ""
 }
 
+// ===== From: test_input.go =====
 // getState reads and deserializes Counter from blockchain
 func getState() *Counter {
 	val, err := env.StateRead()

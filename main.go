@@ -219,6 +219,11 @@ func parseContract(filePath string, relativePath string) ([]*MethodInfo, []*Stat
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
 		case *ast.GenDecl:
+			// Skip import declarations (we handle them separately)
+			if d.Tok == token.IMPORT {
+				continue
+			}
+			
 			// Type, const, var declarations
 			startPos := fset.Position(d.Pos()).Offset
 			endPos := fset.Position(d.End()).Offset
