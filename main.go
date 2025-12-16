@@ -697,8 +697,8 @@ func generateParamParser(p Param) string {
 		sb.WriteString("\t\t}\n")
 		sb.WriteString(fmt.Sprintf("\t\t%s := int(%sInt64)\n\n", p.Name, p.Name))
 
-	case "bool":
-		sb.WriteString(fmt.Sprintf("\t\t%s, err := input.JSON.GetBool(\"%s\")\n", p.Name, p.Name))
+	case "int64":
+		sb.WriteString(fmt.Sprintf("\t\t%s, err := input.JSON.GetInt(\"%s\")\n", p.Name, p.Name))
 		sb.WriteString("\t\tif err != nil {\n")
 		sb.WriteString("\t\t\tenv.PanicStr(\"Failed to parse parameter\")\n")
 		sb.WriteString("\t\t}\n\n")
@@ -710,9 +710,36 @@ func generateParamParser(p Param) string {
 		sb.WriteString("\t\t}\n")
 		sb.WriteString(fmt.Sprintf("\t\t%s := uint64(%sInt64)\n\n", p.Name, p.Name))
 
+	case "float64":
+		sb.WriteString(fmt.Sprintf("\t\t%s, err := input.JSON.GetFloat64(\"%s\")\n", p.Name, p.Name))
+		sb.WriteString("\t\tif err != nil {\n")
+		sb.WriteString("\t\t\tenv.PanicStr(\"Failed to parse parameter\")\n")
+		sb.WriteString("\t\t}\n\n")
+
+	case "bool":
+		sb.WriteString(fmt.Sprintf("\t\t%s, err := input.JSON.GetBoolean(\"%s\")\n", p.Name, p.Name))
+		sb.WriteString("\t\tif err != nil {\n")
+		sb.WriteString("\t\t\tenv.PanicStr(\"Failed to parse parameter\")\n")
+		sb.WriteString("\t\t}\n\n")
+
+	case "[]byte":
+		sb.WriteString(fmt.Sprintf("\t\t%s, err := input.JSON.GetBytes(\"%s\")\n", p.Name, p.Name))
+		sb.WriteString("\t\tif err != nil {\n")
+		sb.WriteString("\t\t\tenv.PanicStr(\"Failed to parse parameter\")\n")
+		sb.WriteString("\t\t}\n\n")
+
 	default:
-		sb.WriteString(fmt.Sprintf("\t\t// TODO: Parse complex type %s\n", p.Type))
-		sb.WriteString(fmt.Sprintf("\t\tvar %s %s\n\n", p.Name, p.Type))
+		// Complex types (structs, slices, maps) - use Borsh deserialization
+		sb.WriteString(fmt.Sprintf("\t\t// Parse complex type: %s\n", p.Type))
+		sb.WriteString(fmt.Sprintf("\t\t%sBytes, err := input.JSON.GetRawBytes(\"%s\")\n", p.Name, p.Name))
+		sb.WriteString("\t\tif err != nil {\n")
+		sb.WriteString("\t\t\tenv.PanicStr(\"Failed to parse parameter\")\n")
+		sb.WriteString("\t\t}\n")
+		sb.WriteString(fmt.Sprintf("\t\tvar %s %s\n", p.Name, p.Type))
+		sb.WriteString(fmt.Sprintf("\terr = borsh.Deserialize(%sBytes, &%s)\n", p.Name, p.Name))
+		sb.WriteString("\t\tif err != nil {\n")
+		sb.WriteString("\t\t\tenv.PanicStr(\"Failed to deserialize parameter\")\n")
+		sb.WriteString("\t\t}\n\n")
 	}
 
 	return sb.String()

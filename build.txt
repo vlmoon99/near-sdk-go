@@ -3,18 +3,9 @@ tinygo build -size short -no-debug -o main.wasm -target wasm-unknown generated_e
 
 near contract deploy tutorialneargocli.testnet use-file ./main.wasm with-init-call increment json-args '{"amount": 1}' prepaid-gas '100.0 Tgas' attached-deposit '1 NEAR' network-config testnet sign-with-keychain send
 
+tinygo build -size short -no-debug -o main.wasm -target wasm-unknown generated_exports.go && near contract deploy tutorialneargocli.testnet use-file ./main.wasm without-init-call network-config testnet sign-with-keychain send && near contract call-function as-transaction tutorialneargocli.testnet process_data json-args '{"Name":"Vlad","Age":10}' prepaid-gas '100.0 Tgas' attached-deposit '1 NEAR' sign-as tutorialneargocli.testnet network-config testnet sign-with-keychain send
+
 near contract call-function as-read-only tutorialneargocli.testnet get_count json-args {} network-config testnet now
 
-
-
-tinygo build -size short -no-debug -o test.wasm -target wasm-unknown smart_contract_state_expiriments.go
-
-
-near contract deploy tutorialneargocli.testnet use-file ./test.wasm with-init-call init json-args '{}' prepaid-gas '100.0 Tgas' attached-deposit '1 NEAR' network-config testnet sign-with-keychain send
-
-near contract call-function as-transaction tutorialneargocli.testnet getState json-args {} prepaid-gas '100.0 Tgas' attached-deposit '1 NEAR' sign-as tutorialneargocli.testnet network-config testnet sign-with-keychain send
-near contract call-function as-read-only tutorialneargocli.testnet getState json-args {} network-config testnet now
-
-
-near contract call-function as-transaction tutorialneargocli.testnet setState json-args {} prepaid-gas '100.0 Tgas' attached-deposit '1 NEAR' sign-as tutorialneargocli.testnet network-config testnet sign-with-keychain send
+near contract call-function as-transaction tutorialneargocli.testnet process_data json-args '{"Name":"Vlad","Age":10}' prepaid-gas '100.0 Tgas' attached-deposit '1 NEAR' sign-as tutorialneargocli.testnet network-config testnet sign-with-keychain send
 

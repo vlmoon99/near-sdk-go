@@ -14,3 +14,14 @@ func TestIdea() bool {
 	}
 	return true
 }
+
+type MyData struct {
+    Name string
+    Age  int
+}
+
+// @contract:public
+func (c *Counter) ProcessData(data MyData) string {
+    // Works!
+	return data.Name
+}

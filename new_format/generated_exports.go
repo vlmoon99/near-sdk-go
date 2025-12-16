@@ -7,6 +7,8 @@ import (
 	"github.com/vlmoon99/near-sdk-go/env"
 	"github.com/vlmoon99/near-sdk-go/borsh"
 	"github.com/vlmoon99/near-sdk-go/json"
+ 	encodingJson "encoding/json"
+	"strconv"
 )
 
 // ===== From: counter2.go =====
@@ -59,6 +61,16 @@ func TestIdea() bool {
 		env.LogString("Error")
 	}
 	return true
+}
+
+type MyData struct {
+    Name string
+    Age  int
+}
+
+func (c *Counter) ProcessData(data MyData) string {
+    // Works!
+	return data.Name
 }
 
 // ===== From: main.go =====
@@ -210,7 +222,6 @@ func (c *Counter) Test103(name string, amount int) string {
 	return ""
 }
 
-// ===== From: test_input.go =====
 // getState reads and deserializes Counter from blockchain
 func getState() *Counter {
 	val, err := env.StateRead()
@@ -424,6 +435,67 @@ func test102() {
 		return nil
 	})
 }
+
+type MyDataJSON struct {
+    Name string `json:"name"`
+    Age  int `json:"age"`
+}
+
+func decodeInputJSON(data []byte) (MyData, error) {
+    var tmp MyDataJSON
+    if err := encodingJson.Unmarshal(data, &tmp); err != nil {
+        return MyData{}, err
+    }
+
+    return MyData{
+        Name: tmp.Name,
+        Age:  tmp.Age,
+    }, nil
+}
+
+
+//go:export process_data
+func process_data() {
+    contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+        env.LogString("input len = " + strconv.Itoa(len(input.Data)))
+
+        data, err := decodeInputJSON(input.Data)
+        if err != nil {
+            env.PanicStr("Invalid JSON input")
+        }
+
+        // now data is SAFE, typed, deterministic
+        contractBuilder.ReturnValue(data.Name)
+        return nil
+    })
+}
+
+// // Export: process_data (from func1.go)
+// //go:export process_data
+// func process_data() {
+// 	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
+// 		// Read state
+// 		// state := getState()
+
+// 		// Parse complex type: MyData
+// 		dataBytes := input.Data
+
+// 		env.LogString(string(dataBytes))
+
+// 		var data MyData
+// 		err := borsh.Deserialize(input.Data, &data)
+// 		if err != nil {
+// 			env.PanicStr("Failed to deserialize parameter")
+// 		}
+
+
+// 		// // Call method
+// 		// result := state.ProcessData(data)
+
+// 		contractBuilder.ReturnValue(string(dataBytes))
+// 		return nil
+// 	})
+// }
 
 // Export: get_count (from modules/counter.go)
 //go:export get_count
