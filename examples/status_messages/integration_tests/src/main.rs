@@ -53,7 +53,7 @@ async fn main() -> anyhow::Result<()> {
     let smart_contract_calls = vec![
         call_integration_test_function(
             &contract,
-            "SetStatus",
+            "set_status",
             json!({ "message": "testInputValue" }),
             standard_deposit,
             standard_gas,
@@ -61,7 +61,7 @@ async fn main() -> anyhow::Result<()> {
         .await,
         call_integration_test_function(
             &contract,
-            "GetStatus",
+            "get_status",
             json!({ "account_id": contract.id() }),
             standard_deposit,
             standard_gas,
