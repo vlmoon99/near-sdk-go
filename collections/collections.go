@@ -397,6 +397,11 @@ func (m *UnorderedMap[K, V]) Clear() error {
 	return nil
 }
 
+func (m *UnorderedMap[K, V]) Contains(key K) (bool, error) {
+	valKey := createKey(m.valPrefix(), key)
+	return env.StorageHasKey([]byte(valKey))
+}
+
 // ==============================================================================
 // UnorderedSet
 // ==============================================================================
@@ -688,4 +693,9 @@ func (m *TreeMap[K, V]) Clear() error {
 	}
 	m.Len = 0
 	return nil
+}
+
+func (m *TreeMap[K, V]) Contains(key K) (bool, error) {
+	valKey := createKey(m.valPrefix(), key)
+	return env.StorageHasKey([]byte(valKey))
 }
