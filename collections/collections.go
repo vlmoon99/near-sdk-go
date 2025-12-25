@@ -2,9 +2,9 @@
 package collections
 
 import (
+	"encoding/json"
 	"errors"
 
-	"github.com/vlmoon99/near-sdk-go/borsh"
 	"github.com/vlmoon99/near-sdk-go/env"
 	"github.com/vlmoon99/near-sdk-go/types"
 )
@@ -98,11 +98,11 @@ type Serializer interface {
 type DefaultSerializer struct{}
 
 func (s DefaultSerializer) Serialize(value interface{}) ([]byte, error) {
-	return borsh.Serialize(value)
+	return json.Marshal(value)
 }
 
 func (s DefaultSerializer) Deserialize(data []byte, value interface{}) error {
-	return borsh.Deserialize(data, value)
+	return json.Unmarshal(data, value)
 }
 
 type Vector[T any] struct {

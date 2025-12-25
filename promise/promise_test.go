@@ -250,7 +250,7 @@ func TestPromiseResult_UnwrapToParser(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			parser, err := tt.result.UnwrapToParser()
+			data, err := tt.result.Unwrap()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("PromiseResult.UnwrapToParser() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -258,8 +258,8 @@ func TestPromiseResult_UnwrapToParser(t *testing.T) {
 			if tt.wantErr && err.Error() != tt.errContains {
 				t.Errorf("PromiseResult.UnwrapToParser() error = %v, want %v", err, tt.errContains)
 			}
-			if !tt.wantErr && parser == nil {
-				t.Error("PromiseResult.UnwrapToParser() parser is nil")
+			if !tt.wantErr && data == nil {
+				t.Error("PromiseResult.UnwrapToParser() data is nil")
 			}
 		})
 	}

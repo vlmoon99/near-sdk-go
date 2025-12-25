@@ -1,12 +1,10 @@
-// Package contract provides functions for createing the basic structure ofthe smart contract.
 package contract
 
 import (
+	"encoding/json"
 	"errors"
 
-	"github.com/vlmoon99/near-sdk-go/borsh"
 	"github.com/vlmoon99/near-sdk-go/env"
-	"github.com/vlmoon99/near-sdk-go/json"
 	"github.com/vlmoon99/near-sdk-go/promise"
 	"github.com/vlmoon99/near-sdk-go/types"
 )
@@ -54,7 +52,7 @@ func ReturnValue(value interface{}) error {
 	case []byte:
 		data = v
 	default:
-		data, err = borsh.Serialize(v)
+		data, err = json.Marshal(v)
 		if err != nil {
 			return err
 		}
@@ -66,7 +64,6 @@ func ReturnValue(value interface{}) error {
 
 type ContractInput struct {
 	Data []byte
-	JSON *json.Parser
 }
 
 func GetJSONInput() (*ContractInput, error) {
@@ -76,10 +73,8 @@ func GetJSONInput() (*ContractInput, error) {
 		return nil, err
 	}
 
-	parser := json.NewParser(data)
 	return &ContractInput{
 		Data: data,
-		JSON: parser,
 	}, nil
 }
 
@@ -92,7 +87,6 @@ func GetRawBytesInput() (*ContractInput, error) {
 
 	return &ContractInput{
 		Data: data,
-		JSON: nil,
 	}, nil
 }
 
