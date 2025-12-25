@@ -1,4 +1,4 @@
-tinygo build -size short -no-debug -o main.wasm -target wasm-unknown generated_exports.go
+tinygo build -size short -no-debug -o main.wasm -target wasm-unknown generated_build.go
 
 tinygo build -size short -no-debug -o main.wasm -target wasm-unknown generated_exports.go 
 near contract deploy tutorialneargocli.testnet use-file ./main.wasm without-init-call network-config testnet sign-with-keychain send
@@ -6,6 +6,7 @@ near contract deploy tutorialneargocli.testnet use-file ./main.wasm without-init
 near contract call-function as-transaction tutorialneargocli.testnet set_message json-args '{"newMessage": "Test"}' prepaid-gas '100.0 Tgas' attached-deposit '1 NEAR' sign-as tutorialneargocli.testnet network-config testnet sign-with-keychain send
 
 near contract call-function as-read-only tutorialneargocli.testnet get_message json-args {} network-config testnet now
+
 
 
 near contract deploy tutorialneargocli.testnet use-file ./main.wasm with-init-call increment json-args '{"amount": 1}' prepaid-gas '100.0 Tgas' attached-deposit '1 NEAR' network-config testnet sign-with-keychain send
