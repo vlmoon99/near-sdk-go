@@ -3,7 +3,8 @@ package contract
 import (
 	"testing"
 
-	"github.com/vlmoon99/near-sdk-go/borsh"
+	"encoding/json"
+
 	"github.com/vlmoon99/near-sdk-go/env"
 	"github.com/vlmoon99/near-sdk-go/system"
 	"github.com/vlmoon99/near-sdk-go/types"
@@ -32,7 +33,7 @@ type TestStruct struct {
 }
 
 func (t TestStruct) Serialize() ([]byte, error) {
-	return borsh.Serialize(t)
+	return json.Marshal(t)
 }
 
 func TestReturnValue(t *testing.T) {

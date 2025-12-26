@@ -2,413 +2,368 @@ package main
 
 import (
 	"errors"
-	"sync"
+	"strconv"
 
 	"github.com/vlmoon99/near-sdk-go/collections"
-	contractBuilder "github.com/vlmoon99/near-sdk-go/contract"
 	"github.com/vlmoon99/near-sdk-go/env"
 )
 
-var (
-	contractInstance interface{}
-	contractOnce     sync.Once
-)
+// ============================================================================
+// Data Models (State Storage)
+// ============================================================================
 
 type ContractConfig struct {
-	OwnerAccountID string
-	Version        string
+	OwnerAccountID string `json:"owner_account_id"`
+	Version        string `json:"version"`
 }
 
 type User struct {
-	Username  string
-	Bio       string
-	CreatedAt int64
-	Followers uint64
-	Following uint64
-	PostCount uint64
+	Username  string `json:"username"`
+	Bio       string `json:"bio"`
+	CreatedAt int64  `json:"created_at"`
+	Followers uint64 `json:"followers"`
+	Following uint64 `json:"following"`
+	PostCount uint64 `json:"post_count"`
 }
 
 type Post struct {
-	ID        uint64
-	Author    string
-	Content   string
-	Likes     uint64
-	CreatedAt int64
+	ID        uint64 `json:"id"`
+	Author    string `json:"author"`
+	Content   string `json:"content"`
+	Likes     uint64 `json:"likes"`
+	CreatedAt int64  `json:"created_at"`
 }
 
 type Comment struct {
-	ID        uint64
-	PostID    uint64
-	Author    string
-	Content   string
-	CreatedAt int64
+	ID        uint64 `json:"id"`
+	PostID    uint64 `json:"post_id"`
+	Author    string `json:"author"`
+	Content   string `json:"content"`
+	CreatedAt int64  `json:"created_at"`
 }
 
 type UserSettings struct {
-	Theme         string
-	Notifications bool
-	Language      string
-	LastUpdated   int64
+	Theme         string `json:"theme"`
+	Notifications bool   `json:"notifications"`
+	Language      string `json:"language"`
+	LastUpdated   int64  `json:"last_updated"`
 }
 
-type StateManager struct {
-	config    *collections.UnorderedMap[string, ContractConfig]
-	users     *collections.UnorderedMap[string, User]
-	posts     *collections.UnorderedMap[uint64, Post]
-	comments  *collections.TreeMap[uint64, Comment]
-	followers *collections.LookupSet[string]
-	following *collections.LookupSet[string]
-	userPosts *collections.Vector[uint64]
-	postLikes *collections.LookupSet[string]
-	settings  *collections.LookupMap[string, UserSettings]
+// ============================================================================
+// Input Models (DTOs)
+// ============================================================================
+
+type UpdateOwnerInput struct {
+	NewOwner string `json:"new_owner"`
 }
 
-func NewStateManager() *StateManager {
-	sm := &StateManager{
-		config:    collections.NewUnorderedMap[string, ContractConfig]("config"),
-		users:     collections.NewUnorderedMap[string, User]("users"),
-		posts:     collections.NewUnorderedMap[uint64, Post]("posts"),
-		comments:  collections.NewTreeMap[uint64, Comment]("comments"),
-		followers: collections.NewLookupSet[string]("followers"),
-		following: collections.NewLookupSet[string]("following"),
-		userPosts: collections.NewVector[uint64]("user_posts"),
-		postLikes: collections.NewLookupSet[string]("post_likes"),
-		settings:  collections.NewLookupMap[string, UserSettings]("user_settings"),
+type CreateUserInput struct {
+	Username string `json:"username"`
+	Bio      string `json:"bio"`
+}
+
+type GetUserInput struct {
+	Username string `json:"username"`
+}
+
+type CreatePostInput struct {
+	Username string `json:"username"`
+	Content  string `json:"content"`
+}
+
+type LikePostInput struct {
+	Username string `json:"username"`
+	PostID   uint64 `json:"post_id"`
+}
+
+type FollowUserInput struct {
+	Follower  string `json:"follower"`
+	Following string `json:"following"`
+}
+
+type UpdateSettingsInput struct {
+	Username      string `json:"username"`
+	Theme         string `json:"theme"`
+	Notifications bool   `json:"notifications"`
+	Language      string `json:"language"`
+}
+
+type UserTargetInput struct {
+	Username string `json:"username"`
+}
+
+// ============================================================================
+// Contract State
+// ============================================================================
+
+// @contract:state
+type SocialMediaContract struct {
+	Config    *collections.UnorderedMap[string, ContractConfig]
+	Users     *collections.UnorderedMap[string, User]
+	Posts     *collections.UnorderedMap[uint64, Post]
+	Comments  *collections.TreeMap[uint64, Comment]
+	Followers *collections.LookupSet[string] // Key: "following:follower"
+	Following *collections.LookupSet[string] // Key: "follower:following"
+	UserPosts *collections.Vector[uint64]    // Global list of Post IDs
+	PostLikes *collections.LookupSet[string] // Key: "postID:username"
+	Settings  *collections.LookupMap[string, UserSettings]
+}
+
+// ============================================================================
+// Initialization
+// ============================================================================
+
+// @contract:init
+func (c *SocialMediaContract) Init() string {
+	// Initialize all collections
+	c.Config = collections.NewUnorderedMap[string, ContractConfig]("config")
+	c.Users = collections.NewUnorderedMap[string, User]("users")
+	c.Posts = collections.NewUnorderedMap[uint64, Post]("posts")
+	c.Comments = collections.NewTreeMap[uint64, Comment]("comments")
+	c.Followers = collections.NewLookupSet[string]("followers")
+	c.Following = collections.NewLookupSet[string]("following")
+	c.UserPosts = collections.NewVector[uint64]("user_posts")
+	c.PostLikes = collections.NewLookupSet[string]("post_likes")
+	c.Settings = collections.NewLookupMap[string, UserSettings]("settings")
+
+	// Set initial config
+	ownerID, _ := env.GetPredecessorAccountID()
+	config := ContractConfig{
+		OwnerAccountID: ownerID,
+		Version:        "1.0.0",
 	}
+	c.Config.Insert("main", config)
 
-	_, err := sm.config.Get("main")
-	accountId, _ := env.GetPredecessorAccountID()
-	if err != nil {
-		config := ContractConfig{
-			OwnerAccountID: accountId,
-			Version:        "1.0.0",
-		}
-		sm.config.Insert("main", config)
-	}
-
-	return sm
+	env.LogString("Social Media Contract Initialized")
+	return "Smart Contract was inited"
 }
 
-func (sm *StateManager) GetOwnerAccountID() string {
-	config, err := sm.config.Get("main")
+// ============================================================================
+// Config Methods
+// ============================================================================
+
+// @contract:view
+func (c *SocialMediaContract) GetOwnerAccountID() string {
+	config, err := c.Config.Get("main")
 	if err != nil {
-		env.PanicStr("failed to get contract config")
+		env.PanicStr("Contract not initialized")
 	}
 	return config.OwnerAccountID
 }
 
-func (sm *StateManager) UpdateOwnerAccountID(newOwner string) {
-	config, err := sm.config.Get("main")
+// @contract:mutating
+func (c *SocialMediaContract) UpdateOwnerAccountID(input UpdateOwnerInput) (string, error) {
+	config, err := c.Config.Get("main")
 	if err != nil {
-		env.PanicStr("failed to get contract config")
+		return "", errors.New("failed to get contract config")
 	}
-	config.OwnerAccountID = newOwner
-	if err := sm.config.Insert("main", config); err != nil {
-		env.PanicStr("failed to update contract config")
+
+	caller, _ := env.GetPredecessorAccountID()
+	if caller != config.OwnerAccountID {
+		return "", errors.New("only owner can update owner account ID")
 	}
-}
 
-type SocialMediaContract struct {
-	state *StateManager
-}
-
-func NewSocialMediaContract() *SocialMediaContract {
-	return &SocialMediaContract{
-		state: NewStateManager(),
+	config.OwnerAccountID = input.NewOwner
+	if err := c.Config.Insert("main", config); err != nil {
+		return "", err
 	}
+
+	return "success", nil
 }
 
-func GetContract() interface{} {
-	contractOnce.Do(func() {
-		if contractInstance == nil {
-			contractInstance = NewSocialMediaContract()
-		}
-	})
-	return contractInstance
+// ============================================================================
+// User Methods
+// ============================================================================
+
+// @contract:mutating
+func (c *SocialMediaContract) CreateUser(input CreateUserInput) (User, error) {
+	// Check if user already exists
+	if exists, _ := c.Users.Contains(input.Username); exists {
+		return User{}, errors.New("username already taken")
+	}
+
+	user := User{
+		Username:  input.Username,
+		Bio:       input.Bio,
+		CreatedAt: int64(env.GetBlockTimeMs() / 1_000_000), // ms
+		Followers: 0,
+		Following: 0,
+		PostCount: 0,
+	}
+
+	if err := c.Users.Insert(input.Username, user); err != nil {
+		return User{}, err
+	}
+
+	return user, nil
 }
 
-//go:export GetOwnerAccountID
-func GetOwnerAccountID() {
-	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
-		contract := GetContract().(*SocialMediaContract)
-		contractBuilder.ReturnValue(contract.state.GetOwnerAccountID())
-		return nil
-	})
+// @contract:view
+func (c *SocialMediaContract) GetUser(input GetUserInput) (User, error) {
+	return c.Users.Get(input.Username)
 }
 
-//go:export UpdateOwnerAccountID
-func UpdateOwnerAccountID() {
-	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
-		newOwner, err := input.JSON.GetString("new_owner")
-		if err != nil {
-			return err
-		}
+// ============================================================================
+// Post Methods
+// ============================================================================
 
-		contract := GetContract().(*SocialMediaContract)
-		accountId, _ := env.GetPredecessorAccountID()
+// @contract:mutating
+func (c *SocialMediaContract) CreatePost(input CreatePostInput) (Post, error) {
+	user, err := c.Users.Get(input.Username)
+	if err != nil {
+		return Post{}, errors.New("user not found")
+	}
 
-		if accountId != contract.state.GetOwnerAccountID() {
-			return errors.New("only owner can update owner account ID")
-		}
+	// Generate ID
+	newPostId := c.UserPosts.Length() + 1
 
-		contract.state.UpdateOwnerAccountID(newOwner)
-		contractBuilder.ReturnValue("success")
-		return nil
-	})
+	post := Post{
+		ID:        newPostId,
+		Author:    input.Username,
+		Content:   input.Content,
+		Likes:     0,
+		CreatedAt: int64(env.GetBlockTimeMs() / 1_000_000),
+	}
+
+	// Update User State
+	user.PostCount++
+	if err := c.Users.Insert(input.Username, user); err != nil {
+		return Post{}, err
+	}
+
+	// Save Post
+	if err := c.Posts.Insert(post.ID, post); err != nil {
+		return Post{}, err
+	}
+
+	// Add to Global Feed
+	if err := c.UserPosts.Push(post.ID); err != nil {
+		return Post{}, err
+	}
+
+	return post, nil
 }
 
-//go:export CreateUser
-func CreateUser() {
-	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
-		username, err := input.JSON.GetString("username")
-		if err != nil {
-			return err
-		}
+// @contract:mutating
+func (c *SocialMediaContract) LikePost(input LikePostInput) (string, error) {
+	// check user exists
+	if exists, _ := c.Users.Contains(input.Username); !exists {
+		return "", errors.New("user not found")
+	}
 
-		bio, err := input.JSON.GetString("bio")
-		if err != nil {
-			return err
-		}
+	// Create composite key: "postID:username"
+	likeKey := strconv.FormatUint(input.PostID, 10) + ":" + input.Username
 
-		contract := GetContract().(*SocialMediaContract)
+	exists, err := c.PostLikes.Contains(likeKey)
+	if err != nil {
+		return "", err
+	}
+	if exists {
+		return "", errors.New("post already liked")
+	}
 
-		user := User{
-			Username:  username,
-			Bio:       bio,
-			CreatedAt: int64(env.GetBlockTimeMs()),
-			Followers: 0,
-			Following: 0,
-			PostCount: 0,
-		}
+	// Record Like
+	if err := c.PostLikes.Insert(likeKey); err != nil {
+		return "", err
+	}
 
-		if err := contract.state.users.Insert(username, user); err != nil {
-			return err
-		}
+	// Update Post Count
+	post, err := c.Posts.Get(input.PostID)
+	if err != nil {
+		return "", errors.New("post not found")
+	}
+	post.Likes++
+	if err := c.Posts.Insert(input.PostID, post); err != nil {
+		return "", err
+	}
 
-		contractBuilder.ReturnValue(user)
-		return nil
-	})
+	return "success", nil
 }
 
-//go:export CreatePost
-func CreatePost() {
-	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
-		username, err := input.JSON.GetString("username")
-		if err != nil {
-			return err
-		}
+// ============================================================================
+// Social Graph Methods
+// ============================================================================
 
-		content, err := input.JSON.GetString("content")
-		if err != nil {
-			return err
-		}
+// @contract:mutating
+func (c *SocialMediaContract) FollowUser(input FollowUserInput) (string, error) {
+	if input.Follower == input.Following {
+		return "", errors.New("cannot follow yourself")
+	}
 
-		contract := GetContract().(*SocialMediaContract)
+	// Check validity
+	followerUser, err := c.Users.Get(input.Follower)
+	if err != nil {
+		return "", errors.New("follower user does not exist")
+	}
+	followingUser, err := c.Users.Get(input.Following)
+	if err != nil {
+		return "", errors.New("following user does not exist")
+	}
 
-		user, err := contract.state.users.Get(username)
-		if err != nil {
-			return err
-		}
+	// Insert into Sets
+	followerKey := input.Following + ":" + input.Follower
+	if err := c.Followers.Insert(followerKey); err != nil {
+		return "", err
+	}
 
-		post := Post{
-			ID:        user.PostCount + 1,
-			Author:    username,
-			Content:   content,
-			Likes:     0,
-			CreatedAt: int64(env.GetBlockTimeMs()),
-		}
+	followingKey := input.Follower + ":" + input.Following
+	if err := c.Following.Insert(followingKey); err != nil {
+		return "", err
+	}
 
-		user.PostCount++
-		if err := contract.state.users.Insert(username, user); err != nil {
-			return err
-		}
+	// Update Counts
+	followerUser.Following++
+	if err := c.Users.Insert(input.Follower, followerUser); err != nil {
+		return "", err
+	}
 
-		if err := contract.state.posts.Insert(post.ID, post); err != nil {
-			return err
-		}
+	followingUser.Followers++
+	if err := c.Users.Insert(input.Following, followingUser); err != nil {
+		return "", err
+	}
 
-		if err := contract.state.userPosts.Push(post.ID); err != nil {
-			return err
-		}
-
-		contractBuilder.ReturnValue(post)
-		return nil
-	})
+	return "success", nil
 }
 
-//go:export FollowUser
-func FollowUser() {
-	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
-		follower, err := input.JSON.GetString("follower")
-		if err != nil {
-			return err
-		}
+// ============================================================================
+// User Settings Methods
+// ============================================================================
 
-		following, err := input.JSON.GetString("following")
-		if err != nil {
-			return err
+// @contract:mutating
+func (c *SocialMediaContract) UpdateUserSettings(input UpdateSettingsInput) (UserSettings, error) {
+	currentSettings, err := c.Settings.Get(input.Username)
+	if err != nil {
+		// Create new if not exists
+		currentSettings = UserSettings{
+			Theme:         input.Theme,
+			Notifications: input.Notifications,
+			Language:      input.Language,
+			LastUpdated:   int64(env.GetBlockTimeMs() / 1_000_000),
 		}
+	} else {
+		// Update existing
+		currentSettings.Theme = input.Theme
+		currentSettings.Notifications = input.Notifications
+		currentSettings.Language = input.Language
+		currentSettings.LastUpdated = int64(env.GetBlockTimeMs() / 1_000_000)
+	}
 
-		contract := GetContract().(*SocialMediaContract)
+	if err := c.Settings.Insert(input.Username, currentSettings); err != nil {
+		return UserSettings{}, err
+	}
 
-		followerKey := following + ":" + follower
-		if err := contract.state.followers.Insert(followerKey); err != nil {
-			return err
-		}
-
-		followingKey := follower + ":" + following
-		if err := contract.state.following.Insert(followingKey); err != nil {
-			return err
-		}
-
-		followerUser, err := contract.state.users.Get(follower)
-		if err != nil {
-			return err
-		}
-		followerUser.Following++
-		if err := contract.state.users.Insert(follower, followerUser); err != nil {
-			return err
-		}
-
-		followingUser, err := contract.state.users.Get(following)
-		if err != nil {
-			return err
-		}
-		followingUser.Followers++
-		if err := contract.state.users.Insert(following, followingUser); err != nil {
-			return err
-		}
-
-		contractBuilder.ReturnValue("success")
-		return nil
-	})
+	return currentSettings, nil
 }
 
-//go:export LikePost
-func LikePost() {
-	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
-		username, err := input.JSON.GetString("username")
-		if err != nil {
-			return err
-		}
-
-		postID, err := input.JSON.GetInt("post_id")
-		if err != nil {
-			return err
-		}
-
-		contract := GetContract().(*SocialMediaContract)
-
-		likeKey := string(postID) + ":" + username
-		exists, err := contract.state.postLikes.Contains(likeKey)
-		if err != nil {
-			return err
-		}
-		if exists {
-			return errors.New("post already liked")
-		}
-
-		if err := contract.state.postLikes.Insert(likeKey); err != nil {
-			return err
-		}
-
-		post, err := contract.state.posts.Get(uint64(postID))
-		if err != nil {
-			return err
-		}
-		post.Likes++
-		if err := contract.state.posts.Insert(uint64(postID), post); err != nil {
-			return err
-		}
-
-		contractBuilder.ReturnValue("success")
-		return nil
-	})
+// @contract:view
+func (c *SocialMediaContract) GetUserSettings(input UserTargetInput) (UserSettings, error) {
+	return c.Settings.Get(input.Username)
 }
 
-//go:export UpdateUserSettings
-func UpdateUserSettings() {
-	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
-		username, err := input.JSON.GetString("username")
-		if err != nil {
-			return err
-		}
-
-		theme, err := input.JSON.GetString("theme")
-		if err != nil {
-			return err
-		}
-
-		notificationsStr, err := input.JSON.GetString("notifications")
-		if err != nil {
-			return err
-		}
-		notifications := notificationsStr == "true"
-
-		language, err := input.JSON.GetString("language")
-		if err != nil {
-			return err
-		}
-
-		contract := GetContract().(*SocialMediaContract)
-
-		settings, err := contract.state.settings.Get(username)
-		if err != nil {
-			settings = UserSettings{
-				Theme:         theme,
-				Notifications: notifications,
-				Language:      language,
-				LastUpdated:   int64(env.GetBlockTimeMs()),
-			}
-		} else {
-			settings.Theme = theme
-			settings.Notifications = notifications
-			settings.Language = language
-			settings.LastUpdated = int64(env.GetBlockTimeMs())
-		}
-
-		if err := contract.state.settings.Insert(username, settings); err != nil {
-			return err
-		}
-
-		contractBuilder.ReturnValue(settings)
-		return nil
-	})
-}
-
-//go:export GetUserSettings
-func GetUserSettings() {
-	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
-		username, err := input.JSON.GetString("username")
-		if err != nil {
-			return err
-		}
-
-		contract := GetContract().(*SocialMediaContract)
-		settings, err := contract.state.settings.Get(username)
-		if err != nil {
-			return err
-		}
-
-		contractBuilder.ReturnValue(settings)
-		return nil
-	})
-}
-
-//go:export DeleteUserSettings
-func DeleteUserSettings() {
-	contractBuilder.HandleClientJSONInput(func(input *contractBuilder.ContractInput) error {
-		username, err := input.JSON.GetString("username")
-		if err != nil {
-			return err
-		}
-
-		contract := GetContract().(*SocialMediaContract)
-		if err := contract.state.settings.Remove(username); err != nil {
-			return err
-		}
-
-		contractBuilder.ReturnValue("success")
-		return nil
-	})
+// @contract:mutating
+func (c *SocialMediaContract) DeleteUserSettings(input UserTargetInput) (string, error) {
+	if err := c.Settings.Remove(input.Username); err != nil {
+		return "", err
+	}
+	return "success", nil
 }

@@ -13,572 +13,362 @@ func init() {
 
 func cleanupStorage(t *testing.T) {
 	t.Helper()
-	mockSys := env.NearBlockchainImports.(*system.MockSystem)
-	for k := range mockSys.Storage {
-		delete(mockSys.Storage, k)
+	mockSys, ok := env.NearBlockchainImports.(*system.MockSystem)
+	if !ok {
+		t.Fatal("Environment is not set to MockSystem")
 	}
+	mockSys.Storage = make(map[string][]byte)
 }
 
-func TestVector_Push_Get(t *testing.T) {
+// ============================================================================
+// Vector Tests
+// ============================================================================
+
+func TestVector_Push_Get_Set(t *testing.T) {
 	defer cleanupStorage(t)
-	v := NewVector[string]("test_vector")
+	v := NewVector[string]("v")
 
-	testValue := "test_value"
-	err := v.Push(testValue)
-	if err != nil {
-		t.Fatalf("Push failed: %v", err)
+	if err := v.Push("A"); err != nil {
+		t.Fatal(err)
 	}
-
-	retrievedValue, err := v.Get(0)
-	if err != nil {
-		t.Fatalf("Get failed: %v", err)
-	}
-
-	if retrievedValue != testValue {
-		t.Fatalf("Expected value %v, got %v", testValue, retrievedValue)
-	}
-}
-
-func TestVector_Length(t *testing.T) {
-	defer cleanupStorage(t)
-	v := NewVector[string]("test_vector")
-
-	if v.Length() != 0 {
-		t.Fatalf("Expected initial length 0, got %d", v.Length())
-	}
-
-	err := v.Push("value1")
-	if err != nil {
-		t.Fatalf("Push failed: %v", err)
-	}
-
-	if v.Length() != 1 {
-		t.Fatalf("Expected length 1, got %d", v.Length())
-	}
-
-	err = v.Push("value2")
-	if err != nil {
-		t.Fatalf("Push failed: %v", err)
+	if err := v.Push("B"); err != nil {
+		t.Fatal(err)
 	}
 
 	if v.Length() != 2 {
-		t.Fatalf("Expected length 2, got %d", v.Length())
+		t.Errorf("Expected length 2, got %d", v.Length())
+	}
+
+	val, err := v.Get(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if val != "B" {
+		t.Errorf("Expected 'B', got '%s'", val)
+	}
+
+	if err := v.Set(1, "C"); err != nil {
+		t.Fatal(err)
+	}
+	val, _ = v.Get(1)
+	if val != "C" {
+		t.Errorf("Expected 'C' after Set, got '%s'", val)
+	}
+
+	if _, err := v.Get(99); err != ErrIndexOutOfBounds {
+		t.Errorf("Expected ErrIndexOutOfBounds, got %v", err)
 	}
 }
 
 func TestVector_Pop(t *testing.T) {
 	defer cleanupStorage(t)
-	v := NewVector[string]("test_vector")
+	v := NewVector[int]("v")
 
-	_, err := v.Pop()
-	if err == nil {
-		t.Fatalf("Expected error on empty vector pop")
-	}
+	v.Push(10)
+	v.Push(20)
 
-	testValue := "test_value"
-	err = v.Push(testValue)
+	val, err := v.Pop()
 	if err != nil {
-		t.Fatalf("Push failed: %v", err)
+		t.Fatal(err)
+	}
+	if val != 20 {
+		t.Errorf("Expected 20, got %d", val)
+	}
+	if v.Length() != 1 {
+		t.Errorf("Expected length 1, got %d", v.Length())
 	}
 
-	value, err := v.Pop()
-	if err != nil {
-		t.Fatalf("Pop failed: %v", err)
+	val, err = v.Pop()
+	if val != 10 {
+		t.Errorf("Expected 10, got %d", val)
 	}
 
-	if value != testValue {
-		t.Fatalf("Expected value %v, got %v", testValue, value)
-	}
-
-	if v.Length() != 0 {
-		t.Fatalf("Expected length 0 after pop, got %d", v.Length())
+	_, err = v.Pop()
+	if err != ErrVectorEmpty {
+		t.Errorf("Expected ErrVectorEmpty, got %v", err)
 	}
 }
 
-func TestLookupMap_Insert_Get(t *testing.T) {
+func TestVector_ToSlice(t *testing.T) {
 	defer cleanupStorage(t)
-	m := NewLookupMap[string, string]("test_map")
+	v := NewVector[string]("v")
 
-	key := "test_key"
-	value := "test_value"
+	v.Push("X")
+	v.Push("Y")
+	v.Push("Z")
 
-	err := m.Insert(key, value)
+	slice, err := v.ToSlice()
 	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
+		t.Fatal(err)
 	}
-
-	retrievedValue, err := m.Get(key)
-	if err != nil {
-		t.Fatalf("Get failed: %v", err)
+	if len(slice) != 3 {
+		t.Errorf("Expected slice len 3, got %d", len(slice))
 	}
-
-	if retrievedValue != value {
-		t.Fatalf("Expected value %v, got %v", value, retrievedValue)
+	if slice[0] != "X" || slice[2] != "Z" {
+		t.Errorf("Slice content mismatch: %v", slice)
 	}
 }
 
-func TestLookupMap_Contains(t *testing.T) {
+// ============================================================================
+// LookupMap Tests
+// ============================================================================
+
+func TestLookupMap_Basic(t *testing.T) {
 	defer cleanupStorage(t)
-	m := NewLookupMap[string, string]("test_map")
+	m := NewLookupMap[string, int]("m")
 
-	key := "test_key"
-	value := "test_value"
-
-	exists, err := m.Contains(key)
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
-	if exists {
-		t.Fatalf("Expected key to not exist")
+	if err := m.Insert("alice", 100); err != nil {
+		t.Fatal(err)
 	}
 
-	err = m.Insert(key, value)
-	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
-	}
-
-	exists, err = m.Contains(key)
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
+	exists, _ := m.Contains("alice")
 	if !exists {
-		t.Fatalf("Expected key to exist")
+		t.Error("Expected alice to exist")
 	}
-}
 
-func TestLookupMap_Remove(t *testing.T) {
-	defer cleanupStorage(t)
-	m := NewLookupMap[string, string]("test_map")
-
-	key := "test_key"
-	value := "test_value"
-
-	err := m.Insert(key, value)
+	val, err := m.Get("alice")
 	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
+		t.Fatal(err)
+	}
+	if val != 100 {
+		t.Errorf("Expected 100, got %d", val)
 	}
 
-	err = m.Remove(key)
-	if err != nil {
-		t.Fatalf("Remove failed: %v", err)
-	}
-
-	exists, err := m.Contains(key)
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
+	m.Remove("alice")
+	exists, _ = m.Contains("alice")
 	if exists {
-		t.Fatalf("Expected key to not exist after removal")
+		t.Error("Expected alice to be removed")
+	}
+
+	_, err = m.Get("bob")
+	if err != ErrKeyNotFound {
+		t.Errorf("Expected ErrKeyNotFound, got %v", err)
 	}
 }
 
-func TestLookupMap_MultipleValues(t *testing.T) {
-	defer cleanupStorage(t)
-	m := NewLookupMap[string, string]("test_map")
+type TestStruct struct {
+	Name string
+	Age  int
+}
 
-	testData := map[string]string{
-		"key1": "value1",
-		"key2": "value2",
-		"key3": "value3",
+func TestLookupMap_Structs(t *testing.T) {
+	defer cleanupStorage(t)
+	m := NewLookupMap[uint64, TestStruct]("m")
+
+	obj := TestStruct{Name: "Test", Age: 42}
+	m.Insert(1, obj)
+
+	res, err := m.Get(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Name != "Test" || res.Age != 42 {
+		t.Errorf("Struct mismatch: %+v", res)
+	}
+}
+
+// ============================================================================
+// LookupSet Tests
+// ============================================================================
+
+func TestLookupSet(t *testing.T) {
+	defer cleanupStorage(t)
+	s := NewLookupSet[string]("s")
+
+	s.Insert("A")
+	s.Insert("B")
+
+	if exists, _ := s.Contains("A"); !exists {
+		t.Error("Set should contain A")
+	}
+	if exists, _ := s.Contains("C"); exists {
+		t.Error("Set should not contain C")
 	}
 
-	for k, v := range testData {
-		err := m.Insert(k, v)
-		if err != nil {
-			t.Fatalf("Insert failed for key %s: %v", k, err)
+	s.Remove("A")
+	if exists, _ := s.Contains("A"); exists {
+		t.Error("A should be removed")
+	}
+}
+
+// ============================================================================
+// UnorderedMap Tests
+// ============================================================================
+
+func TestUnorderedMap_Workflow(t *testing.T) {
+	defer cleanupStorage(t)
+	m := NewUnorderedMap[string, int]("um")
+
+	m.Insert("one", 1)
+	m.Insert("two", 2)
+	m.Insert("three", 3)
+
+	if m.Length() != 3 {
+		t.Errorf("Expected length 3, got %d", m.Length())
+	}
+
+	m.Insert("two", 22)
+	if m.Length() != 3 {
+		t.Errorf("Length shouldn't change on overwrite")
+	}
+	val, _ := m.Get("two")
+	if val != 22 {
+		t.Errorf("Expected updated value 22, got %d", val)
+	}
+
+	err := m.Remove("two")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if m.Length() != 2 {
+		t.Errorf("Expected length 2, got %d", m.Length())
+	}
+	if exists, _ := env.StorageHasKey([]byte("um:v:two")); exists {
+		t.Error("Storage should verify key removal")
+	}
+
+	keys, _ := m.Keys()
+	if len(keys) != 2 {
+		t.Errorf("Expected 2 keys")
+	}
+	foundOne := false
+	foundThree := false
+	for _, k := range keys {
+		if k == "one" {
+			foundOne = true
+		}
+		if k == "three" {
+			foundThree = true
 		}
 	}
-
-	for k, expected := range testData {
-		value, err := m.Get(k)
-		if err != nil {
-			t.Fatalf("Get failed for key %s: %v", k, err)
-		}
-		if value != expected {
-			t.Fatalf("Expected value %s for key %s, got %s", expected, k, value)
-		}
+	if !foundOne || !foundThree {
+		t.Errorf("Missing keys after removal. Got: %v", keys)
 	}
 }
 
-func TestLookupMap_StructValues(t *testing.T) {
+func TestUnorderedMap_Clear(t *testing.T) {
 	defer cleanupStorage(t)
-	type TestValue struct {
-		Data string
-		Num  int
-	}
+	m := NewUnorderedMap[int, int]("um")
+	m.Insert(1, 1)
+	m.Insert(2, 2)
 
-	m := NewLookupMap[string, TestValue]("test_map")
+	m.Clear()
 
-	value := TestValue{Data: "test", Num: 42}
-	err := m.Insert("key1", value)
-	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
+	if m.Length() != 0 {
+		t.Error("Length should be 0")
 	}
-
-	retrieved, err := m.Get("key1")
-	if err != nil {
-		t.Fatalf("Get failed: %v", err)
-	}
-	if retrieved != value {
-		t.Fatalf("Expected value %+v, got %+v", value, retrieved)
+	keys, _ := m.Keys()
+	if len(keys) != 0 {
+		t.Error("Keys slice should be empty")
 	}
 }
 
-func TestLookupMap_ErrorCases(t *testing.T) {
+// ============================================================================
+// UnorderedSet Tests
+// ============================================================================
+
+func TestUnorderedSet(t *testing.T) {
 	defer cleanupStorage(t)
-	m := NewLookupMap[string, int]("test_map")
+	s := NewUnorderedSet[string]("us")
 
-	_, err := m.Get("non_existent")
-	if err == nil {
-		t.Fatalf("Expected error when getting non-existent key")
+	s.Insert("apple")
+	s.Insert("banana")
+	s.Insert("cherry")
+
+	s.Insert("apple")
+	if s.Length() != 3 {
+		t.Errorf("Duplicate insert shouldn't increase length, got %d", s.Length())
 	}
 
-	err = m.Remove("non_existent")
-	if err == nil {
-		t.Fatalf("Expected error when removing non-existent key: %v", err)
+	if yes, _ := s.Contains("banana"); !yes {
+		t.Error("Should contain banana")
 	}
 
-	exists, err := m.Contains("non_existent")
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
-	if exists {
-		t.Fatalf("Expected non-existent key to not exist")
-	}
-}
-
-func TestUnorderedMap_Insert_Get(t *testing.T) {
-	defer cleanupStorage(t)
-	m := NewUnorderedMap[string, string]("test_map")
-
-	key := "test_key"
-	value := "test_value"
-
-	err := m.Insert(key, value)
-	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
+	s.Remove("banana")
+	if s.Length() != 2 {
+		t.Error("Length should be 2")
 	}
 
-	retrievedValue, err := m.Get(key)
-	if err != nil {
-		t.Fatalf("Get failed: %v", err)
+	items, _ := s.All()
+	if len(items) != 2 {
+		t.Error("Should return 2 items")
 	}
-
-	if retrievedValue != value {
-		t.Fatalf("Expected value %v, got %v", value, retrievedValue)
-	}
-}
-
-func TestUnorderedMap_Contains(t *testing.T) {
-	defer cleanupStorage(t)
-	m := NewUnorderedMap[string, string]("test_map")
-
-	key := "test_key"
-	value := "test_value"
-
-	exists, err := m.Contains(key)
-
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
-	if exists {
-		t.Fatalf("Expected key to not exist")
-	}
-
-	err = m.Insert(key, value)
-	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
-	}
-
-	exists, err = m.Contains(key)
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
-	if !exists {
-		t.Fatalf("Expected key to exist")
-	}
-}
-
-func TestUnorderedMap_Remove(t *testing.T) {
-	defer cleanupStorage(t)
-
-	m := NewUnorderedMap[string, string]("test_map")
-
-	key := "test_key"
-	value := "test_value"
-
-	err := m.Insert(key, value)
-	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
-	}
-
-	err = m.Remove(key)
-	if err != nil {
-		t.Fatalf("Remove failed: %v", err)
-	}
-
-	exists, err := m.Contains(key)
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
-	if exists {
-		t.Fatalf("Expected key to not exist after removal")
-	}
-}
-
-func TestUnorderedMap_Keys_Values(t *testing.T) {
-	defer cleanupStorage(t)
-
-	m := NewUnorderedMap[string, string]("test_map")
-
-	testData := map[string]string{
-		"key1": "value1",
-		"key2": "value2",
-		"key3": "value3",
-	}
-
-	for k, v := range testData {
-		err := m.Insert(k, v)
-		if err != nil {
-			t.Fatalf("Insert failed for key %s: %v", k, err)
+	for _, item := range items {
+		if item == "banana" {
+			t.Error("Banana should be gone")
 		}
 	}
+}
 
-	keys, err := m.Keys()
+// ============================================================================
+// TreeMap Tests
+// ============================================================================
+
+func TestTreeMap_Sorting(t *testing.T) {
+	defer cleanupStorage(t)
+	tm := NewTreeMap[int, string]("tm")
+
+	tm.Insert(20, "twenty")
+	tm.Insert(10, "ten")
+	tm.Insert(30, "thirty")
+
+	keys, err := tm.Keys()
 	if err != nil {
-		t.Fatalf("Keys failed: %v", err)
-	}
-	if len(keys) != len(testData) {
-		t.Fatalf("Expected %d keys, got %d", len(testData), len(keys))
+		t.Fatal(err)
 	}
 
-	values, err := m.Values()
-	if err != nil {
-		t.Fatalf("Values failed: %v", err)
+	if len(keys) != 3 {
+		t.Fatal("Expected 3 keys")
 	}
-	if len(values) != len(testData) {
-		t.Fatalf("Expected %d values, got %d", len(testData), len(values))
+	if keys[0] != 10 || keys[1] != 20 || keys[2] != 30 {
+		t.Errorf("Keys not sorted: %v", keys)
 	}
 }
 
-func TestLookupSet_Insert_Contains(t *testing.T) {
+func TestTreeMap_MinMax(t *testing.T) {
 	defer cleanupStorage(t)
+	tm := NewTreeMap[string, int]("tm")
 
-	s := NewLookupSet[string]("test_set")
-
-	value := "test_value"
-
-	exists, err := s.Contains(value)
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
-	if exists {
-		t.Fatalf("Expected value to not exist")
+	if _, err := tm.MinKey(); err != ErrMapEmpty {
+		t.Error("Expected ErrMapEmpty")
 	}
 
-	err = s.Insert(value)
-	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
-	}
+	tm.Insert("b", 2)
+	tm.Insert("a", 1)
+	tm.Insert("c", 3)
 
-	exists, err = s.Contains(value)
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
+	min, _ := tm.MinKey()
+	max, _ := tm.MaxKey()
+
+	if min != "a" {
+		t.Errorf("Expected min 'a', got %s", min)
 	}
-	if !exists {
-		t.Fatalf("Expected value to exist")
+	if max != "c" {
+		t.Errorf("Expected max 'c', got %s", max)
 	}
 }
 
-func TestLookupSet_Remove(t *testing.T) {
+func TestTreeMap_Remove_Rebalance(t *testing.T) {
 	defer cleanupStorage(t)
+	tm := NewTreeMap[int, int]("tm")
 
-	s := NewLookupSet[string]("test_set")
+	tm.Insert(1, 1)
+	tm.Insert(2, 2)
+	tm.Insert(3, 3)
 
-	value := "test_value"
+	tm.Remove(2)
 
-	err := s.Insert(value)
-	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
+	keys, _ := tm.Keys()
+	if len(keys) != 2 {
+		t.Errorf("Expected len 2, got %v", keys)
+	}
+	if keys[0] != 1 || keys[1] != 3 {
+		t.Errorf("Expected [1, 3], got %v", keys)
 	}
 
-	err = s.Remove(value)
-	if err != nil {
-		t.Fatalf("Remove failed: %v", err)
-	}
-
-	exists, err := s.Contains(value)
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
-	if exists {
-		t.Fatalf("Expected value to not exist after removal")
-	}
-}
-
-func TestUnorderedSet_Insert_Contains(t *testing.T) {
-	defer cleanupStorage(t)
-
-	s := NewUnorderedSet[string]("test_set")
-
-	value := "test_value"
-
-	exists, err := s.Contains(value)
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
-	if exists {
-		t.Fatalf("Expected value to not exist")
-	}
-
-	err = s.Insert(value)
-	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
-	}
-
-	exists, err = s.Contains(value)
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
-	if !exists {
-		t.Fatalf("Expected value to exist")
-	}
-}
-
-func TestUnorderedSet_Values(t *testing.T) {
-	defer cleanupStorage(t)
-
-	s := NewUnorderedSet[string]("test_set")
-
-	testValues := []string{"value1", "value2", "value3"}
-
-	for _, v := range testValues {
-		err := s.Insert(v)
-		if err != nil {
-			t.Fatalf("Insert failed for value %s: %v", v, err)
-		}
-	}
-
-	values, err := s.Values(0, nil)
-	if err != nil {
-		t.Fatalf("Values failed: %v", err)
-	}
-	if len(values) != len(testValues) {
-		t.Fatalf("Expected %d values, got %d", len(testValues), len(values))
-	}
-}
-
-func TestTreeMap_Insert_Get(t *testing.T) {
-	defer cleanupStorage(t)
-
-	m := NewTreeMap[string, string]("test_map")
-
-	key := "test_key"
-	value := "test_value"
-
-	err := m.Insert(key, value)
-	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
-	}
-
-	retrievedValue, err := m.Get(key)
-	if err != nil {
-		t.Fatalf("Get failed: %v", err)
-	}
-
-	if retrievedValue != value {
-		t.Fatalf("Expected value %v, got %v", value, retrievedValue)
-	}
-}
-
-func TestTreeMap_MinKey_MaxKey(t *testing.T) {
-	defer cleanupStorage(t)
-
-	m := NewTreeMap[string, string]("test_map")
-
-	env.LogString("TestTreeMap_MinKey_MaxKey: Testing empty map MinKey")
-	_, err := m.MinKey()
-	if err == nil {
-		t.Fatalf("Expected error for empty map MinKey")
-	}
-	if err.Error() != CollectionErrMapEmpty {
-		t.Fatalf("Expected error %s, got %s", CollectionErrMapEmpty, err.Error())
-	}
-
-	env.LogString("TestTreeMap_MinKey_MaxKey: Testing empty map MaxKey")
-	_, err = m.MaxKey()
-	if err == nil {
-		t.Fatalf("Expected error for empty map MaxKey")
-	}
-	if err.Error() != CollectionErrMapEmpty {
-		t.Fatalf("Expected error %s, got %s", CollectionErrMapEmpty, err.Error())
-	}
-
-	testData := map[string]string{
-		"key1": "value1",
-		"key2": "value2",
-		"key3": "value3",
-	}
-
-	env.LogString("TestTreeMap_MinKey_MaxKey: Inserting test data")
-	for k, v := range testData {
-		err := m.Insert(k, v)
-		if err != nil {
-			t.Fatalf("Insert failed for key %s: %v", k, err)
-		}
-	}
-
-	env.LogString("TestTreeMap_MinKey_MaxKey: Testing MinKey")
-	minKey, err := m.MinKey()
-	if err != nil {
-		t.Fatalf("MinKey failed: %v", err)
-	}
-
-	if minKey != "key1" {
-		t.Fatalf("Expected min key 'key1', got %v", minKey)
-	}
-
-	env.LogString("TestTreeMap_MinKey_MaxKey: Testing MaxKey")
-	maxKey, err := m.MaxKey()
-	if err != nil {
-		t.Fatalf("MaxKey failed: %v", err)
-	}
-	if maxKey != "key3" {
-		t.Fatalf("Expected max key 'key3', got %v", maxKey)
-	}
-}
-
-func TestTreeMap_FloorKey_CeilingKey(t *testing.T) {
-	defer cleanupStorage(t)
-
-	m := NewTreeMap[string, string]("test_map")
-
-	testData := map[string]string{
-		"key1": "value1",
-		"key3": "value3",
-		"key5": "value5",
-	}
-
-	for k, v := range testData {
-		err := m.Insert(k, v)
-		if err != nil {
-			t.Fatalf("Insert failed for key %s: %v", k, err)
-		}
-	}
-
-	floorKey, err := m.FloorKey("key4")
-	if err != nil {
-		t.Fatalf("FloorKey failed: %v", err)
-	}
-	if floorKey != "key3" {
-		t.Fatalf("Expected floor key 'key3', got %v", floorKey)
-	}
-
-	ceilingKey, err := m.CeilingKey("key2")
-	if err != nil {
-		t.Fatalf("CeilingKey failed: %v", err)
-	}
-	if ceilingKey != "key3" {
-		t.Fatalf("Expected ceiling key 'key3', got %v", ceilingKey)
+	_, err := tm.Get(2)
+	if err != ErrKeyNotFound {
+		t.Error("Value for 2 should be gone")
 	}
 }

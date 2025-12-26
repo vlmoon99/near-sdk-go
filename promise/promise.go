@@ -2,11 +2,11 @@
 package promise
 
 import (
+	"encoding/json"
 	"errors"
 	"unsafe"
 
 	"github.com/vlmoon99/near-sdk-go/env"
-	nearjson "github.com/vlmoon99/near-sdk-go/json"
 	"github.com/vlmoon99/near-sdk-go/types"
 )
 
@@ -84,14 +84,6 @@ func (pr PromiseResult) UnwrapOr(defaultValue []byte) []byte {
 	return defaultValue
 }
 
-func (pr PromiseResult) UnwrapToParser() (*nearjson.Parser, error) {
-	data, err := pr.Unwrap()
-	if err != nil {
-		return &nearjson.Parser{}, err
-	}
-	return nearjson.NewParser(data), nil
-}
-
 func getStatusName(statusCode int) string {
 	switch statusCode {
 	case 0:
@@ -145,7 +137,7 @@ func (p *Promise) DepositYocto(amount uint64) *Promise {
 }
 
 func (p *Promise) Then(method string, args interface{}) *Promise {
-	argsBytes, err := marshalArgs(args)
+	argsBytes, err := json.Marshal(args)
 	if err != nil {
 		env.LogString(ErrMarshalingArgsInThen + err.Error())
 		return p
@@ -170,7 +162,7 @@ func (p *Promise) Then(method string, args interface{}) *Promise {
 }
 
 func (p *Promise) ThenCall(contractID, method string, args interface{}) *Promise {
-	argsBytes, err := marshalArgs(args)
+	argsBytes, err := json.Marshal(args)
 	if err != nil {
 		env.LogString(ErrMarshalingArgsInThenCall + err.Error())
 		return p
@@ -202,7 +194,7 @@ func (p *Promise) Join(otherPromises []*Promise, callback string, args interface
 
 	combinedPromise := env.PromiseAnd(promiseIDs)
 
-	argsBytes, err := marshalArgs(args)
+	argsBytes, err := json.Marshal(args)
 	if err != nil {
 		env.LogString(ErrMarshalingArgsInJoin + err.Error())
 		return p
@@ -272,7 +264,7 @@ func (pb *PromiseBatch) FunctionCall(method string, args interface{}, amount typ
 		gas = pb.gas
 	}
 
-	argsBytes, err := marshalArgs(args)
+	argsBytes, err := json.Marshal(args)
 	if err != nil {
 		env.LogString(ErrMarshalingArgsInCall + err.Error())
 		return pb
@@ -386,7 +378,7 @@ func (cc *CrossContract) DepositYocto(amount uint64) *CrossContract {
 
 func (cc *CrossContract) Call(method string, args interface{}) *Promise {
 
-	argsBytes, err := marshalArgs(args)
+	argsBytes, err := json.Marshal(args)
 
 	if err != nil {
 		env.LogString(ErrMarshalingArgsInCall + err.Error())
@@ -554,62 +546,4 @@ func ReadRegisterDirect(registerId uint64, length uint64) ([]byte, error) {
 	}
 
 	return []byte{}, errors.New(ErrFailedToCreateBuffer)
-}
-
-func marshalArgs(args interface{}) ([]byte, error) {
-	if args == nil {
-		return []byte("{}"), nil
-	}
-
-	switch v := args.(type) {
-	case string:
-		return []byte(v), nil
-	case []byte:
-		return v, nil
-	case map[string]interface{}:
-		return buildJSONFromMap(v), nil
-	case map[string]string:
-		return buildJSONFromStringMap(v), nil
-	default:
-		return []byte("{}"), nil
-	}
-}
-
-func buildJSONFromMap(m map[string]interface{}) []byte {
-	if len(m) == 0 {
-		return []byte("{}")
-	}
-
-	builder := nearjson.NewBuilder()
-	for key, value := range m {
-		switch v := value.(type) {
-		case string:
-			builder.AddString(key, v)
-		case int:
-			builder.AddInt(key, v)
-		case int64:
-			builder.AddInt64(key, v)
-		case uint64:
-			builder.AddUint64(key, v)
-		case float64:
-			builder.AddFloat64(key, v)
-		case bool:
-			builder.AddBool(key, v)
-		default:
-			builder.AddString(key, "")
-		}
-	}
-	return builder.Build()
-}
-
-func buildJSONFromStringMap(m map[string]string) []byte {
-	if len(m) == 0 {
-		return []byte("{}")
-	}
-
-	builder := nearjson.NewBuilder()
-	for key, value := range m {
-		builder.AddString(key, value)
-	}
-	return builder.Build()
 }

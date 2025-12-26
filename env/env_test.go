@@ -1,9 +1,9 @@
 package env
 
 import (
+	"encoding/json"
 	"testing"
 
-	"github.com/vlmoon99/near-sdk-go/json"
 	"github.com/vlmoon99/near-sdk-go/system"
 	"github.com/vlmoon99/near-sdk-go/types"
 )
@@ -299,11 +299,22 @@ func TestContractInputRawBytes(t *testing.T) {
 }
 
 func TestContractInputJSON(t *testing.T) {
-	builder := json.NewBuilder()
-	jsonData := builder.AddString("key1", "value1").
-		AddInt("key2", 42).
-		AddBool("key3", true).
-		Build()
+	type TestPayload struct {
+		Key1 string `json:"key1"`
+		Key2 int    `json:"key2"`
+		Key3 bool   `json:"key3"`
+	}
+
+	inputData := TestPayload{
+		Key1: "value1",
+		Key2: 42,
+		Key3: true,
+	}
+
+	jsonData, err := json.Marshal(inputData)
+	if err != nil {
+		t.Fatalf("json.Marshal failed: %v", err)
+	}
 
 	mockSys, _ := NearBlockchainImports.(*system.MockSystem)
 	mockSys.ContractInput = jsonData
@@ -315,33 +326,21 @@ func TestContractInputJSON(t *testing.T) {
 		t.Fatalf("ContractInput failed: %v", err)
 	}
 
-	parser := json.NewParser(data)
-
-	value1, err := parser.GetString("key1")
-	if err != nil {
-		t.Fatalf("GetString failed: %v", err)
-	}
-	expectedValue1 := "value1"
-	if value1 != expectedValue1 {
-		t.Fatalf("Expected value %s, got %s", expectedValue1, value1)
+	var result TestPayload
+	if err := json.Unmarshal(data, &result); err != nil {
+		t.Fatalf("json.Unmarshal failed: %v", err)
 	}
 
-	value2, err := parser.GetInt("key2")
-	if err != nil {
-		t.Fatalf("GetInt failed: %v", err)
-	}
-	expectedValue2 := int64(42)
-	if value2 != expectedValue2 {
-		t.Fatalf("Expected value %d, got %d", expectedValue2, value2)
+	if result.Key1 != "value1" {
+		t.Fatalf("Expected value %s, got %s", "value1", result.Key1)
 	}
 
-	value3, err := parser.GetBoolean("key3")
-	if err != nil {
-		t.Fatalf("GetBoolean failed: %v", err)
+	if result.Key2 != 42 {
+		t.Fatalf("Expected value %d, got %d", 42, result.Key2)
 	}
-	expectedValue3 := true
-	if value3 != expectedValue3 {
-		t.Fatalf("Expected value %v, got %v", expectedValue3, value3)
+
+	if result.Key3 != true {
+		t.Fatalf("Expected value %v, got %v", true, result.Key3)
 	}
 
 	expectedType := "object"
