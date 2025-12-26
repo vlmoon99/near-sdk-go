@@ -388,7 +388,7 @@ func (c *Contract) ExampleBatchCallsCallback() {
 // @contract:mutating
 func (c *Contract) ExampleParallelCallsDifferentContracts() {
 	contractA := "hello-nearverse.testnet"
-	contractB := "statusmessage.neargocli.testnet"
+	contractB := "child.neargopromises1.testnet"
 
 	promiseA := promise.NewCrossContract(contractA).
 		Call("get_greeting", map[string]string{})
@@ -396,7 +396,7 @@ func (c *Contract) ExampleParallelCallsDifferentContracts() {
 	promiseB := promise.NewCrossContract(contractB).
 		Call("SetStatus", map[string]string{"message": "Hello, World!"})
 
-	promiseA.Join([]*promise.Promise{promiseB}, "ExampleParallelContractsCallback", map[string]string{
+	promiseA.Join([]*promise.Promise{promiseB}, "example_parallel_contracts_callback", map[string]string{
 		"contract_ids": contractA + "," + contractB,
 	}).Value()
 
