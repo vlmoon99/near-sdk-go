@@ -1,6 +1,6 @@
 ### GO PROJECT CONTEXT
 ### Root: /home/jhonn/dev/near-sdk-go
-### Generated at: Thu Dec 25 16:37:16 UTC 2025
+### Generated at: Fri Dec 26 16:50:48 UTC 2025
 
 ==================================================
 FILE: README.md
@@ -166,451 +166,375 @@ This will give you a deeper understanding of the full development and deployment
 FILE: collections/collections.go
 ==================================================
 
-// This package provides collections for data manipulation on the blockchain.
 package collections
 
 import (
 	"encoding/json"
 	"errors"
+	"strconv"
 
 	"github.com/vlmoon99/near-sdk-go/env"
-	"github.com/vlmoon99/near-sdk-go/types"
 )
 
-const (
-	CollectionErrIndexOutOfBounds    = "index out of bounds"
-	CollectionErrVectorEmpty         = "vector is empty"
-	CollectionErrMapEmpty            = "map is empty"
-	CollectionErrNoKeyLessOrEqual    = "no key less than or equal to given key"
-	CollectionErrNoKeyGreaterOrEqual = "no key greater than or equal to given key"
-	CollectionErrUnsupportedKeyType  = "unsupported key type"
-	CollectionErrKeyNotFound         = "key not found"
-	CollectionErrValueNotFound       = "value not found in set"
-	CollectionErrInconsistentState   = "inconsistent contract state: value index not found"
+var (
+	ErrIndexOutOfBounds   = errors.New("collections: index out of bounds")
+	ErrKeyNotFound        = errors.New("collections: key not found")
+	ErrVectorEmpty        = errors.New("collections: vector is empty")
+	ErrUnsupportedKeyType = errors.New("collections: unsupported key type")
+	ErrInconsistentState  = errors.New("collections: inconsistent state")
+	ErrMapEmpty           = errors.New("collections: map is empty")
 )
 
-const (
-	KeySeparator  = ":"
-	KeysPrefix    = "keys"
-	ValuesPrefix  = "values"
-	IndicesPrefix = "indices"
-)
+func createKey(prefix string, key interface{}) string {
+	var keyStr string
 
-const (
-	LogNoFloorKey   = "TreeMap FloorKey: No floor key found"
-	LogNoCeilingKey = "TreeMap CeilingKey: No ceiling key found"
-)
-
-type Collection interface {
-	GetPrefix() string
-}
-
-type BaseCollection struct {
-	prefix string
-}
-
-func NewBaseCollection(prefix string) BaseCollection {
-	return BaseCollection{
-		prefix: prefix,
-	}
-}
-
-func (b BaseCollection) GetPrefix() string {
-	return b.prefix
-}
-
-func (b BaseCollection) createKey(key interface{}) string {
 	switch k := key.(type) {
 	case string:
-		return b.prefix + KeySeparator + k
+		keyStr = k
 	case uint64:
-		return b.prefix + KeySeparator + types.Uint64ToString(k)
+		keyStr = strconv.FormatUint(k, 10)
 	case int:
-		return b.createKey(uint64(k))
+		keyStr = strconv.Itoa(k)
+	case int64:
+		keyStr = strconv.FormatInt(k, 10)
+	case uint:
+		keyStr = strconv.FormatUint(uint64(k), 10)
+	case int32:
+		keyStr = strconv.FormatInt(int64(k), 10)
+	case uint32:
+		keyStr = strconv.FormatUint(uint64(k), 10)
+	case []byte:
+		keyStr = string(k)
 	default:
-		env.PanicStr(CollectionErrUnsupportedKeyType)
+		env.PanicStr("collections: unsupported key type")
 		return ""
 	}
+
+	return prefix + ":" + keyStr
 }
 
-type Storage interface {
-	Read(key string) ([]byte, error)
-	Write(key string, value []byte) (bool, error)
-	Delete(key string) (bool, error)
-	HasKey(key string) (bool, error)
+func compareKeys(a, b interface{}) int {
+	switch va := a.(type) {
+	case string:
+		if vb, ok := b.(string); ok {
+			if va < vb {
+				return -1
+			} else if va > vb {
+				return 1
+			}
+			return 0
+		}
+	case int:
+		if vb, ok := b.(int); ok {
+			if va < vb {
+				return -1
+			} else if va > vb {
+				return 1
+			}
+			return 0
+		}
+	case uint64:
+		if vb, ok := b.(uint64); ok {
+			if va < vb {
+				return -1
+			} else if va > vb {
+				return 1
+			}
+			return 0
+		}
+	}
+	env.PanicStr("collections: unsupported key type for comparison")
+	return 0
 }
 
-type DefaultStorage struct{}
-
-func (s DefaultStorage) Read(key string) ([]byte, error) {
-	return env.StorageRead([]byte(key))
-}
-
-func (s DefaultStorage) Write(key string, value []byte) (bool, error) {
-	return env.StorageWrite([]byte(key), value)
-}
-
-func (s DefaultStorage) Delete(key string) (bool, error) {
-	return env.StorageRemove([]byte(key))
-}
-
-func (s DefaultStorage) HasKey(key string) (bool, error) {
-	return env.StorageHasKey([]byte(key))
-}
-
-type Serializer interface {
-	Serialize(value interface{}) ([]byte, error)
-	Deserialize(data []byte, value interface{}) error
-}
-
-type DefaultSerializer struct{}
-
-func (s DefaultSerializer) Serialize(value interface{}) ([]byte, error) {
-	return json.Marshal(value)
-}
-
-func (s DefaultSerializer) Deserialize(data []byte, value interface{}) error {
-	return json.Unmarshal(data, value)
-}
+// ==============================================================================
+// Vector
+// ==============================================================================
 
 type Vector[T any] struct {
-	BaseCollection
-	storage    Storage
-	serializer DefaultSerializer
-	length     uint64
+	Prefix string `json:"prefix"`
+	Len    uint64 `json:"len"`
 }
 
 func NewVector[T any](prefix string) *Vector[T] {
 	return &Vector[T]{
-		BaseCollection: NewBaseCollection(prefix),
-		storage:        DefaultStorage{},
-		serializer:     DefaultSerializer{},
-		length:         0,
+		Prefix: prefix,
+		Len:    0,
 	}
 }
 
 func (v *Vector[T]) Length() uint64 {
-	return v.length
+	return v.Len
 }
 
 func (v *Vector[T]) Push(value T) error {
-	data, err := v.serializer.Serialize(value)
+	data, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
-
-	key := v.createKey(v.length)
-	_, err = v.storage.Write(key, data)
+	key := createKey(v.Prefix, v.Len)
+	_, err = env.StorageWrite([]byte(key), data)
 	if err != nil {
 		return err
 	}
-
-	v.length++
-
+	v.Len++
 	return nil
 }
 
 func (v *Vector[T]) Get(index uint64) (T, error) {
-	var value T
-	if index >= v.length {
-		return value, errors.New(CollectionErrIndexOutOfBounds)
+	var zero T
+	if index >= v.Len {
+		return zero, ErrIndexOutOfBounds
 	}
-
-	key := v.createKey(index)
-	data, err := v.storage.Read(key)
+	key := createKey(v.Prefix, index)
+	data, err := env.StorageRead([]byte(key))
 	if err != nil {
-		return value, err
+		return zero, err
 	}
-
-	err = v.serializer.Deserialize(data, &value)
-	return value, err
+	err = json.Unmarshal(data, &zero)
+	return zero, err
 }
 
 func (v *Vector[T]) Set(index uint64, value T) error {
-	if index >= v.length {
-		return errors.New(CollectionErrIndexOutOfBounds)
+	if index >= v.Len {
+		return ErrIndexOutOfBounds
 	}
-
-	data, err := v.serializer.Serialize(value)
+	data, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
-
-	key := v.createKey(index)
-	_, err = v.storage.Write(key, data)
+	key := createKey(v.Prefix, index)
+	_, err = env.StorageWrite([]byte(key), data)
 	return err
 }
 
 func (v *Vector[T]) Pop() (T, error) {
-	var value T
-	if v.length == 0 {
-		return value, errors.New(CollectionErrVectorEmpty)
+	var zero T
+	if v.Len == 0 {
+		return zero, ErrVectorEmpty
 	}
-
-	v.length--
-	key := v.createKey(v.length)
-	data, err := v.storage.Read(key)
+	lastIndex := v.Len - 1
+	item, err := v.Get(lastIndex)
 	if err != nil {
-		return value, err
+		return zero, err
 	}
-
-	err = v.serializer.Deserialize(data, &value)
-	if err != nil {
-		return value, err
-	}
-
-	_, err = v.storage.Delete(key)
-	return value, err
+	key := createKey(v.Prefix, lastIndex)
+	env.StorageRemove([]byte(key))
+	v.Len--
+	return item, nil
 }
 
 func (v *Vector[T]) Clear() error {
-	for i := uint64(0); i < v.length; i++ {
-		key := v.createKey(i)
-		_, err := v.storage.Delete(key)
-		if err != nil {
-			return err
-		}
+	for i := uint64(0); i < v.Len; i++ {
+		key := createKey(v.Prefix, i)
+		env.StorageRemove([]byte(key))
 	}
-	v.length = 0
+	v.Len = 0
 	return nil
 }
 
 func (v *Vector[T]) ToSlice() ([]T, error) {
-	result := make([]T, v.length)
-	for i := uint64(0); i < v.length; i++ {
-		value, err := v.Get(i)
+	result := make([]T, v.Len)
+	for i := uint64(0); i < v.Len; i++ {
+		val, err := v.Get(i)
 		if err != nil {
 			return nil, err
 		}
-		result[i] = value
+		result[i] = val
 	}
 	return result, nil
 }
 
+// ==============================================================================
+// LookupMap
+// ==============================================================================
+
 type LookupMap[K comparable, V any] struct {
-	BaseCollection
-	storage    Storage
-	serializer DefaultSerializer
+	Prefix string `json:"prefix"`
 }
 
 func NewLookupMap[K comparable, V any](prefix string) *LookupMap[K, V] {
-	return &LookupMap[K, V]{
-		BaseCollection: NewBaseCollection(prefix),
-		storage:        DefaultStorage{},
-		serializer:     DefaultSerializer{},
-	}
+	return &LookupMap[K, V]{Prefix: prefix}
 }
 
 func (m *LookupMap[K, V]) Insert(key K, value V) error {
-	data, err := m.serializer.Serialize(value)
+	data, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
-
-	storageKey := m.createKey(key)
-	_, err = m.storage.Write(storageKey, data)
+	storageKey := createKey(m.Prefix, key)
+	_, err = env.StorageWrite([]byte(storageKey), data)
 	return err
 }
 
 func (m *LookupMap[K, V]) Get(key K) (V, error) {
-	var value V
-	storageKey := m.createKey(key)
-	data, err := m.storage.Read(storageKey)
+	var val V
+	storageKey := createKey(m.Prefix, key)
+	data, err := env.StorageRead([]byte(storageKey))
 	if err != nil {
-		return value, err
+		return val, ErrKeyNotFound
 	}
-	err = m.serializer.Deserialize(data, &value)
-	return value, err
-}
-
-func (m *LookupMap[K, V]) Remove(key K) error {
-	storageKey := m.createKey(key)
-	_, err := m.storage.Delete(storageKey)
-	return err
+	err = json.Unmarshal(data, &val)
+	return val, err
 }
 
 func (m *LookupMap[K, V]) Contains(key K) (bool, error) {
-	storageKey := m.createKey(key)
-	return m.storage.HasKey(storageKey)
+	storageKey := createKey(m.Prefix, key)
+	return env.StorageHasKey([]byte(storageKey))
 }
 
+func (m *LookupMap[K, V]) Remove(key K) error {
+	storageKey := createKey(m.Prefix, key)
+	_, err := env.StorageRemove([]byte(storageKey))
+	return err
+}
+
+// ==============================================================================
+// LookupSet
+// ==============================================================================
+
+type LookupSet[T comparable] struct {
+	Prefix string `json:"prefix"`
+}
+
+func NewLookupSet[T comparable](prefix string) *LookupSet[T] {
+	return &LookupSet[T]{Prefix: prefix}
+}
+
+func (s *LookupSet[T]) Insert(value T) error {
+	data, _ := json.Marshal(true)
+	key := createKey(s.Prefix, value)
+	_, err := env.StorageWrite([]byte(key), data)
+	return err
+}
+
+func (s *LookupSet[T]) Contains(value T) (bool, error) {
+	key := createKey(s.Prefix, value)
+	return env.StorageHasKey([]byte(key))
+}
+
+func (s *LookupSet[T]) Remove(value T) error {
+	key := createKey(s.Prefix, value)
+	_, err := env.StorageRemove([]byte(key))
+	return err
+}
+
+// ==============================================================================
+// UnorderedMap
+// ==============================================================================
+
 type UnorderedMap[K comparable, V any] struct {
-	BaseCollection
-	storage    Storage
-	serializer DefaultSerializer
-	keys       Vector[[]byte]
-	indices    LookupMap[K, uint64]
+	Prefix string `json:"prefix"`
+	Len    uint64 `json:"len"`
 }
 
 func NewUnorderedMap[K comparable, V any](prefix string) *UnorderedMap[K, V] {
 	return &UnorderedMap[K, V]{
-		BaseCollection: NewBaseCollection(prefix),
-		storage:        DefaultStorage{},
-		serializer:     DefaultSerializer{},
-		keys:           *NewVector[[]byte](prefix + KeySeparator + KeysPrefix),
-		indices:        *NewLookupMap[K, uint64](prefix + KeySeparator + IndicesPrefix),
+		Prefix: prefix,
+		Len:    0,
 	}
+}
+
+func (m *UnorderedMap[K, V]) keyPrefix() string { return m.Prefix + ":k" }
+func (m *UnorderedMap[K, V]) valPrefix() string { return m.Prefix + ":v" }
+func (m *UnorderedMap[K, V]) idxPrefix() string { return m.Prefix + ":i" }
+
+func (m *UnorderedMap[K, V]) Length() uint64 {
+	return m.Len
 }
 
 func (m *UnorderedMap[K, V]) Insert(key K, value V) error {
-	storageKey := m.createKey(key)
-	exists, err := m.storage.HasKey(storageKey)
+	valData, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
 
-	data, err := m.serializer.Serialize(value)
-	if err != nil {
-		return err
-	}
-	_, err = m.storage.Write(storageKey, data)
+	valKey := createKey(m.valPrefix(), key)
+	idxKey := createKey(m.idxPrefix(), key)
+
+	exists, _ := env.StorageHasKey([]byte(valKey))
+
+	_, err = env.StorageWrite([]byte(valKey), valData)
 	if err != nil {
 		return err
 	}
 
 	if !exists {
-		index := m.keys.Length()
-		keyData, err := m.serializer.Serialize(key)
+		currentIdx := m.Len
+		keyVectorKey := createKey(m.keyPrefix(), currentIdx)
+		keyData, err := json.Marshal(key)
 		if err != nil {
 			return err
 		}
-		err = m.keys.Push(keyData)
-		if err != nil {
-			return err
-		}
-		err = m.indices.Insert(key, index)
-		if err != nil {
-			return err
-		}
-	}
+		env.StorageWrite([]byte(keyVectorKey), keyData)
 
-	return nil
-}
+		idxData, _ := json.Marshal(currentIdx)
+		env.StorageWrite([]byte(idxKey), idxData)
 
-func (m *UnorderedMap[K, V]) Remove(key K) error {
-	storageKey := m.createKey(key)
-	exists, err := m.storage.HasKey(storageKey)
-	if err != nil {
-		return err
+		m.Len++
 	}
-	if !exists {
-		return errors.New(CollectionErrKeyNotFound)
-	}
-
-	index, err := m.indices.Get(key)
-	if err != nil {
-		length := m.keys.Length()
-		for i := uint64(0); i < length; i++ {
-			keyData, err := m.keys.Get(i)
-			if err != nil {
-				return err
-			}
-			var storedKey K
-			err = m.serializer.Deserialize(keyData, &storedKey)
-			if err != nil {
-				return err
-			}
-			if storedKey == key {
-				if i < length-1 {
-					lastKey, err := m.keys.Get(length - 1)
-					if err != nil {
-						return err
-					}
-					err = m.keys.Set(i, lastKey)
-					if err != nil {
-						return err
-					}
-					var lastKeyObj K
-					err = m.serializer.Deserialize(lastKey, &lastKeyObj)
-					if err != nil {
-						return err
-					}
-					err = m.indices.Insert(lastKeyObj, i)
-					if err != nil {
-						return err
-					}
-				}
-				_, err = m.keys.Pop()
-				if err != nil {
-					return err
-				}
-				break
-			}
-		}
-	} else {
-		length := m.keys.Length()
-		if index < length {
-			if index != length-1 {
-				lastKey, err := m.keys.Get(length - 1)
-				if err != nil {
-					return err
-				}
-				err = m.keys.Set(index, lastKey)
-				if err != nil {
-					return err
-				}
-				var lastKeyObj K
-				err = m.serializer.Deserialize(lastKey, &lastKeyObj)
-				if err != nil {
-					return err
-				}
-				err = m.indices.Insert(lastKeyObj, index)
-				if err != nil {
-					return err
-				}
-			}
-			_, err = m.keys.Pop()
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	_, err = m.storage.Delete(storageKey)
-	if err != nil {
-		return err
-	}
-	err = m.indices.Remove(key)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func (m *UnorderedMap[K, V]) Get(key K) (V, error) {
-	var value V
-	storageKey := m.createKey(key)
-	data, err := m.storage.Read(storageKey)
+	var val V
+	valKey := createKey(m.valPrefix(), key)
+	data, err := env.StorageRead([]byte(valKey))
 	if err != nil {
-		return value, err
+		return val, ErrKeyNotFound
 	}
-	err = m.serializer.Deserialize(data, &value)
-	return value, err
+	err = json.Unmarshal(data, &val)
+	return val, err
 }
 
-func (m *UnorderedMap[K, V]) Contains(key K) (bool, error) {
-	storageKey := m.createKey(key)
-	return m.storage.HasKey(storageKey)
+func (m *UnorderedMap[K, V]) Remove(key K) error {
+	idxKey := createKey(m.idxPrefix(), key)
+	valKey := createKey(m.valPrefix(), key)
+
+	idxData, err := env.StorageRead([]byte(idxKey))
+	if err != nil {
+		return ErrKeyNotFound
+	}
+	var indexToRemove uint64
+	json.Unmarshal(idxData, &indexToRemove)
+
+	lastIndex := m.Len - 1
+	if indexToRemove != lastIndex {
+		lastKeyVectorKey := createKey(m.keyPrefix(), lastIndex)
+		lastKeyData, _ := env.StorageRead([]byte(lastKeyVectorKey))
+
+		var lastKey K
+		json.Unmarshal(lastKeyData, &lastKey)
+
+		keyVectorKeyToRemove := createKey(m.keyPrefix(), indexToRemove)
+		env.StorageWrite([]byte(keyVectorKeyToRemove), lastKeyData)
+
+		idxKeyForLast := createKey(m.idxPrefix(), lastKey)
+		newIdxData, _ := json.Marshal(indexToRemove)
+		env.StorageWrite([]byte(idxKeyForLast), newIdxData)
+	}
+
+	env.StorageRemove([]byte(createKey(m.keyPrefix(), lastIndex)))
+	env.StorageRemove([]byte(idxKey))
+	env.StorageRemove([]byte(valKey))
+
+	m.Len--
+	return nil
 }
 
 func (m *UnorderedMap[K, V]) Keys() ([]K, error) {
-	length := m.keys.Length()
-	keys := make([]K, length)
-
-	for i := uint64(0); i < length; i++ {
-		keyData, err := m.keys.Get(i)
+	result := make([]K, m.Len)
+	for i := uint64(0); i < m.Len; i++ {
+		keyVectorKey := createKey(m.keyPrefix(), i)
+		data, err := env.StorageRead([]byte(keyVectorKey))
 		if err != nil {
 			return nil, err
 		}
-
-		err = m.serializer.Deserialize(keyData, &keys[i])
-		if err != nil {
-			return nil, err
-		}
+		var k K
+		json.Unmarshal(data, &k)
+		result[i] = k
 	}
-
-	return keys, nil
+	return result, nil
 }
 
 func (m *UnorderedMap[K, V]) Values() ([]V, error) {
@@ -618,63 +542,15 @@ func (m *UnorderedMap[K, V]) Values() ([]V, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	values := make([]V, len(keys))
-	for i, key := range keys {
-		value, err := m.Get(key)
+	for i, k := range keys {
+		val, err := m.Get(k)
 		if err != nil {
 			return nil, err
 		}
-		values[i] = value
+		values[i] = val
 	}
-
 	return values, nil
-}
-
-type KeyValuePair[K comparable, V any] struct {
-	Key   K
-	Value V
-}
-
-func (m *UnorderedMap[K, V]) Items(startIndex uint64, limit *uint64) ([]KeyValuePair[K, V], error) {
-	length := m.keys.Length()
-	if startIndex >= length {
-		return []KeyValuePair[K, V]{}, nil
-	}
-
-	endIndex := length
-	if limit != nil {
-		if *limit < length-startIndex {
-			endIndex = startIndex + *limit
-		}
-	}
-
-	items := make([]KeyValuePair[K, V], endIndex-startIndex)
-	for i := startIndex; i < endIndex; i++ {
-		keyData, err := m.keys.Get(i)
-		if err != nil {
-			return nil, err
-		}
-
-		var key K
-		err = m.serializer.Deserialize(keyData, &key)
-		if err != nil {
-			return nil, err
-		}
-
-		value, err := m.Get(key)
-		if err != nil {
-			return nil, err
-		}
-
-		items[i-startIndex] = KeyValuePair[K, V]{Key: key, Value: value}
-	}
-
-	return items, nil
-}
-
-func (m *UnorderedMap[K, V]) Seek(startIndex uint64, limit *uint64) ([]KeyValuePair[K, V], error) {
-	return m.Items(startIndex, limit)
 }
 
 func (m *UnorderedMap[K, V]) Clear() error {
@@ -682,463 +558,294 @@ func (m *UnorderedMap[K, V]) Clear() error {
 	if err != nil {
 		return err
 	}
-
-	for _, key := range keys {
-		err := m.Remove(key)
-		if err != nil {
-			return err
-		}
+	for _, k := range keys {
+		m.Remove(k)
 	}
-
+	m.Len = 0
 	return nil
 }
 
-type LookupSet[T comparable] struct {
-	BaseCollection
-	storage    Storage
-	serializer DefaultSerializer
-	length     uint64
+func (m *UnorderedMap[K, V]) Contains(key K) (bool, error) {
+	valKey := createKey(m.valPrefix(), key)
+	return env.StorageHasKey([]byte(valKey))
 }
 
-func NewLookupSet[T comparable](prefix string) *LookupSet[T] {
-	return &LookupSet[T]{
-		BaseCollection: NewBaseCollection(prefix),
-		storage:        DefaultStorage{},
-		serializer:     DefaultSerializer{},
-		length:         0,
-	}
-}
-
-func (s *LookupSet[T]) Length() uint64 {
-	return s.length
-}
-
-func (s *LookupSet[T]) Contains(value T) (bool, error) {
-	storageKey := s.createKey(value)
-	return s.storage.HasKey(storageKey)
-}
-
-func (s *LookupSet[T]) Insert(value T) error {
-	storageKey := s.createKey(value)
-	exists, err := s.storage.HasKey(storageKey)
-	if err != nil {
-		return err
-	}
-
-	if !exists {
-		data, err := s.serializer.Serialize(true)
-		if err != nil {
-			return err
-		}
-		_, err = s.storage.Write(storageKey, data)
-		if err != nil {
-			return err
-		}
-		s.length++
-	}
-
-	return nil
-}
-
-func (s *LookupSet[T]) Remove(value T) error {
-	storageKey := s.createKey(value)
-	exists, err := s.storage.HasKey(storageKey)
-	if err != nil {
-		return err
-	}
-
-	if !exists {
-		return errors.New(CollectionErrValueNotFound)
-	}
-
-	_, err = s.storage.Delete(storageKey)
-	if err != nil {
-		return err
-	}
-
-	s.length--
-	return nil
-}
-
-func (s *LookupSet[T]) Clear() error {
-	s.length = 0
-	return nil
-}
+// ==============================================================================
+// UnorderedSet
+// ==============================================================================
 
 type UnorderedSet[T comparable] struct {
-	BaseCollection
-	storage    Storage
-	serializer DefaultSerializer
-	values     Vector[[]byte]
-	indices    LookupMap[T, uint64]
-	length     uint64
+	Prefix string `json:"prefix"`
+	Len    uint64 `json:"len"`
 }
 
 func NewUnorderedSet[T comparable](prefix string) *UnorderedSet[T] {
 	return &UnorderedSet[T]{
-		BaseCollection: NewBaseCollection(prefix),
-		storage:        DefaultStorage{},
-		serializer:     DefaultSerializer{},
-		values:         *NewVector[[]byte](prefix + KeySeparator + ValuesPrefix),
-		indices:        *NewLookupMap[T, uint64](prefix + KeySeparator + IndicesPrefix),
-		length:         0,
+		Prefix: prefix,
+		Len:    0,
 	}
 }
 
+func (s *UnorderedSet[T]) elemPrefix() string { return s.Prefix + ":e" }
+func (s *UnorderedSet[T]) idxPrefix() string  { return s.Prefix + ":i" }
+
 func (s *UnorderedSet[T]) Length() uint64 {
-	return s.length
+	return s.Len
 }
 
 func (s *UnorderedSet[T]) Insert(value T) error {
-	storageKey := s.createKey(value)
-	exists, err := s.storage.HasKey(storageKey)
+	idxKey := createKey(s.idxPrefix(), value)
+	exists, _ := env.StorageHasKey([]byte(idxKey))
+	if exists {
+		return nil
+	}
+
+	currentIdx := s.Len
+	elemKey := createKey(s.elemPrefix(), currentIdx)
+
+	data, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
 
-	if !exists {
-		data, err := s.serializer.Serialize(true)
-		if err != nil {
-			return err
-		}
-		_, err = s.storage.Write(storageKey, data)
-		if err != nil {
-			return err
-		}
+	env.StorageWrite([]byte(elemKey), data)
 
-		index := s.values.Length()
-		valueData, err := s.serializer.Serialize(value)
-		if err != nil {
-			return err
-		}
-		err = s.values.Push(valueData)
-		if err != nil {
-			return err
-		}
+	idxData, _ := json.Marshal(currentIdx)
+	env.StorageWrite([]byte(idxKey), idxData)
 
-		err = s.indices.Insert(value, index)
-		if err != nil {
-			return err
-		}
-
-		s.length++
-	}
-
-	return nil
-}
-
-func (s *UnorderedSet[T]) Remove(value T) error {
-	storageKey := s.createKey(value)
-	exists, err := s.storage.HasKey(storageKey)
-	if err != nil {
-		return err
-	}
-
-	if !exists {
-		return errors.New(CollectionErrValueNotFound)
-	}
-
-	index, err := s.indices.Get(value)
-	if err != nil {
-		return errors.New(CollectionErrInconsistentState)
-	}
-
-	length := s.values.Length()
-	if index < length {
-		if index != length-1 {
-			lastValue, err := s.values.Get(length - 1)
-			if err != nil {
-				return err
-			}
-			err = s.values.Set(index, lastValue)
-			if err != nil {
-				return err
-			}
-			var lastValueObj T
-			err = s.serializer.Deserialize(lastValue, &lastValueObj)
-			if err != nil {
-				return err
-			}
-			err = s.indices.Insert(lastValueObj, index)
-			if err != nil {
-				return err
-			}
-		}
-		_, err = s.values.Pop()
-		if err != nil {
-			return err
-		}
-	}
-
-	err = s.indices.Remove(value)
-	if err != nil {
-		return err
-	}
-	_, err = s.storage.Delete(storageKey)
-	if err != nil {
-		return err
-	}
-
-	s.length--
+	s.Len++
 	return nil
 }
 
 func (s *UnorderedSet[T]) Contains(value T) (bool, error) {
-	storageKey := s.createKey(value)
-	return s.storage.HasKey(storageKey)
+	idxKey := createKey(s.idxPrefix(), value)
+	return env.StorageHasKey([]byte(idxKey))
 }
 
-func (s *UnorderedSet[T]) Values(startIndex uint64, limit *uint64) ([]T, error) {
-	length := s.values.Length()
-	if startIndex >= length {
-		return []T{}, nil
-	}
+func (s *UnorderedSet[T]) Remove(value T) error {
+	idxKey := createKey(s.idxPrefix(), value)
 
-	endIndex := length
-	if limit != nil {
-		if *limit < length-startIndex {
-			endIndex = startIndex + *limit
-		}
-	}
-
-	values := make([]T, endIndex-startIndex)
-	for i := startIndex; i < endIndex; i++ {
-		valueData, err := s.values.Get(i)
-		if err != nil {
-			return nil, err
-		}
-
-		err = s.serializer.Deserialize(valueData, &values[i-startIndex])
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return values, nil
-}
-
-func (s *UnorderedSet[T]) Seek(startIndex uint64, limit *uint64) ([]T, error) {
-	return s.Values(startIndex, limit)
-}
-
-func (s *UnorderedSet[T]) Clear() error {
-	values, err := s.Values(0, nil)
+	idxData, err := env.StorageRead([]byte(idxKey))
 	if err != nil {
-		return err
+		return ErrKeyNotFound
+	}
+	var indexToRemove uint64
+	json.Unmarshal(idxData, &indexToRemove)
+
+	lastIndex := s.Len - 1
+
+	if indexToRemove != lastIndex {
+		lastElemKey := createKey(s.elemPrefix(), lastIndex)
+		lastElemData, _ := env.StorageRead([]byte(lastElemKey))
+		var lastElem T
+		json.Unmarshal(lastElemData, &lastElem)
+
+		elemKeyToRemove := createKey(s.elemPrefix(), indexToRemove)
+		env.StorageWrite([]byte(elemKeyToRemove), lastElemData)
+
+		idxKeyForLast := createKey(s.idxPrefix(), lastElem)
+		newIdxData, _ := json.Marshal(indexToRemove)
+		env.StorageWrite([]byte(idxKeyForLast), newIdxData)
 	}
 
-	for _, value := range values {
-		storageKey := s.createKey(value)
-		_, err = s.storage.Delete(storageKey)
-		if err != nil {
-			return err
-		}
+	env.StorageRemove([]byte(createKey(s.elemPrefix(), lastIndex)))
+	env.StorageRemove([]byte(idxKey))
 
-		err = s.indices.Remove(value)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = s.values.Clear()
-	if err != nil {
-		return err
-	}
-
-	s.length = 0
+	s.Len--
 	return nil
 }
 
+func (s *UnorderedSet[T]) All() ([]T, error) {
+	result := make([]T, s.Len)
+	for i := uint64(0); i < s.Len; i++ {
+		elemKey := createKey(s.elemPrefix(), i)
+		data, err := env.StorageRead([]byte(elemKey))
+		if err != nil {
+			return nil, err
+		}
+		var val T
+		json.Unmarshal(data, &val)
+		result[i] = val
+	}
+	return result, nil
+}
+
+func (s *UnorderedSet[T]) Clear() error {
+	items, err := s.All()
+	if err != nil {
+		return err
+	}
+	for _, item := range items {
+		s.Remove(item)
+	}
+	return nil
+}
+
+// ==============================================================================
+// TreeMap
+// ==============================================================================
+
 type TreeMap[K comparable, V any] struct {
-	BaseCollection
-	storage    Storage
-	serializer DefaultSerializer
-	keys       Vector[[]byte]
+	Prefix string `json:"prefix"`
+	Len    uint64 `json:"len"`
 }
 
 func NewTreeMap[K comparable, V any](prefix string) *TreeMap[K, V] {
 	return &TreeMap[K, V]{
-		BaseCollection: NewBaseCollection(prefix),
-		storage:        DefaultStorage{},
-		serializer:     DefaultSerializer{},
-		keys:           *NewVector[[]byte](prefix + KeySeparator + KeysPrefix),
+		Prefix: prefix,
+		Len:    0,
 	}
 }
 
-func (m *TreeMap[K, V]) findKeyIndex(key K) (int, bool, error) {
-	length := m.keys.Length()
-	left, right := 0, int(length)-1
-	for left <= right {
-		mid := (left + right) / 2
-		keyData, err := m.keys.Get(uint64(mid))
+func (m *TreeMap[K, V]) keyPrefix() string { return m.Prefix + ":k" }
+func (m *TreeMap[K, V]) valPrefix() string { return m.Prefix + ":v" }
+
+func (m *TreeMap[K, V]) Length() uint64 { return m.Len }
+
+func (m *TreeMap[K, V]) getKeyAt(index uint64) (K, error) {
+	var zero K
+	keyVecKey := createKey(m.keyPrefix(), index)
+	data, err := env.StorageRead([]byte(keyVecKey))
+	if err != nil {
+		return zero, err
+	}
+	err = json.Unmarshal(data, &zero)
+	return zero, err
+}
+
+func (m *TreeMap[K, V]) setKeyAt(index uint64, key K) error {
+	keyVecKey := createKey(m.keyPrefix(), index)
+	data, err := json.Marshal(key)
+	if err != nil {
+		return err
+	}
+	_, err = env.StorageWrite([]byte(keyVecKey), data)
+	return err
+}
+
+func (m *TreeMap[K, V]) findKeyIndex(key K) (uint64, bool, error) {
+	if m.Len == 0 {
+		return 0, false, nil
+	}
+	low, high := uint64(0), m.Len-1
+
+	for low <= high {
+		mid := low + (high-low)/2
+		midKey, err := m.getKeyAt(mid)
 		if err != nil {
 			return 0, false, err
 		}
-		var midKey K
-		err = m.serializer.Deserialize(keyData, &midKey)
-		if err != nil {
-			return 0, false, err
-		}
+
 		cmp := compareKeys(midKey, key)
 		if cmp == 0 {
 			return mid, true, nil
 		} else if cmp < 0 {
-			left = mid + 1
+			low = mid + 1
 		} else {
-			right = mid - 1
+			if mid == 0 {
+				break
+			}
+			high = mid - 1
 		}
 	}
-	return left, false, nil
-}
-
-func (m *TreeMap[K, V]) insertAtIndex(index int, key K) error {
-	length := m.keys.Length()
-	keyData, err := m.serializer.Serialize(key)
-	if err != nil {
-		return err
-	}
-	err = m.keys.Push(keyData)
-	if err != nil {
-		return err
-	}
-	for i := length; i > uint64(index); i-- {
-		prev, err := m.keys.Get(i - 1)
-		if err != nil {
-			return err
-		}
-		err = m.keys.Set(i, prev)
-		if err != nil {
-			return err
-		}
-	}
-	return m.keys.Set(uint64(index), keyData)
-}
-
-func (m *TreeMap[K, V]) removeAtIndex(index int) error {
-	length := m.keys.Length()
-	for i := uint64(index); i < length-1; i++ {
-		next, err := m.keys.Get(i + 1)
-		if err != nil {
-			return err
-		}
-		err = m.keys.Set(i, next)
-		if err != nil {
-			return err
-		}
-	}
-	_, err := m.keys.Pop()
-	return err
-}
-
-func (m *TreeMap[K, V]) Set(key K, value V) error {
-	return m.Insert(key, value)
+	return low, false, nil
 }
 
 func (m *TreeMap[K, V]) Insert(key K, value V) error {
-	data, err := m.serializer.Serialize(value)
+	valKey := createKey(m.valPrefix(), key)
+	data, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
-	storageKey := m.createKey(key)
-	_, err = m.storage.Write(storageKey, data)
+	_, err = env.StorageWrite([]byte(valKey), data)
 	if err != nil {
 		return err
 	}
-	index, exists, err := m.findKeyIndex(key)
+
+	idx, exists, err := m.findKeyIndex(key)
 	if err != nil {
 		return err
 	}
+
 	if !exists {
-		return m.insertAtIndex(index, key)
+		for i := m.Len; i > idx; i-- {
+			prevKey, err := m.getKeyAt(i - 1)
+			if err != nil {
+				return err
+			}
+			m.setKeyAt(i, prevKey)
+		}
+		m.setKeyAt(idx, key)
+		m.Len++
 	}
+
 	return nil
 }
 
 func (m *TreeMap[K, V]) Get(key K) (V, error) {
-	var value V
-	storageKey := m.createKey(key)
-	data, err := m.storage.Read(storageKey)
+	var val V
+	valKey := createKey(m.valPrefix(), key)
+	data, err := env.StorageRead([]byte(valKey))
 	if err != nil {
-		return value, err
+		return val, ErrKeyNotFound
 	}
-	err = m.serializer.Deserialize(data, &value)
-	return value, err
+	err = json.Unmarshal(data, &val)
+	return val, err
 }
 
 func (m *TreeMap[K, V]) Remove(key K) error {
-	storageKey := m.createKey(key)
-	_, err := m.storage.Delete(storageKey)
+	idx, exists, err := m.findKeyIndex(key)
 	if err != nil {
 		return err
 	}
-	index, exists, err := m.findKeyIndex(key)
-	if err != nil {
-		return err
+	if !exists {
+		return nil
 	}
-	if exists {
-		return m.removeAtIndex(index)
+
+	valKey := createKey(m.valPrefix(), key)
+	env.StorageRemove([]byte(valKey))
+
+	for i := idx; i < m.Len-1; i++ {
+		nextKey, err := m.getKeyAt(i + 1)
+		if err != nil {
+			return err
+		}
+		m.setKeyAt(i, nextKey)
 	}
+
+	lastVecKey := createKey(m.keyPrefix(), m.Len-1)
+	env.StorageRemove([]byte(lastVecKey))
+	m.Len--
+
 	return nil
 }
 
-func (m *TreeMap[K, V]) Contains(key K) (bool, error) {
-	storageKey := m.createKey(key)
-	return m.storage.HasKey(storageKey)
+func (m *TreeMap[K, V]) MinKey() (K, error) {
+	if m.Len == 0 {
+		var zero K
+		return zero, ErrMapEmpty
+	}
+	return m.getKeyAt(0)
+}
+
+func (m *TreeMap[K, V]) MaxKey() (K, error) {
+	if m.Len == 0 {
+		var zero K
+		return zero, ErrMapEmpty
+	}
+	return m.getKeyAt(m.Len - 1)
 }
 
 func (m *TreeMap[K, V]) Keys() ([]K, error) {
-	length := m.keys.Length()
-	keys := make([]K, length)
-	for i := uint64(0); i < length; i++ {
-		keyData, err := m.keys.Get(i)
+	result := make([]K, m.Len)
+	for i := uint64(0); i < m.Len; i++ {
+		k, err := m.getKeyAt(i)
 		if err != nil {
 			return nil, err
 		}
-		err = m.serializer.Deserialize(keyData, &keys[i])
-		if err != nil {
-			return nil, err
-		}
+		result[i] = k
 	}
-	return keys, nil
-}
-
-func (m *TreeMap[K, V]) Values() ([]V, error) {
-	keys, err := m.Keys()
-	if err != nil {
-		return nil, err
-	}
-	values := make([]V, len(keys))
-	for i, key := range keys {
-		value, err := m.Get(key)
-		if err != nil {
-			return nil, err
-		}
-		values[i] = value
-	}
-	return values, nil
-}
-
-func (m *TreeMap[K, V]) Items() ([]struct {
-	Key   K
-	Value V
-}, error) {
-	keys, err := m.Keys()
-	if err != nil {
-		return nil, err
-	}
-	items := make([]struct {
-		Key   K
-		Value V
-	}, len(keys))
-	for i, key := range keys {
-		value, err := m.Get(key)
-		if err != nil {
-			return nil, err
-		}
-		items[i].Key = key
-		items[i].Value = value
-	}
-	return items, nil
+	return result, nil
 }
 
 func (m *TreeMap[K, V]) Clear() error {
@@ -1146,192 +853,19 @@ func (m *TreeMap[K, V]) Clear() error {
 	if err != nil {
 		return err
 	}
-	for _, key := range keys {
-		err := m.Remove(key)
-		if err != nil {
-			return err
-		}
+	for _, k := range keys {
+		env.StorageRemove([]byte(createKey(m.valPrefix(), k)))
 	}
-	return m.keys.Clear()
+	for i := uint64(0); i < m.Len; i++ {
+		env.StorageRemove([]byte(createKey(m.keyPrefix(), i)))
+	}
+	m.Len = 0
+	return nil
 }
 
-func (m *TreeMap[K, V]) MinKey() (K, error) {
-	if m.keys.Length() == 0 {
-		var zero K
-		return zero, errors.New(CollectionErrMapEmpty)
-	}
-	keyData, err := m.keys.Get(0)
-	if err != nil {
-		var zero K
-		return zero, err
-	}
-	var key K
-	err = m.serializer.Deserialize(keyData, &key)
-	if err != nil {
-		var zero K
-		return zero, err
-	}
-	return key, nil
-}
-
-func (m *TreeMap[K, V]) MaxKey() (K, error) {
-	length := m.keys.Length()
-	if length == 0 {
-		var zero K
-		return zero, errors.New(CollectionErrMapEmpty)
-	}
-	keyData, err := m.keys.Get(length - 1)
-	if err != nil {
-		var zero K
-		return zero, err
-	}
-	var key K
-	err = m.serializer.Deserialize(keyData, &key)
-	if err != nil {
-		var zero K
-		return zero, err
-	}
-	return key, nil
-}
-
-func (m *TreeMap[K, V]) FloorKey(key K) (K, error) {
-	length := m.keys.Length()
-	if length == 0 {
-		var zero K
-		return zero, nil
-	}
-	left, right := 0, int(length)-1
-	var result K
-	found := false
-	for left <= right {
-		mid := (left + right) / 2
-		keyData, err := m.keys.Get(uint64(mid))
-		if err != nil {
-			var zero K
-			return zero, err
-		}
-		var midKey K
-		err = m.serializer.Deserialize(keyData, &midKey)
-		if err != nil {
-			var zero K
-			return zero, err
-		}
-		cmp := compareKeys(midKey, key)
-		if cmp == 0 {
-			return midKey, nil
-		} else if cmp < 0 {
-			result = midKey
-			found = true
-			left = mid + 1
-		} else {
-			right = mid - 1
-		}
-	}
-	if found {
-		return result, nil
-	}
-	var zero K
-	return zero, nil
-}
-
-func (m *TreeMap[K, V]) CeilingKey(key K) (K, error) {
-	length := m.keys.Length()
-	if length == 0 {
-		var zero K
-		return zero, nil
-	}
-	left, right := 0, int(length)-1
-	var result K
-	found := false
-	for left <= right {
-		mid := (left + right) / 2
-		keyData, err := m.keys.Get(uint64(mid))
-		if err != nil {
-			var zero K
-			return zero, err
-		}
-		var midKey K
-		err = m.serializer.Deserialize(keyData, &midKey)
-		if err != nil {
-			var zero K
-			return zero, err
-		}
-		cmp := compareKeys(midKey, key)
-		if cmp == 0 {
-			return midKey, nil
-		} else if cmp > 0 {
-			result = midKey
-			found = true
-			right = mid - 1
-		} else {
-			left = mid + 1
-		}
-	}
-	if found {
-		return result, nil
-	}
-	var zero K
-	return zero, nil
-}
-
-func (m *TreeMap[K, V]) Range(fromKey *K, toKey *K) ([]K, error) {
-	allKeys, err := m.Keys()
-	if err != nil {
-		return nil, err
-	}
-	startIdx := 0
-	endIdx := len(allKeys)
-	if fromKey != nil {
-		for i, key := range allKeys {
-			if compareKeys(key, *fromKey) >= 0 {
-				startIdx = i
-				break
-			}
-		}
-	}
-	if toKey != nil {
-		for i, key := range allKeys[startIdx:] {
-			if compareKeys(key, *toKey) >= 0 {
-				endIdx = startIdx + i
-				break
-			}
-		}
-	}
-	return allKeys[startIdx:endIdx], nil
-}
-
-func compareKeys(a, b interface{}) int {
-	switch a := a.(type) {
-	case string:
-		if b, ok := b.(string); ok {
-			if a < b {
-				return -1
-			} else if a > b {
-				return 1
-			}
-			return 0
-		}
-	case int:
-		if b, ok := b.(int); ok {
-			if a < b {
-				return -1
-			} else if a > b {
-				return 1
-			}
-			return 0
-		}
-	case uint64:
-		if b, ok := b.(uint64); ok {
-			if a < b {
-				return -1
-			} else if a > b {
-				return 1
-			}
-			return 0
-		}
-	}
-	env.PanicStr(CollectionErrUnsupportedKeyType)
-	return 0
+func (m *TreeMap[K, V]) Contains(key K) (bool, error) {
+	valKey := createKey(m.valPrefix(), key)
+	return env.StorageHasKey([]byte(valKey))
 }
 
 
@@ -1355,573 +889,363 @@ func init() {
 
 func cleanupStorage(t *testing.T) {
 	t.Helper()
-	mockSys := env.NearBlockchainImports.(*system.MockSystem)
-	for k := range mockSys.Storage {
-		delete(mockSys.Storage, k)
+	mockSys, ok := env.NearBlockchainImports.(*system.MockSystem)
+	if !ok {
+		t.Fatal("Environment is not set to MockSystem")
 	}
+	mockSys.Storage = make(map[string][]byte)
 }
 
-func TestVector_Push_Get(t *testing.T) {
+// ============================================================================
+// Vector Tests
+// ============================================================================
+
+func TestVector_Push_Get_Set(t *testing.T) {
 	defer cleanupStorage(t)
-	v := NewVector[string]("test_vector")
+	v := NewVector[string]("v")
 
-	testValue := "test_value"
-	err := v.Push(testValue)
-	if err != nil {
-		t.Fatalf("Push failed: %v", err)
+	if err := v.Push("A"); err != nil {
+		t.Fatal(err)
 	}
-
-	retrievedValue, err := v.Get(0)
-	if err != nil {
-		t.Fatalf("Get failed: %v", err)
-	}
-
-	if retrievedValue != testValue {
-		t.Fatalf("Expected value %v, got %v", testValue, retrievedValue)
-	}
-}
-
-func TestVector_Length(t *testing.T) {
-	defer cleanupStorage(t)
-	v := NewVector[string]("test_vector")
-
-	if v.Length() != 0 {
-		t.Fatalf("Expected initial length 0, got %d", v.Length())
-	}
-
-	err := v.Push("value1")
-	if err != nil {
-		t.Fatalf("Push failed: %v", err)
-	}
-
-	if v.Length() != 1 {
-		t.Fatalf("Expected length 1, got %d", v.Length())
-	}
-
-	err = v.Push("value2")
-	if err != nil {
-		t.Fatalf("Push failed: %v", err)
+	if err := v.Push("B"); err != nil {
+		t.Fatal(err)
 	}
 
 	if v.Length() != 2 {
-		t.Fatalf("Expected length 2, got %d", v.Length())
+		t.Errorf("Expected length 2, got %d", v.Length())
+	}
+
+	val, err := v.Get(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if val != "B" {
+		t.Errorf("Expected 'B', got '%s'", val)
+	}
+
+	if err := v.Set(1, "C"); err != nil {
+		t.Fatal(err)
+	}
+	val, _ = v.Get(1)
+	if val != "C" {
+		t.Errorf("Expected 'C' after Set, got '%s'", val)
+	}
+
+	if _, err := v.Get(99); err != ErrIndexOutOfBounds {
+		t.Errorf("Expected ErrIndexOutOfBounds, got %v", err)
 	}
 }
 
 func TestVector_Pop(t *testing.T) {
 	defer cleanupStorage(t)
-	v := NewVector[string]("test_vector")
+	v := NewVector[int]("v")
 
-	_, err := v.Pop()
-	if err == nil {
-		t.Fatalf("Expected error on empty vector pop")
-	}
+	v.Push(10)
+	v.Push(20)
 
-	testValue := "test_value"
-	err = v.Push(testValue)
+	val, err := v.Pop()
 	if err != nil {
-		t.Fatalf("Push failed: %v", err)
+		t.Fatal(err)
+	}
+	if val != 20 {
+		t.Errorf("Expected 20, got %d", val)
+	}
+	if v.Length() != 1 {
+		t.Errorf("Expected length 1, got %d", v.Length())
 	}
 
-	value, err := v.Pop()
-	if err != nil {
-		t.Fatalf("Pop failed: %v", err)
+	val, err = v.Pop()
+	if val != 10 {
+		t.Errorf("Expected 10, got %d", val)
 	}
 
-	if value != testValue {
-		t.Fatalf("Expected value %v, got %v", testValue, value)
-	}
-
-	if v.Length() != 0 {
-		t.Fatalf("Expected length 0 after pop, got %d", v.Length())
+	_, err = v.Pop()
+	if err != ErrVectorEmpty {
+		t.Errorf("Expected ErrVectorEmpty, got %v", err)
 	}
 }
 
-func TestLookupMap_Insert_Get(t *testing.T) {
+func TestVector_ToSlice(t *testing.T) {
 	defer cleanupStorage(t)
-	m := NewLookupMap[string, string]("test_map")
+	v := NewVector[string]("v")
 
-	key := "test_key"
-	value := "test_value"
+	v.Push("X")
+	v.Push("Y")
+	v.Push("Z")
 
-	err := m.Insert(key, value)
+	slice, err := v.ToSlice()
 	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
+		t.Fatal(err)
 	}
-
-	retrievedValue, err := m.Get(key)
-	if err != nil {
-		t.Fatalf("Get failed: %v", err)
+	if len(slice) != 3 {
+		t.Errorf("Expected slice len 3, got %d", len(slice))
 	}
-
-	if retrievedValue != value {
-		t.Fatalf("Expected value %v, got %v", value, retrievedValue)
+	if slice[0] != "X" || slice[2] != "Z" {
+		t.Errorf("Slice content mismatch: %v", slice)
 	}
 }
 
-func TestLookupMap_Contains(t *testing.T) {
+// ============================================================================
+// LookupMap Tests
+// ============================================================================
+
+func TestLookupMap_Basic(t *testing.T) {
 	defer cleanupStorage(t)
-	m := NewLookupMap[string, string]("test_map")
+	m := NewLookupMap[string, int]("m")
 
-	key := "test_key"
-	value := "test_value"
-
-	exists, err := m.Contains(key)
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
-	if exists {
-		t.Fatalf("Expected key to not exist")
+	if err := m.Insert("alice", 100); err != nil {
+		t.Fatal(err)
 	}
 
-	err = m.Insert(key, value)
-	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
-	}
-
-	exists, err = m.Contains(key)
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
+	exists, _ := m.Contains("alice")
 	if !exists {
-		t.Fatalf("Expected key to exist")
+		t.Error("Expected alice to exist")
 	}
-}
 
-func TestLookupMap_Remove(t *testing.T) {
-	defer cleanupStorage(t)
-	m := NewLookupMap[string, string]("test_map")
-
-	key := "test_key"
-	value := "test_value"
-
-	err := m.Insert(key, value)
+	val, err := m.Get("alice")
 	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
+		t.Fatal(err)
+	}
+	if val != 100 {
+		t.Errorf("Expected 100, got %d", val)
 	}
 
-	err = m.Remove(key)
-	if err != nil {
-		t.Fatalf("Remove failed: %v", err)
-	}
-
-	exists, err := m.Contains(key)
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
+	m.Remove("alice")
+	exists, _ = m.Contains("alice")
 	if exists {
-		t.Fatalf("Expected key to not exist after removal")
+		t.Error("Expected alice to be removed")
+	}
+
+	_, err = m.Get("bob")
+	if err != ErrKeyNotFound {
+		t.Errorf("Expected ErrKeyNotFound, got %v", err)
 	}
 }
 
-func TestLookupMap_MultipleValues(t *testing.T) {
-	defer cleanupStorage(t)
-	m := NewLookupMap[string, string]("test_map")
+type TestStruct struct {
+	Name string
+	Age  int
+}
 
-	testData := map[string]string{
-		"key1": "value1",
-		"key2": "value2",
-		"key3": "value3",
+func TestLookupMap_Structs(t *testing.T) {
+	defer cleanupStorage(t)
+	m := NewLookupMap[uint64, TestStruct]("m")
+
+	obj := TestStruct{Name: "Test", Age: 42}
+	m.Insert(1, obj)
+
+	res, err := m.Get(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Name != "Test" || res.Age != 42 {
+		t.Errorf("Struct mismatch: %+v", res)
+	}
+}
+
+// ============================================================================
+// LookupSet Tests
+// ============================================================================
+
+func TestLookupSet(t *testing.T) {
+	defer cleanupStorage(t)
+	s := NewLookupSet[string]("s")
+
+	s.Insert("A")
+	s.Insert("B")
+
+	if exists, _ := s.Contains("A"); !exists {
+		t.Error("Set should contain A")
+	}
+	if exists, _ := s.Contains("C"); exists {
+		t.Error("Set should not contain C")
 	}
 
-	for k, v := range testData {
-		err := m.Insert(k, v)
-		if err != nil {
-			t.Fatalf("Insert failed for key %s: %v", k, err)
+	s.Remove("A")
+	if exists, _ := s.Contains("A"); exists {
+		t.Error("A should be removed")
+	}
+}
+
+// ============================================================================
+// UnorderedMap Tests
+// ============================================================================
+
+func TestUnorderedMap_Workflow(t *testing.T) {
+	defer cleanupStorage(t)
+	m := NewUnorderedMap[string, int]("um")
+
+	m.Insert("one", 1)
+	m.Insert("two", 2)
+	m.Insert("three", 3)
+
+	if m.Length() != 3 {
+		t.Errorf("Expected length 3, got %d", m.Length())
+	}
+
+	m.Insert("two", 22)
+	if m.Length() != 3 {
+		t.Errorf("Length shouldn't change on overwrite")
+	}
+	val, _ := m.Get("two")
+	if val != 22 {
+		t.Errorf("Expected updated value 22, got %d", val)
+	}
+
+	err := m.Remove("two")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if m.Length() != 2 {
+		t.Errorf("Expected length 2, got %d", m.Length())
+	}
+	if exists, _ := env.StorageHasKey([]byte("um:v:two")); exists {
+		t.Error("Storage should verify key removal")
+	}
+
+	keys, _ := m.Keys()
+	if len(keys) != 2 {
+		t.Errorf("Expected 2 keys")
+	}
+	foundOne := false
+	foundThree := false
+	for _, k := range keys {
+		if k == "one" {
+			foundOne = true
+		}
+		if k == "three" {
+			foundThree = true
 		}
 	}
-
-	for k, expected := range testData {
-		value, err := m.Get(k)
-		if err != nil {
-			t.Fatalf("Get failed for key %s: %v", k, err)
-		}
-		if value != expected {
-			t.Fatalf("Expected value %s for key %s, got %s", expected, k, value)
-		}
+	if !foundOne || !foundThree {
+		t.Errorf("Missing keys after removal. Got: %v", keys)
 	}
 }
 
-func TestLookupMap_StructValues(t *testing.T) {
+func TestUnorderedMap_Clear(t *testing.T) {
 	defer cleanupStorage(t)
-	type TestValue struct {
-		Data string
-		Num  int
-	}
+	m := NewUnorderedMap[int, int]("um")
+	m.Insert(1, 1)
+	m.Insert(2, 2)
 
-	m := NewLookupMap[string, TestValue]("test_map")
+	m.Clear()
 
-	value := TestValue{Data: "test", Num: 42}
-	err := m.Insert("key1", value)
-	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
+	if m.Length() != 0 {
+		t.Error("Length should be 0")
 	}
-
-	retrieved, err := m.Get("key1")
-	if err != nil {
-		t.Fatalf("Get failed: %v", err)
-	}
-	if retrieved != value {
-		t.Fatalf("Expected value %+v, got %+v", value, retrieved)
+	keys, _ := m.Keys()
+	if len(keys) != 0 {
+		t.Error("Keys slice should be empty")
 	}
 }
 
-func TestLookupMap_ErrorCases(t *testing.T) {
+// ============================================================================
+// UnorderedSet Tests
+// ============================================================================
+
+func TestUnorderedSet(t *testing.T) {
 	defer cleanupStorage(t)
-	m := NewLookupMap[string, int]("test_map")
+	s := NewUnorderedSet[string]("us")
 
-	_, err := m.Get("non_existent")
-	if err == nil {
-		t.Fatalf("Expected error when getting non-existent key")
+	s.Insert("apple")
+	s.Insert("banana")
+	s.Insert("cherry")
+
+	s.Insert("apple")
+	if s.Length() != 3 {
+		t.Errorf("Duplicate insert shouldn't increase length, got %d", s.Length())
 	}
 
-	err = m.Remove("non_existent")
-	if err == nil {
-		t.Fatalf("Expected error when removing non-existent key: %v", err)
+	if yes, _ := s.Contains("banana"); !yes {
+		t.Error("Should contain banana")
 	}
 
-	exists, err := m.Contains("non_existent")
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
-	if exists {
-		t.Fatalf("Expected non-existent key to not exist")
-	}
-}
-
-func TestUnorderedMap_Insert_Get(t *testing.T) {
-	defer cleanupStorage(t)
-	m := NewUnorderedMap[string, string]("test_map")
-
-	key := "test_key"
-	value := "test_value"
-
-	err := m.Insert(key, value)
-	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
+	s.Remove("banana")
+	if s.Length() != 2 {
+		t.Error("Length should be 2")
 	}
 
-	retrievedValue, err := m.Get(key)
-	if err != nil {
-		t.Fatalf("Get failed: %v", err)
+	items, _ := s.All()
+	if len(items) != 2 {
+		t.Error("Should return 2 items")
 	}
-
-	if retrievedValue != value {
-		t.Fatalf("Expected value %v, got %v", value, retrievedValue)
-	}
-}
-
-func TestUnorderedMap_Contains(t *testing.T) {
-	defer cleanupStorage(t)
-	m := NewUnorderedMap[string, string]("test_map")
-
-	key := "test_key"
-	value := "test_value"
-
-	exists, err := m.Contains(key)
-
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
-	if exists {
-		t.Fatalf("Expected key to not exist")
-	}
-
-	err = m.Insert(key, value)
-	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
-	}
-
-	exists, err = m.Contains(key)
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
-	if !exists {
-		t.Fatalf("Expected key to exist")
-	}
-}
-
-func TestUnorderedMap_Remove(t *testing.T) {
-	defer cleanupStorage(t)
-
-	m := NewUnorderedMap[string, string]("test_map")
-
-	key := "test_key"
-	value := "test_value"
-
-	err := m.Insert(key, value)
-	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
-	}
-
-	err = m.Remove(key)
-	if err != nil {
-		t.Fatalf("Remove failed: %v", err)
-	}
-
-	exists, err := m.Contains(key)
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
-	if exists {
-		t.Fatalf("Expected key to not exist after removal")
-	}
-}
-
-func TestUnorderedMap_Keys_Values(t *testing.T) {
-	defer cleanupStorage(t)
-
-	m := NewUnorderedMap[string, string]("test_map")
-
-	testData := map[string]string{
-		"key1": "value1",
-		"key2": "value2",
-		"key3": "value3",
-	}
-
-	for k, v := range testData {
-		err := m.Insert(k, v)
-		if err != nil {
-			t.Fatalf("Insert failed for key %s: %v", k, err)
+	for _, item := range items {
+		if item == "banana" {
+			t.Error("Banana should be gone")
 		}
 	}
+}
 
-	keys, err := m.Keys()
+// ============================================================================
+// TreeMap Tests
+// ============================================================================
+
+func TestTreeMap_Sorting(t *testing.T) {
+	defer cleanupStorage(t)
+	tm := NewTreeMap[int, string]("tm")
+
+	tm.Insert(20, "twenty")
+	tm.Insert(10, "ten")
+	tm.Insert(30, "thirty")
+
+	keys, err := tm.Keys()
 	if err != nil {
-		t.Fatalf("Keys failed: %v", err)
-	}
-	if len(keys) != len(testData) {
-		t.Fatalf("Expected %d keys, got %d", len(testData), len(keys))
+		t.Fatal(err)
 	}
 
-	values, err := m.Values()
-	if err != nil {
-		t.Fatalf("Values failed: %v", err)
+	if len(keys) != 3 {
+		t.Fatal("Expected 3 keys")
 	}
-	if len(values) != len(testData) {
-		t.Fatalf("Expected %d values, got %d", len(testData), len(values))
+	if keys[0] != 10 || keys[1] != 20 || keys[2] != 30 {
+		t.Errorf("Keys not sorted: %v", keys)
 	}
 }
 
-func TestLookupSet_Insert_Contains(t *testing.T) {
+func TestTreeMap_MinMax(t *testing.T) {
 	defer cleanupStorage(t)
+	tm := NewTreeMap[string, int]("tm")
 
-	s := NewLookupSet[string]("test_set")
-
-	value := "test_value"
-
-	exists, err := s.Contains(value)
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
-	if exists {
-		t.Fatalf("Expected value to not exist")
+	if _, err := tm.MinKey(); err != ErrMapEmpty {
+		t.Error("Expected ErrMapEmpty")
 	}
 
-	err = s.Insert(value)
-	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
-	}
+	tm.Insert("b", 2)
+	tm.Insert("a", 1)
+	tm.Insert("c", 3)
 
-	exists, err = s.Contains(value)
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
+	min, _ := tm.MinKey()
+	max, _ := tm.MaxKey()
+
+	if min != "a" {
+		t.Errorf("Expected min 'a', got %s", min)
 	}
-	if !exists {
-		t.Fatalf("Expected value to exist")
+	if max != "c" {
+		t.Errorf("Expected max 'c', got %s", max)
 	}
 }
 
-func TestLookupSet_Remove(t *testing.T) {
+func TestTreeMap_Remove_Rebalance(t *testing.T) {
 	defer cleanupStorage(t)
+	tm := NewTreeMap[int, int]("tm")
 
-	s := NewLookupSet[string]("test_set")
+	tm.Insert(1, 1)
+	tm.Insert(2, 2)
+	tm.Insert(3, 3)
 
-	value := "test_value"
+	tm.Remove(2)
 
-	err := s.Insert(value)
-	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
+	keys, _ := tm.Keys()
+	if len(keys) != 2 {
+		t.Errorf("Expected len 2, got %v", keys)
+	}
+	if keys[0] != 1 || keys[1] != 3 {
+		t.Errorf("Expected [1, 3], got %v", keys)
 	}
 
-	err = s.Remove(value)
-	if err != nil {
-		t.Fatalf("Remove failed: %v", err)
-	}
-
-	exists, err := s.Contains(value)
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
-	if exists {
-		t.Fatalf("Expected value to not exist after removal")
-	}
-}
-
-func TestUnorderedSet_Insert_Contains(t *testing.T) {
-	defer cleanupStorage(t)
-
-	s := NewUnorderedSet[string]("test_set")
-
-	value := "test_value"
-
-	exists, err := s.Contains(value)
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
-	if exists {
-		t.Fatalf("Expected value to not exist")
-	}
-
-	err = s.Insert(value)
-	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
-	}
-
-	exists, err = s.Contains(value)
-	if err != nil {
-		t.Fatalf("Contains failed: %v", err)
-	}
-	if !exists {
-		t.Fatalf("Expected value to exist")
-	}
-}
-
-func TestUnorderedSet_Values(t *testing.T) {
-	defer cleanupStorage(t)
-
-	s := NewUnorderedSet[string]("test_set")
-
-	testValues := []string{"value1", "value2", "value3"}
-
-	for _, v := range testValues {
-		err := s.Insert(v)
-		if err != nil {
-			t.Fatalf("Insert failed for value %s: %v", v, err)
-		}
-	}
-
-	values, err := s.Values(0, nil)
-	if err != nil {
-		t.Fatalf("Values failed: %v", err)
-	}
-	if len(values) != len(testValues) {
-		t.Fatalf("Expected %d values, got %d", len(testValues), len(values))
-	}
-}
-
-func TestTreeMap_Insert_Get(t *testing.T) {
-	defer cleanupStorage(t)
-
-	m := NewTreeMap[string, string]("test_map")
-
-	key := "test_key"
-	value := "test_value"
-
-	err := m.Insert(key, value)
-	if err != nil {
-		t.Fatalf("Insert failed: %v", err)
-	}
-
-	retrievedValue, err := m.Get(key)
-	if err != nil {
-		t.Fatalf("Get failed: %v", err)
-	}
-
-	if retrievedValue != value {
-		t.Fatalf("Expected value %v, got %v", value, retrievedValue)
-	}
-}
-
-func TestTreeMap_MinKey_MaxKey(t *testing.T) {
-	defer cleanupStorage(t)
-
-	m := NewTreeMap[string, string]("test_map")
-
-	env.LogString("TestTreeMap_MinKey_MaxKey: Testing empty map MinKey")
-	_, err := m.MinKey()
-	if err == nil {
-		t.Fatalf("Expected error for empty map MinKey")
-	}
-	if err.Error() != CollectionErrMapEmpty {
-		t.Fatalf("Expected error %s, got %s", CollectionErrMapEmpty, err.Error())
-	}
-
-	env.LogString("TestTreeMap_MinKey_MaxKey: Testing empty map MaxKey")
-	_, err = m.MaxKey()
-	if err == nil {
-		t.Fatalf("Expected error for empty map MaxKey")
-	}
-	if err.Error() != CollectionErrMapEmpty {
-		t.Fatalf("Expected error %s, got %s", CollectionErrMapEmpty, err.Error())
-	}
-
-	testData := map[string]string{
-		"key1": "value1",
-		"key2": "value2",
-		"key3": "value3",
-	}
-
-	env.LogString("TestTreeMap_MinKey_MaxKey: Inserting test data")
-	for k, v := range testData {
-		err := m.Insert(k, v)
-		if err != nil {
-			t.Fatalf("Insert failed for key %s: %v", k, err)
-		}
-	}
-
-	env.LogString("TestTreeMap_MinKey_MaxKey: Testing MinKey")
-	minKey, err := m.MinKey()
-	if err != nil {
-		t.Fatalf("MinKey failed: %v", err)
-	}
-
-	if minKey != "key1" {
-		t.Fatalf("Expected min key 'key1', got %v", minKey)
-	}
-
-	env.LogString("TestTreeMap_MinKey_MaxKey: Testing MaxKey")
-	maxKey, err := m.MaxKey()
-	if err != nil {
-		t.Fatalf("MaxKey failed: %v", err)
-	}
-	if maxKey != "key3" {
-		t.Fatalf("Expected max key 'key3', got %v", maxKey)
-	}
-}
-
-func TestTreeMap_FloorKey_CeilingKey(t *testing.T) {
-	defer cleanupStorage(t)
-
-	m := NewTreeMap[string, string]("test_map")
-
-	testData := map[string]string{
-		"key1": "value1",
-		"key3": "value3",
-		"key5": "value5",
-	}
-
-	for k, v := range testData {
-		err := m.Insert(k, v)
-		if err != nil {
-			t.Fatalf("Insert failed for key %s: %v", k, err)
-		}
-	}
-
-	floorKey, err := m.FloorKey("key4")
-	if err != nil {
-		t.Fatalf("FloorKey failed: %v", err)
-	}
-	if floorKey != "key3" {
-		t.Fatalf("Expected floor key 'key3', got %v", floorKey)
-	}
-
-	ceilingKey, err := m.CeilingKey("key2")
-	if err != nil {
-		t.Fatalf("CeilingKey failed: %v", err)
-	}
-	if ceilingKey != "key3" {
-		t.Fatalf("Expected ceiling key 'key3', got %v", ceilingKey)
+	_, err := tm.Get(2)
+	if err != ErrKeyNotFound {
+		t.Error("Value for 2 should be gone")
 	}
 }
 
@@ -4368,22 +3692,6 @@ func InitContract() {
 	env.LogString("Init Smart Contract")
 	env.ContractValueReturn([]byte("1"))
 }
-
-
-
-==================================================
-FILE: new_collections/collections.go
-==================================================
-
-package newcollections
-
-
-
-==================================================
-FILE: new_collections/collections_test.go
-==================================================
-
-package newcollections
 
 
 
