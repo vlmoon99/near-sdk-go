@@ -5,8 +5,7 @@ OUTPUT="go_context.txt"
 > "$OUTPUT"
 
 echo "### GO PROJECT CONTEXT" >> "$OUTPUT"
-echo "### Root: $(pwd)" >> "$OUTPUT"
-echo "### Generated at: $(date)" >> "$OUTPUT"
+echo "### Root: ." >> "$OUTPUT"
 echo "" >> "$OUTPUT"
 
 find . \
@@ -18,13 +17,15 @@ find . \
     -name "README.md" \
   \) -print | sort | while read -r file; do
 
+  rel="${file#./}"
+
   echo "==================================================" >> "$OUTPUT"
-  echo "FILE: ${file#./}" >> "$OUTPUT"
+  echo "FILE: $rel" >> "$OUTPUT"
   echo "==================================================" >> "$OUTPUT"
   echo "" >> "$OUTPUT"
 
   cat "$file" >> "$OUTPUT"
-  echo -e "\n\n" >> "$OUTPUT"
+  printf "\n\n" >> "$OUTPUT"
 done
 
 echo "Context written to $OUTPUT"

@@ -1,6 +1,5 @@
 ### GO PROJECT CONTEXT
-### Root: /home/jhonn/dev/near-sdk-go
-### Generated at: Fri Dec 26 16:50:48 UTC 2025
+### Root: .
 
 ==================================================
 FILE: README.md
@@ -161,11 +160,11 @@ For a hands-on experience, go through the [Status_Message_Tutorial](doc/Status_M
 This will give you a deeper understanding of the full development and deployment process on NEAR using Go.
 
 
-
 ==================================================
 FILE: collections/collections.go
 ==================================================
 
+// This package provides collections for data manipulation on the blockchain.
 package collections
 
 import (
@@ -869,7 +868,6 @@ func (m *TreeMap[K, V]) Contains(key K) (bool, error) {
 }
 
 
-
 ==================================================
 FILE: collections/collections_test.go
 ==================================================
@@ -1250,11 +1248,11 @@ func TestTreeMap_Remove_Rebalance(t *testing.T) {
 }
 
 
-
 ==================================================
 FILE: contract/contract.go
 ==================================================
 
+// Package contract provides functions for createing the basic structure ofthe smart contract.
 package contract
 
 import (
@@ -1385,7 +1383,6 @@ type PromiseResult struct {
 	Data       []byte
 	StatusCode int
 }
-
 
 
 ==================================================
@@ -1567,13 +1564,11 @@ func TestHandleClientRawBytesInput(t *testing.T) {
 }
 
 
-
 ==================================================
 FILE: doc/README.md
 ==================================================
 
 💡 **This is the enhanced documentation where you'll find detailed instructions about this repository — including how to use it, build smart contracts, connect them to the frontend, and more.**
-
 
 ==================================================
 FILE: env/env.go
@@ -2793,7 +2788,6 @@ func PromiseReturn(promiseId uint64) {
 // Promise API Results
 
 
-
 ==================================================
 FILE: env/env_test.go
 ==================================================
@@ -3649,7 +3643,6 @@ func TestPromiseReturn(t *testing.T) {
 // Promise API Results
 
 
-
 ==================================================
 FILE: go.mod
 ==================================================
@@ -3663,7 +3656,6 @@ require github.com/mr-tron/base58 v1.2.0 // direct
 require github.com/vlmoon99/jsonparser v0.0.1
 
 
-
 ==================================================
 FILE: go.sum
 ==================================================
@@ -3672,7 +3664,6 @@ github.com/mr-tron/base58 v1.2.0 h1:T/HDJBh4ZCPbU39/+c3rRvE0uKBQlU27+QI8LJ4t64o=
 github.com/mr-tron/base58 v1.2.0/go.mod h1:BinMc/sQntlIE1frQmRFPUoPA1Zkr8VRgBdjWI2mNwc=
 github.com/vlmoon99/jsonparser v0.0.1 h1:vfPID9QY/s9bVsYQ7Sl6EDvPTXIEcGVVpVpnbA2cg8s=
 github.com/vlmoon99/jsonparser v0.0.1/go.mod h1:GjBpBdc+tq4LSwtfjSIIO/3qLjCTRORUyZMyI3s8VNY=
-
 
 
 ==================================================
@@ -3692,7 +3683,6 @@ func InitContract() {
 	env.LogString("Init Smart Contract")
 	env.ContractValueReturn([]byte("1"))
 }
-
 
 
 ==================================================
@@ -4250,7 +4240,6 @@ func ReadRegisterDirect(registerId uint64, length uint64) ([]byte, error) {
 }
 
 
-
 ==================================================
 FILE: promise/promise_test.go
 ==================================================
@@ -4523,7 +4512,6 @@ func TestPromiseResult_UnwrapToParser(t *testing.T) {
 }
 
 
-
 ==================================================
 FILE: system/system.go
 ==================================================
@@ -4629,7 +4617,6 @@ type System interface {
 	// Promise API Results
 
 }
-
 
 
 ==================================================
@@ -5116,7 +5103,6 @@ func (m *MockSystem) PromiseReturn(promiseId uint64) {
 }
 
 // Promise API Results
-
 
 
 ==================================================
@@ -5971,7 +5957,6 @@ func compareBytes(a, b []byte) bool {
 // Promise API Results
 
 
-
 ==================================================
 FILE: system/system_near.go
 ==================================================
@@ -6690,7 +6675,6 @@ func (SystemNear) PromiseResult(resultIdx uint64, registerId uint64) uint64
 func (SystemNear) PromiseReturn(promiseId uint64)
 
 
-
 ==================================================
 FILE: types/types.go
 ==================================================
@@ -7284,7 +7268,6 @@ func (pk *PublicKey) Bytes() []byte {
 	result = append(result, pk.Data...)
 	return result
 }
-
 
 
 ==================================================
@@ -8320,6 +8303,5 @@ func encodeHex(data []byte) string {
 }
 
 //PublicKey type tests
-
 
 
