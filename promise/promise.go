@@ -139,13 +139,11 @@ func (p *Promise) DepositYocto(amount uint64) *Promise {
 func (p *Promise) Then(method string, args interface{}) *Promise {
 	argsBytes, err := json.Marshal(args)
 	if err != nil {
-		env.LogString(ErrMarshalingArgsInThen + err.Error())
 		return p
 	}
 
 	currentAccount, err := env.GetCurrentAccountId()
 	if err != nil {
-		env.LogString(ErrGettingCurrentAccountInThen + err.Error())
 		return p
 	}
 
@@ -164,7 +162,6 @@ func (p *Promise) Then(method string, args interface{}) *Promise {
 func (p *Promise) ThenCall(contractID, method string, args interface{}) *Promise {
 	argsBytes, err := json.Marshal(args)
 	if err != nil {
-		env.LogString(ErrMarshalingArgsInThenCall + err.Error())
 		return p
 	}
 
@@ -196,13 +193,11 @@ func (p *Promise) Join(otherPromises []*Promise, callback string, args interface
 
 	argsBytes, err := json.Marshal(args)
 	if err != nil {
-		env.LogString(ErrMarshalingArgsInJoin + err.Error())
 		return p
 	}
 
 	currentAccount, err := env.GetCurrentAccountId()
 	if err != nil {
-		env.LogString(ErrGettingCurrentAccountInJoin + err.Error())
 		return p
 	}
 
@@ -266,7 +261,6 @@ func (pb *PromiseBatch) FunctionCall(method string, args interface{}, amount typ
 
 	argsBytes, err := json.Marshal(args)
 	if err != nil {
-		env.LogString(ErrMarshalingArgsInCall + err.Error())
 		return pb
 	}
 
@@ -381,7 +375,6 @@ func (cc *CrossContract) Call(method string, args interface{}) *Promise {
 	argsBytes, err := json.Marshal(args)
 
 	if err != nil {
-		env.LogString(ErrMarshalingArgsInCall + err.Error())
 		return NewPromise(0)
 	}
 
@@ -399,24 +392,6 @@ func (cc *CrossContract) Call(method string, args interface{}) *Promise {
 func (cc *CrossContract) Batch() *PromiseBatch {
 	promiseID := env.PromiseBatchCreate([]byte(cc.accountID))
 	return NewPromiseBatch(promiseID).Gas(cc.gas)
-}
-
-func GetPromiseResult(index uint64) (PromiseResult, error) {
-	if env.PromiseResultsCount() == 0 {
-		return PromiseResult{}, errors.New(ErrNoPromiseResults)
-	}
-
-	data, err := env.PromiseResult(index)
-	if err != nil {
-		if err.Error() == "(PROMISE_ERROR): promise execution failed with data" {
-			return NewPromiseResult(2, data), nil
-		} else if err.Error() == "(PROMISE_ERROR): promise execution failed" {
-			return NewPromiseResult(2, []byte{}), nil
-		}
-		return PromiseResult{}, err
-	}
-
-	return NewPromiseResult(1, data), nil
 }
 
 func GetPromiseResultSafe(index uint64) (PromiseResult, error) {
@@ -468,7 +443,7 @@ func GetAllPromiseResults() ([]PromiseResult, error) {
 
 	results := make([]PromiseResult, count)
 	for i := uint64(0); i < count; i++ {
-		result, err := GetPromiseResult(i)
+		result, err := GetPromiseResultSafe(i)
 		if err != nil {
 			return nil, errors.New(ErrFailedToGetPromiseResult + types.IntToString(int(i)) + ": " + err.Error())
 		}
@@ -514,21 +489,16 @@ func CallbackGuard() error {
 
 func ReadRegisterSafeWithFallback(registerId uint64) ([]byte, error) {
 	length := env.NearBlockchainImports.RegisterLen(registerId)
-	env.LogString(ErrRegisterLength + types.IntToString(int(registerId)) + ErrLength + types.IntToString(int(length)))
 
 	if length == 0 {
-		env.LogString(ErrRegisterEmpty)
 		return []byte{}, nil
 	}
 
 	data, err := env.ReadRegisterSafe(registerId)
 	if err != nil {
-		env.LogString(ErrStandardRegisterReadFailed + err.Error())
-
 		return ReadRegisterDirect(registerId, length)
 	}
 
-	env.LogString(ErrSuccessfullyReadBytes + types.IntToString(len(data)) + ErrBytesFromRegister)
 	return data, nil
 }
 
@@ -541,7 +511,6 @@ func ReadRegisterDirect(registerId uint64, length uint64) ([]byte, error) {
 	if len(buffer) > 0 {
 		ptr := uint64(uintptr(unsafe.Pointer(&buffer[0])))
 		env.NearBlockchainImports.ReadRegister(registerId, ptr)
-		env.LogString(ErrDirectRegisterReadCompleted + types.IntToString(int(length)) + ErrBytesFromRegister)
 		return buffer, nil
 	}
 

@@ -27,7 +27,7 @@ type SubaccountInput struct {
 }
 
 type CreateAccountInput struct {
-	AccountID string `json:"account_id"`
+	AccountId string `json:"account_id"`
 	PublicKey string `json:"public_key"`
 }
 
@@ -47,6 +47,14 @@ type DeleteAccountInput struct {
 
 type SelfDeleteInput struct {
 	Beneficiary string `json:"beneficiary"`
+}
+
+type MessageInput struct {
+	Message string `json:"message"`
+}
+
+type PromiseCallbackInputData struct {
+	Data string `json:"data"`
 }
 
 // ============================================================================
@@ -74,7 +82,7 @@ func (c *Contract) Init() string {
 // ============================================================================
 
 // Example 1: Transfer NEAR Ⓝ
-// @contract:mutating
+// @contract:payable min_deposit=1NEAR
 func (c *Contract) ExampleTransferToken(input TransferTokenInput) error {
 	amount, err := types.U128FromString(input.Amount)
 	if err != nil {
@@ -88,77 +96,35 @@ func (c *Contract) ExampleTransferToken(input TransferTokenInput) error {
 }
 
 // Example 2: Function Call
-// @contract:mutating
+// @contract:payable min_deposit=0.00001NEAR
 func (c *Contract) ExampleFunctionCall() {
 	gas := uint64(types.ONE_TERA_GAS * 10)
 	accountId := "hello-nearverse.testnet"
-
+	args := map[string]string{
+		"message": "howdy",
+	}
 	promise.NewCrossContract(accountId).
 		Gas(gas).
-		Call("set_greeting", map[string]string{
-			"message": "howdy",
-		}).
-		Then("ExampleFunctionCallCallback", map[string]string{})
+		Call("set_greeting", args).
+		Then("example_function_call_callback", args)
 }
 
-// @contract:mutating
-func (c *Contract) ExampleFunctionCallCallback() {
-	result, err := promise.GetPromiseResult(0)
-	if err != nil {
-		env.LogString("Callback error: " + err.Error())
-		return
-	}
+// @contract:view
+// @contract:promise_callback
+func (c *Contract) ExampleFunctionCallCallback(input MessageInput, result promise.PromiseResult) MessageInput {
+	env.LogString("Executing callback")
+	env.LogString("Input Message : " + input.Message)
 
 	if result.Success {
-		env.LogString("Callback success")
+		env.LogString("Cross-contract call executed successfully")
+		env.LogString("Promise Result Status --> " + strconv.FormatInt(int64(result.StatusCode), 10))
 		if len(result.Data) > 0 {
-			env.LogString("Result: " + string(result.Data))
+			env.LogString("Batch call data: " + string(result.Data))
 		}
 	} else {
-		env.LogString("Callback failed")
+		env.LogString("Cross-contract call failed")
 	}
-}
-
-// Example: Promise Result Testing
-// @contract:mutating
-func (c *Contract) ExamplePromiseResultTesting() {
-	gas := uint64(types.ONE_TERA_GAS * 10)
-	accountId := "hello-nearverse.testnet"
-
-	env.LogString("Starting promise result testing example")
-
-	promise.NewCrossContract(accountId).
-		Gas(gas).
-		Call("get_greeting", map[string]string{}).
-		Then("ExamplePromiseResultTestingCallback", map[string]string{
-			"test_type": "comprehensive",
-		})
-}
-
-// @contract:mutating
-func (c *Contract) ExamplePromiseResultTestingCallback() {
-	env.LogString("=== Promise Result Testing Callback ===")
-
-	count := env.PromiseResultsCount()
-	env.LogString("Promise results count: " + types.IntToString(int(count)))
-
-	result, err := promise.GetPromiseResult(0)
-	if err != nil {
-		env.LogString("Error getting result: " + err.Error())
-		return
-	}
-
-	env.LogString("--- Test Result Details ---")
-	env.LogString("Success: " + strconv.FormatBool(result.Success))
-	env.LogString("Status Code: " + types.IntToString(result.StatusCode))
-
-	if len(result.Data) > 0 {
-		env.LogString("Data: " + string(result.Data))
-	} else {
-		env.LogString("No data returned")
-	}
-
-	env.LogString("=== Promise Result Testing Complete ===")
+	return input
 }
 
 // ============================================================================
@@ -166,11 +132,19 @@ func (c *Contract) ExamplePromiseResultTestingCallback() {
 // ============================================================================
 
 // Example 3: Create a Sub Account
-// @contract:mutating
-func (c *Contract) ExampleCreateSubaccount(input SubaccountInput) {
-	currentAccountId, _ := env.GetCurrentAccountId()
-	subaccountId := input.Prefix + "." + currentAccountId
-	amount, _ := types.U128FromString("1000000000000000000000")
+// @contract:payable min_deposit=0.001NEAR
+func (c *Contract) ExampleCreateSubaccount(prefix string) {
+	currentAccountId, err := env.GetCurrentAccountId()
+	if err != nil {
+		env.PanicStr("Failed to get current account")
+	}
+
+	subaccountId := prefix + "." + currentAccountId
+
+	amount, err := types.U128FromString("1000000000000000000000") //0.001Ⓝ
+	if err != nil {
+		env.PanicStr("Bad amount format")
+	}
 
 	promise.CreateBatch(subaccountId).
 		CreateAccount().
@@ -178,14 +152,16 @@ func (c *Contract) ExampleCreateSubaccount(input SubaccountInput) {
 }
 
 // Example 4: Creating .testnet / .near Accounts
-// @contract:mutating
-func (c *Contract) ExampleCreateAccount(input CreateAccountInput) {
-	amount, _ := types.U128FromString("2000000000000000000000")
+// @contract:payable min_deposit=0.002NEAR
+func (c *Contract) ExampleCreateAccount(args CreateAccountInput) {
+	amount, _ := types.U128FromString("2000000000000000000000") // 0.002 NEAR
 	gas := uint64(200 * types.ONE_TERA_GAS)
 
+	//publicKey (base58) - 4omJwNS1WbniWtbPkLYBrFwN3YLeffXCkpvriYgeLhst (generate your own for testing)
+	//accountId - nearsdkdocs1.testnet (write your own for testing)
 	createArgs := map[string]string{
-		"new_account_id": input.AccountID,
-		"new_public_key": input.PublicKey,
+		"new_account_id": args.AccountId,
+		"new_public_key": args.PublicKey,
 	}
 
 	promise.CreateBatch("testnet").
@@ -193,11 +169,11 @@ func (c *Contract) ExampleCreateAccount(input CreateAccountInput) {
 }
 
 // Example 5: Deploying a Contract
-// @contract:mutating
-func (c *Contract) ExampleDeployContract(input DeployContractInput) {
+// @contract:payable min_deposit=1.1NEAR
+func (c *Contract) ExampleDeployContract(prefix string) {
 	currentAccountId, _ := env.GetCurrentAccountId()
-	subaccountId := input.Prefix + "." + currentAccountId
-	amount, _ := types.U128FromString("1100000000000000000000000")
+	subaccountId := prefix + "." + currentAccountId
+	amount, _ := types.U128FromString("1100000000000000000000000") // 1.1Ⓝ
 
 	promise.CreateBatch(subaccountId).
 		CreateAccount().
@@ -206,11 +182,11 @@ func (c *Contract) ExampleDeployContract(input DeployContractInput) {
 }
 
 // Example 6: Add Keys to Subaccount
-// @contract:mutating
+// @contract:payable min_deposit=0.001NEAR
 func (c *Contract) ExampleAddKeys(input AddKeysInput) {
 	currentAccountId, _ := env.GetCurrentAccountId()
 	subaccountId := input.Prefix + "." + currentAccountId
-	amount, _ := types.U128FromString("1000000000000000000000")
+	amount, _ := types.U128FromString("1000000000000000000000") // 0.001Ⓝ
 
 	promise.CreateBatch(subaccountId).
 		CreateAccount().
@@ -219,11 +195,11 @@ func (c *Contract) ExampleAddKeys(input AddKeysInput) {
 }
 
 // Example 7: Delete Account
-// @contract:mutating
+// @contract:payable min_deposit=0.001NEAR
 func (c *Contract) ExampleCreateDeleteAccount(input DeleteAccountInput) {
 	currentAccountId, _ := env.GetCurrentAccountId()
 	subaccountId := input.Prefix + "." + currentAccountId
-	amount, _ := types.U128FromString("1000000000000000000000")
+	amount, _ := types.U128FromString("1000000000000000000000") // 0.001Ⓝ
 
 	promise.CreateBatch(subaccountId).
 		CreateAccount().
@@ -244,7 +220,7 @@ func (c *Contract) ExampleSelfDeleteAccount(input SelfDeleteInput) {
 // ============================================================================
 
 // Example 8: Cross-Contract Query
-// @contract:mutating
+// @contract:payable min_deposit=0.001NEAR
 func (c *Contract) ExampleQueryingGreetingInfo() {
 	helloAccount := "hello-nearverse.testnet"
 	gas := uint64(10 * types.ONE_TERA_GAS)
@@ -255,24 +231,21 @@ func (c *Contract) ExampleQueryingGreetingInfo() {
 		Value()
 }
 
-// @contract:mutating
+// @contract:payable min_deposit=0.001NEAR
 func (c *Contract) ExampleQueryingInformation() {
 	helloAccount := "hello-nearverse.testnet"
 	gas := uint64(10 * types.ONE_TERA_GAS)
 
-	promise.NewCrossContract(helloAccount).
+	promise.
+		NewCrossContract(helloAccount).
 		Gas(gas).
 		Call("get_greeting", map[string]string{}).
-		Then("ExampleQueryingInformationResponse", map[string]string{})
+		Then("example_querying_information_response", map[string]string{})
 }
 
-// @contract:mutating
-func (c *Contract) ExampleQueryingInformationResponse() {
-	result, err := promise.GetPromiseResult(0)
-	if err != nil {
-		env.LogString("Error retrieving result: " + err.Error())
-		return
-	}
+// @contract:view
+// @contract:promise_callback
+func (c *Contract) ExampleQueryingInformationResponse(result promise.PromiseResult) {
 
 	if result.Success {
 		env.LogString("State change/Query completed successfully")
@@ -289,7 +262,7 @@ func (c *Contract) ExampleQueryingInformationResponse() {
 }
 
 // Example 9: Improved Cross-Contract Call
-// @contract:mutating
+// @contract:payable min_deposit=0.00001NEAR
 func (c *Contract) ExampleSendingInformation() {
 	helloAccount := "hello-nearverse.testnet"
 	gas := uint64(30 * types.ONE_TERA_GAS)
@@ -301,16 +274,28 @@ func (c *Contract) ExampleSendingInformation() {
 	promise.NewCrossContract(helloAccount).
 		Gas(gas).
 		Call("set_greeting", args).
-		Then("ExampleChangeGreetingCallback", map[string]string{})
+		Then("example_change_greeting_callback", map[string]string{})
 }
 
-// @contract:mutating
-func (c *Contract) ExampleChangeGreetingCallback() {
-	c.ExampleQueryingInformationResponse()
+// @contract:view
+// @contract:promise_callback
+func (c *Contract) ExampleChangeGreetingCallback(result promise.PromiseResult) {
+	if result.Success {
+		env.LogString("State change completed successfully")
+	} else {
+		env.LogString("State change failed")
+	}
+
+	env.LogString("Promise result status: " + types.IntToString(int(result.StatusCode)))
+	if len(result.Data) > 0 {
+		env.LogString("Returned data: " + string(result.Data))
+	} else {
+		env.LogString("No return data from state change")
+	}
 }
 
 // Example 10: High-Level Cross-Contract API
-// @contract:mutating
+// @contract:payable min_deposit=0.00001NEAR
 func (c *Contract) ExampleCrossContractCall() {
 	externalAccount := "hello-nearverse.testnet"
 	gas := uint64(5 * types.ONE_TERA_GAS)
@@ -318,22 +303,24 @@ func (c *Contract) ExampleCrossContractCall() {
 	args := map[string]string{
 		"message": "New Greeting",
 	}
-
+	callback_args := map[string]string{
+		"data": "saved_for_callback",
+	}
 	promise.NewCrossContract(externalAccount).
 		Gas(gas).
 		Call("set_greeting", args).
-		Then("ExampleCrossContractCallback", map[string]string{
-			"context_data": "saved_for_callback",
-		}).
+		Then("example_cross_contract_callback", callback_args).
 		Value()
 }
 
-// @contract:mutating
-func (c *Contract) ExampleCrossContractCallback() {
+// @contract:view
+// @contract:promise_callback
+func (c *Contract) ExampleCrossContractCallback(input PromiseCallbackInputData, result promise.PromiseResult) {
 	env.LogString("Executing callback")
 
-	result, err := promise.GetPromiseResult(0)
-	if err == nil && result.Success {
+	env.LogString("Input CrossContractCallback : " + input.Data)
+
+	if result.Success {
 		env.LogString("Cross-contract call executed successfully")
 	} else {
 		env.LogString("Cross-contract call failed")
@@ -345,11 +332,14 @@ func (c *Contract) ExampleCrossContractCallback() {
 // ============================================================================
 
 // Example 11: Batch Calls (Multiple Actions on One Contract)
-// @contract:mutating
+// @contract:payable min_deposit=0.00001NEAR
 func (c *Contract) ExampleBatchCallsSameContract() {
 	helloAccount := "hello-nearverse.testnet"
 	gas := uint64(10 * types.ONE_TERA_GAS)
 	amount, _ := types.U128FromString("0")
+	callback_args := map[string]string{
+		"data": "[Greeting One, Greeting Two]",
+	}
 
 	promise.NewCrossContract(helloAccount).
 		Batch().
@@ -361,22 +351,16 @@ func (c *Contract) ExampleBatchCallsSameContract() {
 			"arg1": "val1",
 		}, amount, gas).
 		Then(helloAccount).
-		FunctionCall("ExampleBatchCallsCallback", map[string]string{
-			"original_data": "[Greeting One, Greeting Two]",
-		}, amount, gas)
+		FunctionCall("example_batch_calls_callback", callback_args, amount, gas)
 
 	env.LogString("Batch call created successfully")
 }
 
-// @contract:mutating
-func (c *Contract) ExampleBatchCallsCallback() {
+// @contract:view
+// @contract:promise_callback
+func (c *Contract) ExampleBatchCallsCallback(input PromiseCallbackInputData, result promise.PromiseResult) {
 	env.LogString("Processing batch call results")
-
-	result, err := promise.GetPromiseResult(0)
-	if err != nil {
-		env.LogString("Error: " + err.Error())
-		return
-	}
+	env.LogString("Input CrossContractCallback : " + input.Data)
 
 	env.LogString("Batch call success: " + strconv.FormatBool(result.Success))
 	if len(result.Data) > 0 {
@@ -385,7 +369,7 @@ func (c *Contract) ExampleBatchCallsCallback() {
 }
 
 // Example 12: Parallel Calls (Different Contracts)
-// @contract:mutating
+// @contract:payable min_deposit=0.00001NEAR
 func (c *Contract) ExampleParallelCallsDifferentContracts() {
 	contractA := "hello-nearverse.testnet"
 	contractB := "child.neargopromises1.testnet"
@@ -397,21 +381,17 @@ func (c *Contract) ExampleParallelCallsDifferentContracts() {
 		Call("SetStatus", map[string]string{"message": "Hello, World!"})
 
 	promiseA.Join([]*promise.Promise{promiseB}, "example_parallel_contracts_callback", map[string]string{
-		"contract_ids": contractA + "," + contractB,
+		"data": contractA + "," + contractB,
 	}).Value()
 
 	env.LogString("Parallel contract calls initialized")
 }
 
-// @contract:mutating
-func (c *Contract) ExampleParallelContractsCallback() {
+// @contract:view
+// @contract:promise_callback
+func (c *Contract) ExampleParallelContractsCallback(input PromiseCallbackInputData, results []promise.PromiseResult) {
 	env.LogString("Processing results from multiple contracts")
-
-	results, err := promise.GetAllPromiseResults()
-	if err != nil {
-		env.LogString("Error fetching results: " + err.Error())
-		return
-	}
+	env.LogString("Input CrossContractCallback : " + input.Data)
 
 	for i, result := range results {
 		env.LogString("Processing result " + types.IntToString(i))

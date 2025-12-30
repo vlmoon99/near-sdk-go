@@ -45,6 +45,22 @@ func HandlePromiseResult(fn func(*promise.PromiseResult) error) {
 	}
 }
 
+// HandlePromiseResults fetches ALL promise results as a slice
+func HandlePromiseResults(fn func([]promise.PromiseResult) error) {
+	if err := promise.CallbackGuard(); err != nil {
+		env.PanicStr("callback rejected: " + err.Error())
+	}
+
+	results, err := promise.GetAllPromiseResults()
+	if err != nil {
+		env.PanicStr("failed to get promise results: " + err.Error())
+	}
+
+	if err := fn(results); err != nil {
+		env.PanicStr(err.Error())
+	}
+}
+
 func ReturnValue(value interface{}) error {
 	var data []byte
 	var err error
@@ -122,10 +138,4 @@ func RequireDeposit(minDeposit types.Uint128) error {
 		return errors.New("insufficient deposit")
 	}
 	return nil
-}
-
-type PromiseResult struct {
-	Success    bool
-	Data       []byte
-	StatusCode int
 }
